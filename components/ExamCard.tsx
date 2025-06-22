@@ -1,9 +1,11 @@
 import { AppColors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const ExamCard = ({ exam, navigation }: any) => {
+    const router = useRouter();
     const [remainingTime, setRemainingTime] = useState('');
 
     useEffect(() => {
@@ -33,8 +35,15 @@ const ExamCard = ({ exam, navigation }: any) => {
 
     const progress = exam.spots > 0 ? ((exam.spots - exam.spotsLeft) / exam.spots) * 100 : 0;
 
+    const handleCardPress = () => {
+        router.push({
+            pathname: "/exam/[id]",
+            params: { id: exam.id }
+        });
+    };
+
     return (
-        <View style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={handleCardPress} activeOpacity={0.8}>
             <View style={styles.header}>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.title} numberOfLines={1}>{exam.title}</Text>
@@ -83,7 +92,7 @@ const ExamCard = ({ exam, navigation }: any) => {
                     </View>
                 </TouchableOpacity>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 };
 
