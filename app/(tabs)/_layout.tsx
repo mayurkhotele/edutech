@@ -1,0 +1,45 @@
+import CustomTabBar from '@/components/CustomTabBar';
+import { Tabs } from 'expo-router';
+
+export default function TabLayout() {
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: { display: 'none' }, // Hide default tab bar
+      }}
+      tabBar={(props) => <CustomTabBar {...props} />}
+    >
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Home',
+        }}
+      />
+      <Tabs.Screen
+        name="exam"
+        options={{
+          title: 'Exam',
+        }}
+      />
+      <Tabs.Screen
+        name="quiz"
+        options={{
+          title: 'Quiz',
+        }}
+      />
+      <Tabs.Screen
+        name="social"
+        options={{
+          title: 'Social',
+        }}
+      />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          title: 'Wallet',
+        }}
+      />
+    </Tabs>
+  );
+} 
