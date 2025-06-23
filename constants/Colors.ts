@@ -17,6 +17,8 @@ export const AppColors = {
   darkGrey: '#333333',
   pink: '#E91E63',
   purple: '#9C27B0',
+  success: '#4CAF50',
+  error: '#F44336',
 };
 
 export const Colors = {

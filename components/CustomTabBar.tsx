@@ -1,13 +1,12 @@
 import { AppColors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Path, Svg } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
-const TAB_BAR_HEIGHT = 80;
+const TAB_BAR_HEIGHT = 65;
 const ICON_SIZE = 24;
-const TAB_WIDTH = width / 5;
 
 const CustomTabBar = ({ state, descriptors, navigation }: any) => {
     const { routes, index: activeIndex } = state;
@@ -27,24 +26,15 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
             navigation.navigate(route.name);
         }
     };
-    
-    const d = [
-        `M 0 20`,
-        `C ${width * 0.1} 20, ${width * 0.15} 0, ${width * 0.25} 0`,
-        `H ${width * 0.75}`,
-        `C ${width * 0.85} 0, ${width * 0.9} 20, ${width} 20`,
-        `V ${TAB_BAR_HEIGHT}`,
-        `H 0 Z`
-    ].join(' ');
-
-    const center_d = `M ${width/2 - 35} 20 A 35 35 0 1 1 ${width/2 + 35} 20`;
 
     return (
         <View style={styles.tabBarContainer}>
-            <Svg width={width} height={TAB_BAR_HEIGHT} style={styles.svg}>
-                <Path d={d} fill={AppColors.black} stroke={AppColors.black} strokeWidth={1} />
-                <Path d={center_d} fill={AppColors.black} />
-            </Svg>
+            <LinearGradient
+                colors={['#4C1D95', '#581C87']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientBackground}
+            />
 
             <View style={styles.tabBarItemsContainer}>
                 {filteredRoutes.map((route: any) => {
@@ -102,9 +92,9 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
                             <Ionicons 
                                 name={iconName} 
                                 size={ICON_SIZE} 
-                                color={isFocused ? AppColors.primary : AppColors.grey}
+                                color={isFocused ? AppColors.white : 'rgba(255, 255, 255, 0.7)'}
                             />
-                            <Text style={[styles.label, { color: isFocused ? AppColors.primary : AppColors.grey }]}>
+                            <Text style={[styles.label, { color: isFocused ? AppColors.white : 'rgba(255, 255, 255, 0.7)' }]}>
                                 {label}
                             </Text>
                         </TouchableOpacity>
@@ -122,10 +112,6 @@ const styles = StyleSheet.create({
         width: width,
         height: TAB_BAR_HEIGHT,
         alignItems: 'center',
-    },
-    svg: {
-        position: 'absolute',
-        bottom: 0,
     },
     tabBarItemsContainer: {
         flexDirection: 'row',
@@ -164,7 +150,14 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: AppColors.white,
         marginTop: 4,
-    }
+    },
+    gradientBackground: {
+        position: 'absolute',
+        bottom: 0,
+        width: width,
+        height: TAB_BAR_HEIGHT,
+        borderRadius: 20,
+    },
 });
 
 export default CustomTabBar; 

@@ -15,6 +15,11 @@ const CustomDrawerContent = (props: any) => {
         navigation.closeDrawer();
     };
 
+    const navigateToTimetable = () => {
+        navigation.navigate('(tabs)', { screen: 'timetable' });
+        navigation.closeDrawer();
+    };
+
     return (
         <SafeAreaView style={{ flex: 1 }}>
             <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
@@ -43,6 +48,7 @@ const CustomDrawerContent = (props: any) => {
                     <DrawerItem icon="people-outline" label="Find Guru" />
                     <DrawerItem icon="person-outline" label="My Profile" />
                     <DrawerItem icon="stats-chart-outline" label="Leaderboard" />
+                    <DrawerItem icon="calendar-outline" label="My Timetable" onPress={navigateToTimetable} />
                     <DrawerItem icon="wallet-outline" label="My Balance" value="₹0.00" onPress={navigateToWallet} />
                     <DrawerItem icon="person-add-outline" label="Invite Friends" />
                     <DrawerItem icon="information-circle-outline" label="My Info & Setting" />

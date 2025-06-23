@@ -1,10 +1,12 @@
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 // import client from '../../api/client';
 import { apiFetchAuth } from '@/constants/api';
+
 const WalletScreen = () => {
     const { user, logout } = useAuth();
     const [walletData, setWalletData] = React.useState<any>(null);
@@ -102,7 +104,12 @@ const WalletScreen = () => {
         <>
             <ScrollView style={styles.container}>
                 {/* Balance Card */}
-                <View style={styles.balanceCard}>
+                <LinearGradient
+                    colors={['#667eea', '#764ba2']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.balanceCard}
+                >
                     <Text style={styles.balanceTitle}>Available Balance</Text>
                     <Text style={styles.balanceAmount}>₹{walletData?.balance?.toFixed(2) || '0.00'}</Text>
                     <View style={styles.offerBanner}>
@@ -112,7 +119,7 @@ const WalletScreen = () => {
                     <View style={styles.alertIcon}>
                         <Ionicons name="warning" size={24} color="#FFD700" />
                     </View>
-                </View>
+                </LinearGradient>
 
                 {/* Money Details */}
                 <View style={styles.card}>
@@ -216,7 +223,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#f4f4f4',
     },
     balanceCard: {
-        backgroundColor: AppColors.primary,
         padding: 20,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,

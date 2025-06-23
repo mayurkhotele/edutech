@@ -5,6 +5,9 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ExamCard from '../../components/ExamCard';
+import ExamNotificationsSection from '../../components/ExamNotificationsSection';
+import PracticeExamSection from '../../components/PracticeExamSection';
+import QuestionOfTheDayPreview from '../../components/QuestionOfTheDayPreview';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -111,6 +114,15 @@ export default function HomeScreen() {
                     showsHorizontalScrollIndicator={false}
                 />
             </View>
+
+            {/* Question of the Day Section */}
+            <QuestionOfTheDayPreview />
+
+            {/* Practice Exam Section */}
+            <PracticeExamSection />
+
+            {/* Exam Notifications Section */}
+            <ExamNotificationsSection />
         </ScrollView>
     );
 }

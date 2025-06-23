@@ -35,6 +35,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="timetable"
+        options={{
+          title: 'Timetable',
+        }}
+      />
+      <Tabs.Screen
         name="wallet"
         options={{
           title: 'Wallet',
