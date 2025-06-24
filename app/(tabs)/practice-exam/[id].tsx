@@ -3,13 +3,14 @@ import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     Dimensions,
     Modal,
+    RefreshControl,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -17,6 +18,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import LeaderboardPodium from '../../../components/LeaderboardPodium';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -54,6 +56,8 @@ const PracticeExamDetailsScreen = () => {
     const [instructions, setInstructions] = useState<string[]>([]);
     const [examMeta, setExamMeta] = useState<{ duration?: string; maxMarks?: string } | null>(null);
     const [instructionsLoading, setInstructionsLoading] = useState(false);
+    const [joiningExam, setJoiningExam] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -61,6 +65,16 @@ const PracticeExamDetailsScreen = () => {
             fetchLeaderboard();
         }
     }, [id]);
+
+    // Refresh data when screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            if (id && user?.token) {
+                fetchExamDetails();
+                fetchLeaderboard();
+            }
+        }, [id, user?.token])
+    );
 
     const fetchExamDetails = async () => {
         if (!user?.token || !id) {
@@ -107,6 +121,17 @@ const PracticeExamDetailsScreen = () => {
         }
     };
 
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await Promise.all([fetchExamDetails(), fetchLeaderboard()]);
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-IN', {
@@ -127,9 +152,30 @@ const PracticeExamDetailsScreen = () => {
         setDeclarationChecked(false);
     };
 
-    const handleBeginExam = () => {
-        setShowInstructionsModal(false);
-        Alert.alert('Exam Started', 'You are now starting the exam!');
+    const handleBeginExam = async () => {
+        if (!id || !user?.token) return;
+        console.log('Starting exam with user ID:', user.id, 'Exam ID:', id);
+        setJoiningExam(true);
+        try {
+            const joinRes = await apiFetchAuth('/student/practice-exams/join', user.token, {
+                method: 'POST',
+                body: { examId: id },
+                headers: { 'Content-Type': 'application/json' },
+            });
+            if (joinRes.ok) {
+                console.log('Successfully joined exam');
+                setShowInstructionsModal(false);
+                setJoiningExam(false);
+                router.push({ pathname: '/(tabs)/practice-exam/questions', params: { id } });
+            } else {
+                setJoiningExam(false);
+                Alert.alert('Error', 'Could not join the exam.');
+            }
+        } catch (e) {
+            console.error('Error joining exam:', e);
+            setJoiningExam(false);
+            Alert.alert('Error', 'Could not join the exam.');
+        }
     };
 
     const handleReviewExam = () => {
@@ -236,7 +282,7 @@ const PracticeExamDetailsScreen = () => {
                 ))}
             </View>
 
-            <ScrollView style={styles.content}>
+            <ScrollView style={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
                 {activeTab === 'Info' && (
                     <View style={styles.infoContainer}>
                         <View style={styles.metaRow}>
@@ -307,33 +353,14 @@ const PracticeExamDetailsScreen = () => {
 
                 {activeTab === 'Leaderboard' && (
                     <View style={styles.leaderboardContainer}>
-                        <Text style={styles.leaderboardTitle}>Top Performers</Text>
-                        {leaderboard.length > 0 ? (
-                            leaderboard.map((entry, index) => (
-                                <View key={entry.userId} style={styles.leaderboardItem}>
-                                    <View style={styles.rankContainer}>
-                                        <Text style={[styles.rankText, { color: getRankColor(entry.rank) }]}>
-                                            {getRankIcon(entry.rank)}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.playerInfo}>
-                                        <Text style={styles.playerName}>{entry.name}</Text>
-                                        <Text style={styles.playerScore}>Score: {entry.score}</Text>
-                                    </View>
-                                    <View style={styles.scoreContainer}>
-                                        <Text style={styles.scoreText}>{entry.score}</Text>
-                                    </View>
-                                </View>
-                            ))
-                        ) : (
-                            <View style={styles.emptyLeaderboard}>
-                                <Ionicons name="trophy-outline" size={48} color={AppColors.grey} />
-                                <Text style={styles.emptyLeaderboardText}>No participants yet</Text>
-                                <Text style={styles.emptyLeaderboardSubtext}>
-                                    Be the first to complete this exam!
-                                </Text>
-                            </View>
-                        )}
+                        <LeaderboardPodium
+                          data={leaderboard.map((entry) => ({
+                            name: entry.name,
+                            points: entry.score,
+                            subtitle: entry.userId, // or any other subtitle you want
+                            rank: entry.rank,
+                          }))}
+                        />
                     </View>
                 )}
 
@@ -394,11 +421,15 @@ const PracticeExamDetailsScreen = () => {
                                 <Text style={styles.modalButtonSecondaryText}>Previous</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.modalButtonPrimary, !declarationChecked && styles.modalButtonDisabled]}
+                                style={[styles.modalButtonPrimary, (!declarationChecked || joiningExam) && styles.modalButtonDisabled]}
                                 onPress={handleBeginExam}
-                                disabled={!declarationChecked}
+                                disabled={!declarationChecked || joiningExam}
                             >
-                                <Text style={styles.modalButtonPrimaryText}>I am ready to begin</Text>
+                                {joiningExam ? (
+                                    <ActivityIndicator size="small" color={AppColors.white} />
+                                ) : (
+                                    <Text style={styles.modalButtonPrimaryText}>I am ready to begin</Text>
+                                )}
                             </TouchableOpacity>
                         </View>
                     </View>

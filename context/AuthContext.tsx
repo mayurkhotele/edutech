@@ -62,6 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (response.ok) {
                 const { token, user: userData } = response.data;
                 const userWithToken = { ...userData, token };
+                console.log('Login successful - New user data:', userWithToken);
                 setUser(userWithToken);
                 await storeAuthData(token, userData);
                 return userWithToken;
@@ -75,8 +76,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const logout = async () => {
+        console.log('Logging out - Clearing user data');
         setUser(null);
         await clearAuthData();
+        console.log('Logout completed - User state cleared');
     };
 
     const value = {
