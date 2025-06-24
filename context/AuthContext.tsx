@@ -7,6 +7,10 @@ interface User {
     name: string;
     email: string;
     token: string;
+    profilePicture?: string;
+    handle?: string;
+    followers?: number;
+    following?: number;
     // Add any other user properties here
 }
 

@@ -119,37 +119,19 @@ const ExamCategoryPage = () => {
   };
 
   const handleStartExam = (exam: PracticeExam) => {
-    Alert.alert(
-      'Start Exam',
-      `Are you sure you want to start "${exam.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Start', 
-          onPress: () => {
-            // Navigate to exam or start exam logic
-            console.log('Starting exam:', exam.id);
-          }
-        }
-      ]
-    );
+    // Navigate to practice exam details
+    router.push({
+      pathname: '/practice-exam/[id]',
+      params: { id: exam.id }
+    });
   };
 
   const handleReviewExam = (exam: PracticeExam) => {
-    Alert.alert(
-      'Review Exam',
-      `Would you like to review your attempt for "${exam.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Review', 
-          onPress: () => {
-            // Navigate to review or results
-            console.log('Reviewing exam:', exam.id);
-          }
-        }
-      ]
-    );
+    // Navigate to practice exam details
+    router.push({
+      pathname: '/practice-exam/[id]',
+      params: { id: exam.id }
+    });
   };
 
   const groupExamsBySubcategory = () => {

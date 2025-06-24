@@ -1,4 +1,4 @@
-const BASE_URL = 'http://192.168.9.111:3000/api';
+const BASE_URL = 'http://192.168.1.5:3000/api';
 
 type ApiOptions = {
   method?: string;

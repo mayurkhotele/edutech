@@ -120,7 +120,17 @@ export default function HomeScreen() {
 
             {/* Practice Exam Section */}
             <PracticeExamSection />
-
+            <View style={styles.bannerContainer}>
+                 <FlatList
+                    ref={bannerSliderRef}
+                    data={bannerImages}
+                    renderItem={renderBanner}
+                    keyExtractor={(_, index) => index.toString()}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                />
+            </View>
             {/* Exam Notifications Section */}
             <ExamNotificationsSection />
         </ScrollView>
@@ -144,12 +154,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 15,
+        paddingHorizontal: 20,
         paddingTop: 20,
-        paddingBottom: 10,
+        paddingBottom: 15,
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
         color: AppColors.darkGrey,
     },
@@ -159,6 +169,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     listContainer: {
-        paddingHorizontal: 15,
+        paddingHorizontal: 20,
     },
 }); 

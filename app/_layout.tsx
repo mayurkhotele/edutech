@@ -3,6 +3,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
@@ -80,9 +81,17 @@ function RootNavigator() {
             screenOptions={({ navigation }) => ({
                 headerShown: true, // Show the header
                 headerStyle: {
-                    backgroundColor: AppColors.primary, // Example color
+                    backgroundColor: 'transparent', // Make background transparent for gradient
                 },
                 headerTintColor: AppColors.white,
+                headerBackground: () => (
+                    <LinearGradient
+                        colors={['#667eea', '#764ba2']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{ flex: 1 }}
+                    />
+                ),
                 headerLeft: () => (
                     <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={{ marginLeft: 15 }}>
                         <Ionicons name="menu" size={24} color="white" />

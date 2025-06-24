@@ -127,11 +127,8 @@ const PracticeExamSection = () => {
     return ['#667eea', '#764ba2'] as const;
   };
 
-  const handleCategoryPress = (category: string) => {
-    router.push({
-      pathname: '/exam-category',
-      params: { category }
-    });
+  const handleCategoryClick = (category: string) => {
+    router.push({ pathname: '/exam-category', params: { category } });
   };
 
   if (loading) {
@@ -164,10 +161,10 @@ const PracticeExamSection = () => {
     );
   }
 
+  // Only show categories grid
   const categories = Object.keys(categoryStats);
   const totalExams = exams.length;
   const totalAttempted = exams.filter(exam => exam.attempted).length;
-
   return (
     <View style={styles.container}>
       {/* Header with Stats */}
@@ -218,8 +215,6 @@ const PracticeExamSection = () => {
           <View key={rowIndex} style={styles.categoryRow}>
             {categories.slice(rowIndex * 2, rowIndex * 2 + 2).map((category, cardIndex) => {
               const stats = categoryStats[category];
-              const completionPercentage = (stats.attemptedExams / stats.totalExams) * 100;
-              
               return (
                 <TouchableOpacity
                   key={category}
@@ -227,7 +222,7 @@ const PracticeExamSection = () => {
                     styles.categoryCard,
                     cardIndex === 0 ? styles.leftCard : styles.rightCard
                   ]}
-                  onPress={() => handleCategoryPress(category)}
+                  onPress={() => handleCategoryClick(category)}
                   activeOpacity={0.8}
                 >
                   <LinearGradient
@@ -244,7 +239,6 @@ const PracticeExamSection = () => {
                           color={AppColors.white} 
                         />
                       </View>
-                      
                       <View style={styles.categoryInfo}>
                         <Text style={styles.categoryTitle}>{category}</Text>
                       </View>

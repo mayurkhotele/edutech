@@ -72,10 +72,6 @@ const ExamCard = ({ exam, navigation }: any) => {
                         <Ionicons name="trophy-outline" size={16} color="#9B59B6" />
                         <Text style={styles.tagText}>50%</Text>
                     </View>
-                    <View style={styles.tag}>
-                        <Ionicons name="flash-outline" size={16} color="#3498DB" />
-                        <Text style={styles.tagText}>Flexible</Text>
-                    </View>
                 </View>
                 <Text style={styles.remainingTime}>Remaining time: {remainingTime}</Text>
             </View>
