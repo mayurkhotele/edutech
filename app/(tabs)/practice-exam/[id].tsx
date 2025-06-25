@@ -153,7 +153,7 @@ const PracticeExamDetailsScreen = () => {
     };
 
     const handleBeginExam = async () => {
-        if (!id || !user?.token) return;
+        if (!id || !user?.token || !exam) return;
         console.log('Starting exam with user ID:', user.id, 'Exam ID:', id);
         setJoiningExam(true);
         try {
@@ -166,7 +166,7 @@ const PracticeExamDetailsScreen = () => {
                 console.log('Successfully joined exam');
                 setShowInstructionsModal(false);
                 setJoiningExam(false);
-                router.push({ pathname: '/(tabs)/practice-exam/questions', params: { id } });
+                router.push({ pathname: '/(tabs)/practice-exam/questions', params: { id, duration: String(exam.duration) } });
             } else {
                 setJoiningExam(false);
                 Alert.alert('Error', 'Could not join the exam.');

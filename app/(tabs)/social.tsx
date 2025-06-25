@@ -1,10 +1,11 @@
-import { AppColors } from '@/constants/Colors';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import SocialFeed from '../../components/SocialFeed';
 
 export default function SocialScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Social</Text>
+      <SocialFeed />
     </View>
   );
 }
@@ -12,12 +13,6 @@ export default function SocialScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: AppColors.lightGrey,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    backgroundColor: '#F6F8FB',
   },
 }); 

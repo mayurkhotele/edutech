@@ -4,13 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -34,32 +32,15 @@ const QuestionOfTheDay = () => {
   const [isAnswered, setIsAnswered] = useState(false);
   const [showResult, setShowResult] = useState(false);
   
-  // Animation values
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.8);
-  const timerAnim = new Animated.Value(1);
-
   useEffect(() => {
-    fetchQuestionOfTheDay();
-  }, []);
+    if (user?.token) {
+      fetchQuestionOfTheDay();
+    }
+  }, [user?.token]);
 
   useEffect(() => {
     if (questionData) {
       setTimeLeft(questionData.timeLimit);
-      // Start animations
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 50,
-          friction: 7,
-          useNativeDriver: true,
-        }),
-      ]).start();
     }
   }, [questionData]);
 
@@ -67,12 +48,6 @@ const QuestionOfTheDay = () => {
     if (timeLeft > 0 && !isAnswered) {
       const timer = setTimeout(() => {
         setTimeLeft(timeLeft - 1);
-        // Animate timer progress
-        Animated.timing(timerAnim, {
-          toValue: (timeLeft - 1) / (questionData?.timeLimit || 10),
-          duration: 1000,
-          useNativeDriver: false,
-        }).start();
       }, 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && !isAnswered) {
@@ -160,164 +135,57 @@ const QuestionOfTheDay = () => {
   console.log('QuestionOfTheDay component rendering, loading:', loading, 'questionData:', questionData);
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={AppColors.primary} />
-          <Text style={styles.loadingText}>Loading Question of the Day...</Text>
-        </View>
-      </View>
-    );
+    return <View style={{flex:1,justifyContent:'center',alignItems:'center'}}><Text>Loading...</Text></View>;
   }
-
-  if (!questionData) {
+  if (questionData) {
     return (
-      <View style={styles.container}>
-        <View style={styles.noQuestionContainer}>
-          <Ionicons name="bulb-outline" size={48} color={AppColors.grey} />
-          <Text style={styles.noQuestionText}>Question of the Day</Text>
-          <Text style={styles.noQuestionSubtext}>Loading or no question available</Text>
-          <TouchableOpacity 
-            style={styles.refreshButton}
-            onPress={fetchQuestionOfTheDay}
-          >
-            <Ionicons name="refresh" size={16} color={AppColors.white} />
-            <Text style={styles.refreshButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  if (!questionData.isActive) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.noQuestionContainer}>
-          <Ionicons name="calendar-outline" size={48} color={AppColors.grey} />
-          <Text style={styles.noQuestionText}>No Question Available</Text>
-          <Text style={styles.noQuestionSubtext}>Check back tomorrow for a new question!</Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <Animated.View 
-      style={[
-        styles.container,
-        {
-          opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }],
-        }
-      ]}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="bulb-outline" size={24} color={AppColors.primary} />
-          <Text style={styles.headerTitle}>Question of the Day</Text>
-        </View>
-        
-        {/* Timer */}
-        <View style={styles.timerContainer}>
-          <Ionicons name="time-outline" size={16} color={AppColors.primary} />
-          <Text style={[
-            styles.timerText,
-            timeLeft <= 5 && styles.timerWarning
-          ]}>
-            {formatTime(timeLeft)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Timer Progress Bar */}
-      <View style={styles.timerProgressContainer}>
-        <Animated.View 
-          style={[
-            styles.timerProgress,
-            {
-              width: timerAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '100%'],
-              }),
-            }
-          ]}
-        />
-      </View>
-
-      {/* Question */}
-      <View style={styles.questionContainer}>
-        <Text style={styles.questionText}>{questionData.question}</Text>
-      </View>
-
-      {/* Options */}
-      <View style={styles.optionsContainer}>
-        {questionData.options.map((option, index) => (
+      <View style={{flex:1,justifyContent:'center',alignItems:'center',padding:24,backgroundColor:'#fff'}}>
+        <Text style={{fontWeight:'bold',fontSize:20,marginBottom:16}}>{questionData.question}</Text>
+        {questionData.options.map((opt, idx) => (
           <TouchableOpacity
-            key={index}
-            style={getOptionStyle(index)}
-            onPress={() => handleOptionSelect(index)}
-            disabled={isAnswered}
-            activeOpacity={0.7}
+            key={idx}
+            style={{
+              backgroundColor: selectedOption === idx
+                ? (idx === questionData.correct ? '#d4edda' : '#f8d7da')
+                : '#f1f1f1',
+              borderRadius: 8,
+              padding: 12,
+              marginBottom: 10,
+              width: 250,
+              alignItems: 'flex-start',
+              borderWidth: selectedOption === idx ? 2 : 1,
+              borderColor: selectedOption === idx
+                ? (idx === questionData.correct ? '#28a745' : '#dc3545')
+                : '#ccc'
+            }}
+            onPress={() => {
+              if (selectedOption === null) setSelectedOption(idx);
+            }}
+            disabled={selectedOption !== null}
           >
-            <View style={styles.optionContent}>
-              <Text style={[
-                styles.optionText,
-                selectedOption === index && styles.selectedOptionText,
-                isAnswered && index === questionData.correct && styles.correctOptionText,
-                isAnswered && selectedOption === index && index !== questionData.correct && styles.incorrectOptionText,
-              ]}>
-                {option}
-              </Text>
-              {getOptionIcon(index)}
-            </View>
+            <Text style={{fontSize:16}}>
+              {String.fromCharCode(65+idx)}. {opt}
+            </Text>
           </TouchableOpacity>
         ))}
-      </View>
-
-      {/* Result */}
-      {showResult && (
-        <Animated.View 
-          style={[
-            styles.resultContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            }
-          ]}
-        >
-          <View style={styles.resultContent}>
+        {selectedOption !== null && (
+          <View style={{marginTop: 20, alignItems: 'center'}}>
             {selectedOption === questionData.correct ? (
-              <>
-                <Ionicons name="trophy" size={32} color={AppColors.success} />
-                <Text style={styles.resultTitle}>Correct!</Text>
-                <Text style={styles.resultSubtext}>Great job! You got it right.</Text>
-              </>
+              <Text style={{color: '#28a745', fontWeight: 'bold'}}>Correct!</Text>
             ) : (
               <>
-                <Ionicons name="close-circle" size={32} color={AppColors.error} />
-                <Text style={styles.resultTitle}>Incorrect</Text>
-                <Text style={styles.resultSubtext}>
-                  The correct answer was: {questionData.options[questionData.correct]}
+                <Text style={{color: '#dc3545', fontWeight: 'bold'}}>Incorrect!</Text>
+                <Text style={{marginTop: 8}}>
+                  The correct answer was: <Text style={{fontWeight: 'bold'}}>{questionData.options[questionData.correct]}</Text>
                 </Text>
               </>
             )}
           </View>
-        </Animated.View>
-      )}
-
-      {/* Refresh Button */}
-      {isAnswered && (
-        <TouchableOpacity 
-          style={styles.refreshButton}
-          onPress={fetchQuestionOfTheDay}
-        >
-          <Ionicons name="refresh" size={16} color={AppColors.white} />
-          <Text style={styles.refreshButtonText}>Next Question</Text>
-        </TouchableOpacity>
-      )}
-    </Animated.View>
-  );
+        )}
+      </View>
+    );
+  }
+  return <View style={{flex:1,justifyContent:'center',alignItems:'center'}}><Text>No data</Text></View>;
 };
 
 const styles = StyleSheet.create({

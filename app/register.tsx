@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 const Register = () => {
     const { register } = useAuth();
@@ -33,69 +33,84 @@ const Register = () => {
 
     return (
         <LinearGradient
-            colors={[AppColors.secondary, AppColors.primary]}
+            colors={["#6C63FF", "#FF6CAB", "#FFD452"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.container}
         >
+            {/* Corner Education Effects */}
+         
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                 <Ionicons name="arrow-back" size={24} color={AppColors.white} />
             </TouchableOpacity>
-            <View style={styles.content}>
-                <Text style={styles.title}>Create Your Account</Text>
-                <Text style={styles.subtitle}>We're here to help you reach the peaks of learning. Are you ready?</Text>
+            <View style={styles.centeredContent}>
+                <View style={styles.glassCard}>
+                    <Text style={styles.title}>Create Your Account</Text>
+                    <Text style={styles.subtitle}>We're here to help you reach the peaks of learning. Are you ready?</Text>
 
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter full name"
-                    placeholderTextColor={AppColors.lightGrey}
-                    value={name}
-                    onChangeText={setName}
-                />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter email"
-                    placeholderTextColor={AppColors.lightGrey}
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                />
-                <View style={styles.passwordContainer}>
-                     <TextInput
-                        style={styles.input}
-                        placeholder="Enter password"
-                        placeholderTextColor={AppColors.lightGrey}
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={secureTextEntry}
-                    />
-                    <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)} style={styles.eyeIcon}>
-                        <Ionicons name={secureTextEntry ? "eye-off" : "eye"} size={24} color={AppColors.grey} />
+                    <View style={styles.inputWrapper}>
+                        <Ionicons name="person-outline" size={20} color="#B0B3C6" style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter full name"
+                            placeholderTextColor="#B0B3C6"
+                            value={name}
+                            onChangeText={setName}
+                        />
+                    </View>
+                    <View style={styles.inputWrapper}>
+                        <Ionicons name="mail-outline" size={20} color="#B0B3C6" style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter email"
+                            placeholderTextColor="#B0B3C6"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+                    </View>
+                    <View style={styles.inputWrapper}>
+                        <Ionicons name="lock-closed-outline" size={20} color="#B0B3C6" style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter password"
+                            placeholderTextColor="#B0B3C6"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={secureTextEntry}
+                        />
+                        <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)} style={styles.eyeIcon}>
+                            <Ionicons name={secureTextEntry ? "eye-off" : "eye"} size={22} color="#B0B3C6" />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.inputWrapper}>
+                        <Ionicons name="call-outline" size={20} color="#B0B3C6" style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter phone number"
+                            placeholderTextColor="#B0B3C6"
+                            value={phoneNumber}
+                            onChangeText={setPhoneNumber}
+                            keyboardType="phone-pad"
+                        />
+                    </View>
+                    <TouchableOpacity onPress={handleRegister} activeOpacity={0.85}>
+                        <LinearGradient
+                            colors={["#FF6CAB", "#7366FF"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.registerButton}
+                        >
+                            <Text style={styles.registerButtonText}>Get Started</Text>
+                        </LinearGradient>
                     </TouchableOpacity>
-                </View>
-
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter phone number"
-                    placeholderTextColor={AppColors.lightGrey}
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    keyboardType="phone-pad"
-                />
-
-                <TouchableOpacity onPress={handleRegister}>
-                    <LinearGradient
-                        colors={[AppColors.pink, AppColors.purple]}
-                        style={styles.registerButton}
-                    >
-                        <Text style={styles.registerButtonText}>Get Started</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-
-                <View style={styles.signInContainer}>
-                    <Text style={styles.accountText}>Already have an account? </Text>
-                    <TouchableOpacity onPress={() => router.replace('/login')}>
-                        <Text style={styles.signInText}>Log In</Text>
-                    </TouchableOpacity>
+                    <View style={styles.signInContainer}>
+                        <Text style={styles.accountText}>Already have an account? </Text>
+                        <TouchableOpacity onPress={() => router.replace('/login')}>
+                            <Text style={styles.signInText}>Log In</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
         </LinearGradient>
@@ -108,70 +123,125 @@ const styles = StyleSheet.create({
     },
     backButton: {
         position: 'absolute',
-        top: 50,
+        top: Platform.OS === 'ios' ? 60 : 40,
         left: 20,
         zIndex: 1,
     },
-    content: {
+    centeredContent: {
         flex: 1,
         justifyContent: 'center',
-        paddingHorizontal: 30,
+        alignItems: 'center',
+    },
+    glassCard: {
+        width: '100%',
+        maxWidth: 380,
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderRadius: 28,
+        padding: 28,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.18,
+        shadowRadius: 24,
+        elevation: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.25)',
+        marginHorizontal: 16,
+        marginTop: Platform.OS === 'ios' ? 60 : 0,
     },
     title: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: AppColors.white,
-        marginBottom: 10,
+        color: '#fff',
+        marginBottom: 8,
+        textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
-        color: AppColors.lightGrey,
-        marginBottom: 40,
+        color: '#f3eaff',
+        marginBottom: 32,
+        textAlign: 'center',
     },
-    input: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 10,
-        padding: 15,
-        color: AppColors.white,
-        fontSize: 16,
-        marginBottom: 20,
-        width: '100%',
-    },
-    passwordContainer: {
+    inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.85)',
+        borderRadius: 12,
+        marginBottom: 18,
+        paddingHorizontal: 12,
         width: '100%',
-        marginBottom: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    inputIcon: {
+        marginRight: 6,
+    },
+    input: {
+        flex: 1,
+        color: '#222',
+        fontSize: 16,
+        paddingVertical: 14,
+        backgroundColor: 'transparent',
     },
     eyeIcon: {
-        position: 'absolute',
-        right: 15,
+        padding: 4,
     },
     registerButton: {
-        borderRadius: 10,
-        padding: 15,
+        borderRadius: 12,
+        padding: 16,
         alignItems: 'center',
-        marginTop: 20,
+        marginTop: 18,
+        width: 180,
+        alignSelf: 'center',
+        shadowColor: '#FF6CAB',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.18,
+        shadowRadius: 12,
+        elevation: 4,
     },
     registerButtonText: {
-        color: AppColors.white,
+        color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
+        letterSpacing: 1,
     },
     signInContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 30,
+        marginTop: 18,
     },
     accountText: {
-        color: AppColors.lightGrey,
+        color: '#f3eaff',
+        fontSize: 14,
     },
     signInText: {
-        color: AppColors.white,
+        color: '#FFD452',
         fontWeight: 'bold',
-    }
+        fontSize: 15,
+    },
+    cornerBook: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: 90,
+        height: 90,
+        opacity: 0.18,
+        zIndex: 0,
+    },
+    cornerCap: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: 110,
+        height: 110,
+        opacity: 0.15,
+        zIndex: 0,
+    },
 });
 
 export default Register; 

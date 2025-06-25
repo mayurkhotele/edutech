@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
-import { Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -10,13 +10,13 @@ const slides = [
     key: '1',
     title: 'WIN DAILY\n10 CRORES',
     subtitle: 'Ye hai India ka Naya Maidan',
-    // image: require('../../assets/images/icon.png'), // Placeholder image
+    image: require('../assets/images/icon.png'), // Placeholder image
   },
   {
     key: '2',
     title: 'PLAY DAILY\n20 + GAMES',
-    // subtitle: 'Ye hai India ka Naya Maidan',
-    // image: require('../assets/images/icon.png'), // Placeholder image
+    subtitle: 'Compete, Learn, and Win!',
+    image: require('../assets/images/icon.png'), // Placeholder image
   },
 ];
 
@@ -35,19 +35,22 @@ const Welcome = () => {
         itemVisiblePercentThreshold: 50,
     }).current;
 
-
   return (
     <LinearGradient
-        colors={['#4c0f87', '#3b0c69', '#2b094c']}
+        colors={["#6C63FF", "#FF6CAB", "#FFD452"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.container}
     >
+        {/* Corner Education Effects */}
+     
         <FlatList
             data={slides}
             renderItem={({ item }) => (
                 <View style={styles.slide}>
-                    <Image source={item.image} style={styles.image} resizeMode="contain" />
+                    <Image source={item.image} style={styles.slideImage} resizeMode="contain" />
                     <Text style={styles.title}>{item.title}</Text>
-                    <Text style={styles.subtitle}>{item.subtitle}</Text>
+                    {item.subtitle && <Text style={styles.subtitle}>{item.subtitle}</Text>}
                 </View>
             )}
             horizontal
@@ -70,16 +73,29 @@ const Welcome = () => {
                 />
             ))}
         </View>
-        <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={() => router.push('/login')}>
-                <Text style={styles.buttonText}>Login</Text>
+        <View style={styles.buttonGlassCard}>
+            <TouchableOpacity onPress={() => router.push('/login')} activeOpacity={0.85}>
+                <LinearGradient
+                    colors={["#FF6CAB", "#7366FF"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.button}
+                >
+                    <Text style={styles.buttonText}>Login</Text>
+                </LinearGradient>
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity onPress={() => router.push('/register')}>
-                <Text style={styles.buttonText}>Register</Text>
+            <TouchableOpacity onPress={() => router.push('/register')} activeOpacity={0.85}>
+                <LinearGradient
+                    colors={["#FFD452", "#FF6CAB"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.button}
+                >
+                    <Text style={styles.buttonText}>Register</Text>
+                </LinearGradient>
             </TouchableOpacity>
         </View>
-
     </LinearGradient>
   )
 }
@@ -88,6 +104,24 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    cornerBook: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: 90,
+        height: 90,
+        opacity: 0.18,
+        zIndex: 0,
+    },
+    cornerCap: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: 110,
+        height: 110,
+        opacity: 0.15,
+        zIndex: 0,
+    },
     slide: {
         width: width,
         alignItems: 'center',
@@ -95,22 +129,33 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingTop: 100,
     },
-    image: {
-        width: width * 0.8,
-        height: height * 0.4,
+    slideImage: {
+        width: width * 0.6,
+        height: height * 0.28,
         marginBottom: 40,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255,255,255,0.10)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.10,
+        shadowRadius: 8,
+        elevation: 4,
     },
     title: {
-        fontSize: 32,
+        fontSize: 36,
         fontWeight: 'bold',
         color: '#fff',
         textAlign: 'center',
+        marginBottom: 8,
+        letterSpacing: 1,
     },
     subtitle: {
         fontSize: 18,
         color: '#fff',
         textAlign: 'center',
         marginTop: 10,
+        marginBottom: 10,
+        opacity: 0.92,
     },
     pagination: {
         flexDirection: 'row',
@@ -119,32 +164,59 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     dot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
         backgroundColor: '#fff',
-        marginHorizontal: 4,
-        opacity: 0.5,
+        marginHorizontal: 6,
+        opacity: 0.4,
+        borderWidth: 2,
+        borderColor: '#FFD452',
     },
     dotActive: {
         opacity: 1,
+        backgroundColor: '#FFD452',
+        borderColor: '#fff',
     },
-    buttonContainer: {
+    buttonGlassCard: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingBottom: 50,
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderRadius: 22,
+        marginHorizontal: 32,
+        marginBottom: Platform.OS === 'ios' ? 60 : 40,
+        padding: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.18,
+        shadowRadius: 24,
+        elevation: 8,
+    },
+    button: {
+        borderRadius: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 36,
+        alignItems: 'center',
+        marginHorizontal: 8,
+        shadowColor: '#FFD452',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.18,
+        shadowRadius: 12,
+        elevation: 4,
     },
     buttonText: {
         color: '#fff',
-        fontSize: 18,
-        fontWeight: '600',
-        marginHorizontal: 20,
+        fontSize: 20,
+        fontWeight: 'bold',
+        letterSpacing: 1,
     },
     separator: {
         width: 1,
-        height: 20,
+        height: 32,
         backgroundColor: '#fff',
+        opacity: 0.3,
+        marginHorizontal: 8,
     }
 });
 

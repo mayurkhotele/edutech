@@ -21,7 +21,7 @@ interface QuestionStatus {
 }
 
 const PracticeExamQuestionsScreen = () => {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, duration } = useLocalSearchParams<{ id: string, duration?: string }>();
  
   const router = useRouter();
   const { user } = useAuth();
@@ -30,7 +30,7 @@ const PracticeExamQuestionsScreen = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
   const [statuses, setStatuses] = useState<QuestionStatus[]>([]);
-  const [timer, setTimer] = useState(12 * 60); // default 12 min
+  const [timer, setTimer] = useState(() => duration ? parseInt(duration) * 60 : 12 * 60);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showSidePanel, setShowSidePanel] = useState(false);
 
@@ -42,6 +42,12 @@ const PracticeExamQuestionsScreen = () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [id, user?.token]);
+
+  useEffect(() => {
+    if (duration) {
+      setTimer(parseInt(duration) * 60);
+    }
+  }, [duration]);
 
   const fetchQuestions = async () => {
     if (!user?.token) return;
