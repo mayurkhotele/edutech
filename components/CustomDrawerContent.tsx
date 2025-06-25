@@ -21,6 +21,11 @@ const CustomDrawerContent = (props: any) => {
         navigation.closeDrawer();
     };
 
+    const navigateToRefer = () => {
+        navigation.navigate('(tabs)', { screen: 'refer' });
+        navigation.closeDrawer();
+    };
+
     return (
         <View style={styles.container}>
             <SafeAreaView style={{ flex: 1 }}>
@@ -61,7 +66,7 @@ const CustomDrawerContent = (props: any) => {
                         <DrawerItem icon="stats-chart-outline" label="Leaderboard" />
                         <DrawerItem icon="calendar-outline" label="My Timetable" onPress={navigateToTimetable} />
                         <DrawerItem icon="wallet-outline" label="My Balance" value="₹0.00" onPress={navigateToWallet} />
-                        <DrawerItem icon="person-add-outline" label="Invite Friends" />
+                        <DrawerItem icon="person-add-outline" label="Refer & Earn" onPress={navigateToRefer} />
                         <DrawerItem icon="information-circle-outline" label="Settings" />
                         <DrawerItem icon="star-outline" label="BB Pass" />
                         <DrawerItem icon="document-text-outline" label="Point System" />

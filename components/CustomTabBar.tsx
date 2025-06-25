@@ -30,7 +30,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
     return (
         <View style={styles.tabBarContainer}>
             <LinearGradient
-                colors={['#4C1D95', '#581C87']}
+                colors={['#667eea', '#764ba2']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientBackground}
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
         width: 70,
         height: 70,
         borderRadius: 35,
-        backgroundColor: AppColors.primary,
+        backgroundColor: '#FF6B35',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 35, // This moves the button up
