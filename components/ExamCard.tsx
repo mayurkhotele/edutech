@@ -11,8 +11,8 @@ const ExamCard = ({ exam, navigation }: any) => {
     useEffect(() => {
         const calculateRemainingTime = () => {
             const now = new Date();
-            const startTime = new Date(exam.startTime);
-            const diff = startTime.getTime() - now.getTime();
+            const endTime = new Date(exam.endTime);
+            const diff = endTime.getTime() - now.getTime();
 
             if (diff <= 0) {
                 setRemainingTime('00:00:00');
@@ -31,7 +31,7 @@ const ExamCard = ({ exam, navigation }: any) => {
         const timer = setInterval(calculateRemainingTime, 1000);
         calculateRemainingTime(); // Initial call
         return () => clearInterval(timer);
-    }, [exam.startTime]);
+    }, [exam.endTime]);
 
     const progress = exam.spots > 0 ? ((exam.spots - exam.spotsLeft) / exam.spots) * 100 : 0;
 

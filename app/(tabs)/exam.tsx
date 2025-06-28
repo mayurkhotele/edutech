@@ -6,13 +6,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import ExamCard from '../../components/ExamCard';
 
@@ -20,8 +21,12 @@ export default function ExamScreen() {
     const { user } = useAuth();
     const router = useRouter();
     const [exams, setExams] = useState<any[]>([]);
+    const [filteredExams, setFilteredExams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [categories, setCategories] = useState<string[]>([]);
+    const [remainingTime, setRemainingTime] = useState('');
 
     const fetchExams = async () => {
         if (!user?.token) {
@@ -33,6 +38,20 @@ export default function ExamScreen() {
             const response = await apiFetchAuth('/student/exams', user.token);
             if (response.ok) {
                 setExams(response.data);
+                setFilteredExams(response.data);
+                
+                // Extract unique categories from exams
+                const uniqueCategories = [...new Set(
+                    response.data
+                        .map((exam: any) => exam.category)
+                        .filter((category: any) => category && typeof category === 'string')
+                )] as string[];
+                
+                // Check if there are any uncategorized exams
+                const hasUncategorized = response.data.some((exam: any) => !exam.category || exam.category === null);
+                const allCategories = hasUncategorized ? [...uniqueCategories, 'uncategorized'] : uniqueCategories;
+                
+                setCategories(allCategories);
             } else {
                 setError(response.data?.message || 'Failed to fetch exams');
             }
@@ -47,11 +66,89 @@ export default function ExamScreen() {
         fetchExams();
     }, [user]);
 
+    // Calculate remaining time for the earliest ending exam
+    useEffect(() => {
+        const calculateRemainingTime = () => {
+            if (filteredExams.length === 0) {
+                setRemainingTime('');
+                return;
+            }
+
+            const now = new Date();
+            let earliestEndTime: Date | null = null;
+
+            // Find the exam that ends earliest
+            filteredExams.forEach((exam: any) => {
+                const endTime = new Date(exam.endTime);
+                if (!earliestEndTime || endTime < earliestEndTime) {
+                    earliestEndTime = endTime;
+                }
+            });
+
+            if (!earliestEndTime) {
+                setRemainingTime('');
+                return;
+            }
+
+            const diff = earliestEndTime.getTime() - now.getTime();
+
+            if (diff <= 0) {
+                setRemainingTime('00:00:00');
+                return;
+            }
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            setRemainingTime(
+                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+            );
+        };
+
+        const timer = setInterval(calculateRemainingTime, 1000);
+        calculateRemainingTime(); // Initial call
+        return () => clearInterval(timer);
+    }, [filteredExams]);
+
+    // Filter exams based on selected category
+    useEffect(() => {
+        if (selectedCategory === 'all') {
+            setFilteredExams(exams);
+        } else if (selectedCategory === 'uncategorized') {
+            const filtered = exams.filter((exam: any) => !exam.category || exam.category === null);
+            setFilteredExams(filtered);
+        } else {
+            const filtered = exams.filter((exam: any) => exam.category === selectedCategory);
+            setFilteredExams(filtered);
+        }
+    }, [selectedCategory, exams]);
+
+    const handleCategorySelect = (category: string) => {
+        setSelectedCategory(category);
+    };
+
     const renderExamCard = ({ item }: { item: any }) => (
         <View style={styles.examCardContainer}>
             <ExamCard exam={item} navigation={router} />
         </View>
     );
+
+    const renderCategoryButton = (category: string) => {
+        const isSelected = selectedCategory === category;
+        const displayName = category === 'uncategorized' ? 'Uncategorized' : category;
+        return (
+            <TouchableOpacity
+                key={category}
+                style={[styles.categoryButton, isSelected && styles.categoryButtonSelected]}
+                onPress={() => handleCategorySelect(category)}
+            >
+                <Text style={[styles.categoryButtonText, isSelected && styles.categoryButtonTextSelected]}>
+                    {displayName}
+                </Text>
+            </TouchableOpacity>
+        );
+    };
 
     if (loading) {
         return (
@@ -90,7 +187,7 @@ export default function ExamScreen() {
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <LinearGradient
-                colors={['#4C1D95', '#581C87']}
+                colors={['#667eea', '#764ba2']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.header}
@@ -103,7 +200,8 @@ export default function ExamScreen() {
                         <View style={styles.headerTextContainer}>
                             <Text style={styles.headerTitle}>Live Exams</Text>
                             <Text style={styles.headerSubtitle}>
-                                {exams.length} exam{exams.length !== 1 ? 's' : ''} available
+                                {filteredExams.length} exam{filteredExams.length !== 1 ? 's' : ''} available
+                                {remainingTime && ` • Ends in ${remainingTime}`}
                             </Text>
                         </View>
                     </View>
@@ -120,18 +218,48 @@ export default function ExamScreen() {
                 </View>
             </LinearGradient>
 
+            {/* Category Filter */}
+            {categories.length > 0 && (
+                <View style={styles.categoryContainer}>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.categoryScrollContainer}
+                    >
+                        <TouchableOpacity
+                            style={[styles.categoryButton, selectedCategory === 'all' && styles.categoryButtonSelected]}
+                            onPress={() => handleCategorySelect('all')}
+                        >
+                            <Text style={[styles.categoryButtonText, selectedCategory === 'all' && styles.categoryButtonTextSelected]}>
+                                All
+                            </Text>
+                        </TouchableOpacity>
+                        {categories.map(renderCategoryButton)}
+                    </ScrollView>
+                </View>
+            )}
+
             {/* Exams List */}
-            {exams.length === 0 ? (
+            {filteredExams.length === 0 ? (
                 <View style={styles.emptyContainer}>
                     <Ionicons name="library-outline" size={64} color={AppColors.grey} />
-                    <Text style={styles.emptyTitle}>No Exams Available</Text>
+                    <Text style={styles.emptyTitle}>
+                        {selectedCategory === 'all' ? 'No Exams Available' : 
+                         selectedCategory === 'uncategorized' ? 'No Uncategorized Exams' :
+                         `No ${selectedCategory} Exams`}
+                    </Text>
                     <Text style={styles.emptySubtext}>
-                        Check back later for new live exams.
+                        {selectedCategory === 'all' 
+                            ? 'Check back later for new live exams.'
+                            : selectedCategory === 'uncategorized'
+                            ? 'No exams without categories available.'
+                            : `No exams available in ${selectedCategory} category.`
+                        }
                     </Text>
                 </View>
             ) : (
                 <FlatList
-                    data={exams}
+                    data={filteredExams}
                     renderItem={renderExamCard}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContainer}
@@ -250,5 +378,36 @@ const styles = StyleSheet.create({
     },
     examCardContainer: {
         marginBottom: 15,
+    },
+    categoryContainer: {
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+    },
+    categoryScrollContainer: {
+        paddingHorizontal: 10,
+    },
+    categoryButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderWidth: 1,
+        borderColor: AppColors.grey,
+        borderRadius: 20,
+        marginRight: 10,
+        backgroundColor: AppColors.white,
+        minWidth: 80,
+        alignItems: 'center',
+    },
+    categoryButtonSelected: {
+        borderColor: AppColors.primary,
+        backgroundColor: AppColors.primary,
+    },
+    categoryButtonText: {
+        fontSize: 14,
+        color: AppColors.darkGrey,
+        fontWeight: '500',
+    },
+    categoryButtonTextSelected: {
+        fontWeight: 'bold',
+        color: AppColors.white,
     },
 }); 
