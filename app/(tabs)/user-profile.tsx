@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     Dimensions,
     FlatList,
     Image,
@@ -14,7 +15,6 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import CreatePost from '../../components/CreatePost';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -30,24 +30,28 @@ function timeAgo(dateString: string) {
   return date.toLocaleDateString();
 }
 
-export default function ProfileScreen() {
+export default function UserProfileScreen() {
   const { user } = useAuth();
+  const route = useRoute();
+  const { userId } = route.params as { userId: string };
+  const navigation = useNavigation<any>();
+  
   const [profile, setProfile] = useState<any>(null);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [createPostVisible, setCreatePostVisible] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
 
-  const fetchProfile = async () => {
+  const fetchUserProfile = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await apiFetchAuth('/student/profile', user?.token || '');
+      const res = await apiFetchAuth(`/student/profile?userId=${userId}`, user?.token || '');
       if (res.ok) {
         setProfile(res.data);
+        setIsFollowing(res.data.isFollowing || false);
       } else {
         setError('Failed to load profile');
       }
@@ -63,9 +67,8 @@ export default function ProfileScreen() {
     try {
       const res = await apiFetchAuth('/student/posts', user?.token || '');
       if (res.ok) {
-        // Filter posts to only show posts by the current user
-        const currentUserId = user?.id;
-        const filteredPosts = res.data.filter((post: any) => post.authorId === currentUserId);
+        // Filter posts to only show posts by the specific user
+        const filteredPosts = res.data.filter((post: any) => post.authorId === userId);
         setUserPosts(filteredPosts);
       }
     } catch (e) {
@@ -77,17 +80,78 @@ export default function ProfileScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchProfile(), fetchUserPosts()]);
+    await Promise.all([fetchUserProfile(), fetchUserPosts()]);
     setRefreshing(false);
   };
 
   // Refresh profile data every time the screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      fetchProfile();
+      fetchUserProfile();
       fetchUserPosts();
-    }, [user?.token])
+    }, [userId, user?.token])
   );
+
+  const handleFollow = async () => {
+    // If already following, show confirmation dialog for unfollowing
+    if (isFollowing) {
+      Alert.alert(
+        'Unfollow User',
+        `Are you sure you want to unfollow ${profile.name}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Unfollow', style: 'destructive', onPress: performFollowAction },
+        ]
+      );
+    } else {
+      // If not following, directly perform follow action
+      performFollowAction();
+    }
+  };
+
+  const performFollowAction = async () => {
+    try {
+      let res;
+      
+      if (isFollowing) {
+        // Unfollow: DELETE request with userId as query parameter
+        res = await apiFetchAuth(`/student/follow?userId=${userId}`, user?.token || '', {
+          method: 'DELETE',
+        });
+      } else {
+        // Follow: POST request with userId in body
+        res = await apiFetchAuth('/student/follow', user?.token || '', {
+          method: 'POST',
+          body: { targetUserId: userId },
+        });
+      }
+      
+      if (res.ok) {
+        // Toggle the following status
+        setIsFollowing(!isFollowing);
+        // Refresh the profile to update follower count
+        fetchUserProfile();
+      }
+    } catch (error) {
+      console.error('Error following/unfollowing user:', error);
+    }
+  };
+
+  const handleMessageUser = async () => {
+    try {
+      const res = await apiFetchAuth(`/student/messages?user=${userId}`, user?.token || '');
+      if (res.ok) {
+        // Navigate to chat screen with user information
+        navigation.navigate('chat', { 
+          userId: userId, 
+          userName: profile.name,
+          messages: res.data || []
+        });
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -97,7 +161,7 @@ export default function ProfileScreen() {
           style={styles.loadingGradient}
         >
           <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.loadingText}>Loading your profile...</Text>
+          <Text style={styles.loadingText}>Loading profile...</Text>
         </LinearGradient>
       </View>
     );
@@ -113,7 +177,7 @@ export default function ProfileScreen() {
           <Ionicons name="alert-circle-outline" size={64} color="#fff" />
           <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchProfile}>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchUserProfile}>
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </LinearGradient>
@@ -130,59 +194,8 @@ export default function ProfileScreen() {
       .toUpperCase();
   };
 
-  // User-friendly helper functions
-  const handleEditProfile = () => {
-    // TODO: Navigate to edit profile screen
-    console.log('Edit profile pressed');
-  };
-
-  const handleShareProfile = () => {
-    // TODO: Implement share functionality
-    console.log('Share profile pressed');
-  };
-
-  const handleCreatePost = () => {
-    setCreatePostVisible(true);
-  };
-
-  const handlePostCreated = () => {
-    // Trigger refresh of the profile data when a new post is created
-    setRefreshTrigger(prev => prev + 1);
-    fetchProfile();
-    fetchUserPosts();
-  };
-
-  const handlePostPress = (post: any) => {
-    // TODO: Navigate to post detail screen
-    console.log('Post pressed:', post.id);
-  };
-
-  const handleStatPress = (type: string) => {
-    // TODO: Navigate to respective screens
-    console.log(`${type} pressed`);
-  };
-
-  const handleFollow = async () => {
-    try {
-      const res = await apiFetchAuth('/student/follow', user?.token || '', {
-        method: 'POST',
-        body: { targetUserId: profile.id },
-      });
-      
-      if (res.ok) {
-        // Update the profile to reflect the follow action
-        // You might want to update the UI to show "Following" instead of "Follow"
-        console.log('Follow successful:', res.data);
-        // Optionally refresh the profile data
-        fetchProfile();
-      }
-    } catch (error) {
-      console.error('Error following user:', error);
-    }
-  };
-
   const renderUserPost = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.postCard} activeOpacity={0.95} onPress={() => handlePostPress(item)}>
+    <TouchableOpacity style={styles.postCard} activeOpacity={0.95}>
       {/* User-Friendly Post Header */}
       <View style={styles.postHeader}>
         <View style={styles.postAuthorSection}>
@@ -296,134 +309,131 @@ export default function ProfileScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollContainer}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh}
-            colors={['#667eea']}
-            tintColor="#667eea"
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Clean Profile Section */}
-        <View style={styles.profileSection}>
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarContainer}>
-              {profile.profilePhoto ? (
-                <Image source={{ uri: profile.profilePhoto }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
-                </View>
-              )}
-              <TouchableOpacity style={styles.editAvatarButton} activeOpacity={0.8}>
-                <View style={styles.editAvatarIcon}>
-                  <Ionicons name="camera" size={16} color="#fff" />
-                </View>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.profileInfo}>
-              <Text style={styles.name}>{profile.name}</Text>
-              <Text style={styles.email}>{profile.email}</Text>
-              {(profile.course || profile.year) && (
-                <View style={styles.courseInfo}>
-                  <Ionicons name="school-outline" size={16} color="#667eea" />
-                  <Text style={styles.courseText}>{[profile.course, profile.year].filter(Boolean).join(' • ')}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {profile.bio && (
-            <View style={styles.bioSection}>
-              <Text style={styles.bio}>{profile.bio}</Text>
-            </View>
-          )}
-
-          {/* Clean Stats */}
-          <View style={styles.statsSection}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile._count?.posts || 0}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile._count?.followers || 0}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile._count?.following || 0}</Text>
-              <Text style={styles.statLabel}>Following</Text>
-            </View>
-          </View>
-
-          {/* Clean Action Buttons */}
-          <View style={styles.actionSection}>
-            <TouchableOpacity style={styles.followButton} activeOpacity={0.8} onPress={handleFollow}>
-              <Ionicons name="person-add-outline" size={20} color="#fff" />
-              <Text style={styles.followButtonText}>Follow</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Clean Posts Section */}
-        <View style={styles.postsSection}>
-          <View style={styles.postsHeader}>
-            <Text style={styles.postsTitle}>My Posts</Text>
-            <Text style={styles.postsCount}>{userPosts.length} posts</Text>
-          </View>
-
-          {postsLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#667eea" />
-              <Text style={styles.loadingText}>Loading posts...</Text>
-            </View>
-          ) : userPosts.length > 0 ? (
-            <FlatList
-              data={userPosts}
-              keyExtractor={(item) => item.id}
-              renderItem={renderUserPost}
-              scrollEnabled={false}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="create-outline" size={48} color="#ccc" />
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          colors={['#667eea']}
+          tintColor="#667eea"
+        />
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Clean Profile Section */}
+      <View style={styles.profileSection}>
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarContainer}>
+            {profile.profilePhoto ? (
+              <Image source={{ uri: profile.profilePhoto }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
               </View>
-              <Text style={styles.emptyTitle}>No posts yet</Text>
-              <Text style={styles.emptySubtitle}>Share your first post with the community</Text>
-              <TouchableOpacity style={styles.createButton} activeOpacity={0.8} onPress={handleCreatePost}>
-                <Ionicons name="add" size={20} color="#fff" />
-                <Text style={styles.createButtonText}>Create Post</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            )}
+          </View>
+          
+          <View style={styles.profileInfo}>
+            <Text style={styles.name}>{profile.name}</Text>
+            <Text style={styles.email}>{profile.email}</Text>
+            {(profile.course || profile.year) && (
+              <View style={styles.courseInfo}>
+                <Ionicons name="school-outline" size={16} color="#667eea" />
+                <Text style={styles.courseText}>{[profile.course, profile.year].filter(Boolean).join(' • ')}</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setCreatePostVisible(true)}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
+        {profile.bio && (
+          <View style={styles.bioSection}>
+            <Text style={styles.bio}>{profile.bio}</Text>
+          </View>
+        )}
 
-      {/* Create Post Modal */}
-      <CreatePost
-        visible={createPostVisible}
-        onClose={() => setCreatePostVisible(false)}
-        onPostCreated={handlePostCreated}
-      />
-    </View>
+        {/* Clean Stats */}
+        <View style={styles.statsSection}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{profile._count?.posts || 0}</Text>
+            <Text style={styles.statLabel}>Posts</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{profile._count?.followers || 0}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{profile._count?.following || 0}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </View>
+        </View>
+
+        {/* Clean Action Buttons */}
+        <View style={styles.actionSection}>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity 
+              style={[styles.followButton, isFollowing && styles.unfollowButton]} 
+              activeOpacity={0.8} 
+              onPress={handleFollow}
+            >
+              <Ionicons 
+                name={isFollowing ? "person-remove-outline" : "person-add-outline"} 
+                size={20} 
+                color="#fff" 
+              />
+              <Text style={styles.followButtonText}>
+                {isFollowing ? 'Unfollow' : 'Follow'}
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Message Button - Only show if following the user */}
+            {isFollowing && (
+              <TouchableOpacity 
+                style={styles.messageButton}
+                onPress={handleMessageUser}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chatbubble-outline" size={20} color="#fff" />
+                <Text style={styles.messageButtonText}>Message</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* Clean Posts Section */}
+      <View style={styles.postsSection}>
+        <View style={styles.postsHeader}>
+          <Text style={styles.postsTitle}>Posts</Text>
+          <Text style={styles.postsCount}>{userPosts.length} posts</Text>
+        </View>
+
+        {postsLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#667eea" />
+            <Text style={styles.loadingText}>Loading posts...</Text>
+          </View>
+        ) : userPosts.length > 0 ? (
+          <FlatList
+            data={userPosts}
+            keyExtractor={(item) => item.id}
+            renderItem={renderUserPost}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="create-outline" size={48} color="#ccc" />
+            </View>
+            <Text style={styles.emptyTitle}>No posts yet</Text>
+            <Text style={styles.emptySubtitle}>This user hasn't shared any posts yet</Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -509,61 +519,23 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 16,
   },
-  avatarRing: {
+  avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    padding: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#667eea',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  avatar: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
   },
   avatarPlaceholder: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    backgroundColor: '#fff',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#667eea',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitials: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#667eea',
-  },
-  editAvatarButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-  },
-  editAvatarIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    color: '#fff',
   },
   profileInfo: {
     flex: 1,
@@ -586,14 +558,13 @@ const styles = StyleSheet.create({
   courseText: {
     fontSize: 14,
     color: '#667eea',
-    fontWeight: '500',
-    marginLeft: 6,
+    marginLeft: 8,
   },
   bioSection: {
-    backgroundColor: '#f8f9fa',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
   bio: {
     fontSize: 16,
@@ -603,45 +574,61 @@ const styles = StyleSheet.create({
   statsSection: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 20,
+    marginTop: 24,
+    paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-    marginBottom: 20,
   },
   statItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 24,
-  },
-  statDivider: {
-    width: 1,
-    height: '100%',
-    backgroundColor: '#f0f0f0',
   },
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
     color: '#666',
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#f0f0f0',
   },
   actionSection: {
+    marginTop: 24,
+    paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-    paddingTop: 20,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
   followButton: {
     backgroundColor: '#667eea',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 25,
+    flex: 1,
+    shadowColor: '#667eea',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  unfollowButton: {
+    backgroundColor: '#ff6b6b',
   },
   followButtonText: {
     color: '#fff',
@@ -649,9 +636,44 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
+  messageButton: {
+    backgroundColor: '#4facfe',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    flex: 1,
+    shadowColor: '#4facfe',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  messageButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
   postsSection: {
-    marginHorizontal: 20,
-    marginBottom: 100,
+    backgroundColor: '#fff',
+    margin: 20,
+    marginTop: 0,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   postsHeader: {
     flexDirection: 'row',
@@ -666,14 +688,13 @@ const styles = StyleSheet.create({
   },
   postsCount: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#667eea',
+    color: '#666',
   },
   postCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginBottom: 16,
     padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -847,42 +868,5 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     marginBottom: 24,
-  },
-  createButton: {
-    backgroundColor: '#667eea',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 100,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#667eea',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
-    zIndex: 1000,
-  },
-  scrollContainer: {
-    flex: 1,
   },
 }); 

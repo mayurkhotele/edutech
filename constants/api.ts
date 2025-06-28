@@ -1,4 +1,4 @@
-const BASE_URL = 'http://192.168.1.4:3000/api';
+const BASE_URL = 'http://192.168.1.5:3000/api';
 
 type ApiOptions = {
   method?: string;
@@ -44,4 +44,35 @@ export async function apiFetchAuth(endpoint: string, token: string, options: Api
       Authorization: `Bearer ${token}`,
     },
   });
+}
+
+export function getImageUrl(relativePath: string): string {
+  return `${BASE_URL.replace('/api', '')}${relativePath}`;
+}
+
+export async function uploadFile(fileUri: string, token: string): Promise<string> {
+  const formData = new FormData();
+  const filename = fileUri.split('/').pop() || 'image.jpg';
+  
+  formData.append('file', {
+    uri: fileUri,
+    name: filename,
+    type: 'image/jpeg',
+  } as any);
+
+  const response = await fetch(`${BASE_URL}/upload`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to upload file');
+  }
+
+  const result = await response.json();
+  return result.url;
 } 

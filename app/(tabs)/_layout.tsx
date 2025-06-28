@@ -46,6 +46,20 @@ export default function TabLayout() {
           title: 'Wallet',
         }}
       />
+      <Tabs.Screen
+        name="user-profile"
+        options={{
+          title: 'User Profile',
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 } 
