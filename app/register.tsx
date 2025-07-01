@@ -13,6 +13,7 @@ const Register = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
+    const [referralCode, setReferralCode] = useState('');
     const [secureTextEntry, setSecureTextEntry] = useState(true);
 
     const handleRegister = async () => {
@@ -21,7 +22,7 @@ const Register = () => {
             return;
         }
         try {
-            await register({ name, email, password, phoneNumber });
+            await register({ name, email, password, phoneNumber, referralCode });
             Alert.alert('Success', 'Registration successful! Please log in.', [
                 { text: 'OK', onPress: () => router.replace('/login') },
             ]);
@@ -93,6 +94,17 @@ const Register = () => {
                             value={phoneNumber}
                             onChangeText={setPhoneNumber}
                             keyboardType="phone-pad"
+                        />
+                    </View>
+                    <View style={styles.inputWrapper}>
+                        <Ionicons name="pricetag-outline" size={20} color="#B0B3C6" style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter referral code (optional)"
+                            placeholderTextColor="#B0B3C6"
+                            value={referralCode}
+                            onChangeText={setReferralCode}
+                            autoCapitalize="characters"
                         />
                     </View>
                     <TouchableOpacity onPress={handleRegister} activeOpacity={0.85}>

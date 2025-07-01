@@ -12,8 +12,9 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import ExamCard from '../../components/ExamCard';
 
@@ -27,6 +28,7 @@ export default function ExamScreen() {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [categories, setCategories] = useState<string[]>([]);
     const [remainingTime, setRemainingTime] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const fetchExams = async () => {
         if (!user?.token) {
@@ -79,9 +81,11 @@ export default function ExamScreen() {
 
             // Find the exam that ends earliest
             filteredExams.forEach((exam: any) => {
-                const endTime = new Date(exam.endTime);
-                if (!earliestEndTime || endTime < earliestEndTime) {
-                    earliestEndTime = endTime;
+                if (exam.endTime) {
+                    const endTime = new Date(exam.endTime);
+                    if (!earliestEndTime || endTime < earliestEndTime) {
+                        earliestEndTime = endTime;
+                    }
                 }
             });
 
@@ -90,7 +94,7 @@ export default function ExamScreen() {
                 return;
             }
 
-            const diff = earliestEndTime.getTime() - now.getTime();
+            const diff = (earliestEndTime as Date).getTime() - now.getTime();
 
             if (diff <= 0) {
                 setRemainingTime('00:00:00');
@@ -111,18 +115,29 @@ export default function ExamScreen() {
         return () => clearInterval(timer);
     }, [filteredExams]);
 
-    // Filter exams based on selected category
+    // Filter exams based on selected category and search query
     useEffect(() => {
+        let filtered = exams;
+        
+        // Apply category filter
         if (selectedCategory === 'all') {
-            setFilteredExams(exams);
+            filtered = exams;
         } else if (selectedCategory === 'uncategorized') {
-            const filtered = exams.filter((exam: any) => !exam.category || exam.category === null);
-            setFilteredExams(filtered);
+            filtered = exams.filter((exam: any) => !exam.category || exam.category === null);
         } else {
-            const filtered = exams.filter((exam: any) => exam.category === selectedCategory);
-            setFilteredExams(filtered);
+            filtered = exams.filter((exam: any) => exam.category === selectedCategory);
         }
-    }, [selectedCategory, exams]);
+        
+        // Apply search filter
+        if (searchQuery.trim()) {
+            filtered = filtered.filter((exam: any) => {
+                const examName = exam.name || exam.examName || exam.title || '';
+                return examName.toLowerCase().includes(searchQuery.toLowerCase());
+            });
+        }
+        
+        setFilteredExams(filtered);
+    }, [selectedCategory, exams, searchQuery]);
 
     const handleCategorySelect = (category: string) => {
         setSelectedCategory(category);
@@ -218,6 +233,30 @@ export default function ExamScreen() {
                 </View>
             </LinearGradient>
 
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+                <View style={styles.searchInputContainer}>
+                    <Ionicons name="search" size={20} color="#6c757d" style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search exams..."
+                        placeholderTextColor="#6c757d"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity
+                            style={styles.clearButton}
+                            onPress={() => setSearchQuery('')}
+                        >
+                            <Ionicons name="close-circle" size={20} color="#6c757d" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+
             {/* Category Filter */}
             {categories.length > 0 && (
                 <View style={styles.categoryContainer}>
@@ -244,16 +283,23 @@ export default function ExamScreen() {
                 <View style={styles.emptyContainer}>
                     <Ionicons name="library-outline" size={64} color={AppColors.grey} />
                     <Text style={styles.emptyTitle}>
-                        {selectedCategory === 'all' ? 'No Exams Available' : 
-                         selectedCategory === 'uncategorized' ? 'No Uncategorized Exams' :
-                         `No ${selectedCategory} Exams`}
+                        {searchQuery.trim() 
+                            ? 'No Matching Exams' 
+                            : selectedCategory === 'all' 
+                                ? 'No Exams Available' 
+                                : selectedCategory === 'uncategorized' 
+                                    ? 'No Uncategorized Exams' 
+                                    : `No ${selectedCategory} Exams`
+                        }
                     </Text>
                     <Text style={styles.emptySubtext}>
-                        {selectedCategory === 'all' 
-                            ? 'Check back later for new live exams.'
-                            : selectedCategory === 'uncategorized'
-                            ? 'No exams without categories available.'
-                            : `No exams available in ${selectedCategory} category.`
+                        {searchQuery.trim()
+                            ? `No exams found matching "${searchQuery}". Try a different search term.`
+                            : selectedCategory === 'all' 
+                                ? 'Check back later for new live exams.'
+                                : selectedCategory === 'uncategorized'
+                                ? 'No exams without categories available.'
+                                : `No exams available in ${selectedCategory} category.`
                         }
                     </Text>
                 </View>
@@ -262,8 +308,7 @@ export default function ExamScreen() {
                     data={filteredExams}
                     renderItem={renderExamCard}
                     keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.listContainer}
-                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 32 }}
                 />
             )}
         </SafeAreaView>
@@ -409,5 +454,33 @@ const styles = StyleSheet.create({
     categoryButtonTextSelected: {
         fontWeight: 'bold',
         color: AppColors.white,
+    },
+    searchContainer: {
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        backgroundColor: AppColors.white,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e9ecef',
+    },
+    searchInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        borderWidth: 1,
+        borderColor: '#e9ecef',
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        color: '#2c3e50',
+        paddingVertical: 12,
+    },
+    clearButton: {
+        padding: 4,
     },
 }); 

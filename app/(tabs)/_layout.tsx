@@ -47,6 +47,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="my-exams"
+        options={{
+          title: 'My Exams',
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
         name="user-profile"
         options={{
           title: 'User Profile',

@@ -1,21 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    Image,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import CreatePost from '../../components/CreatePost';
-import { apiFetchAuth } from '../../constants/api';
+import { apiFetchAuth, uploadFile } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -31,7 +33,7 @@ function timeAgo(dateString: string) {
 }
 
 export default function ProfileScreen() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,7 @@ export default function ProfileScreen() {
   const [error, setError] = useState('');
   const [createPostVisible, setCreatePostVisible] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -55,6 +58,64 @@ export default function ProfileScreen() {
       setError('Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProfilePhotoUpload = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant permission to access your photo library.');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setUploadingPhoto(true);
+        
+        try {
+          // Upload the image
+          const imageUrl = await uploadFile(result.assets[0].uri, user?.token || '');
+          
+          // Update profile with new photo
+          const updateResponse = await apiFetchAuth('/student/profile', user?.token || '', {
+            method: 'PATCH',
+            body: {
+              ...profile,
+              profilePhoto: imageUrl,
+            },
+          });
+
+          if (updateResponse.ok) {
+            setProfile(updateResponse.data);
+            // Update the user context with new profile data
+            if (user) {
+              const updatedUser = { ...user, ...updateResponse.data };
+              updateUser(updatedUser);
+            }
+            Alert.alert('Success', 'Profile picture updated successfully!');
+          } else {
+            Alert.alert('Error', 'Failed to update profile picture. Please try again.');
+          }
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          Alert.alert('Error', 'Failed to upload image. Please try again.');
+        } finally {
+          setUploadingPhoto(false);
+        }
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      setUploadingPhoto(false);
     }
   };
 
@@ -313,16 +374,29 @@ export default function ProfileScreen() {
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
-              {profile.profilePhoto ? (
+              {uploadingPhoto ? (
+                <View style={styles.avatarLoading}>
+                  <ActivityIndicator size="large" color="#667eea" />
+                </View>
+              ) : profile.profilePhoto ? (
                 <Image source={{ uri: profile.profilePhoto }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
                 </View>
               )}
-              <TouchableOpacity style={styles.editAvatarButton} activeOpacity={0.8}>
+              <TouchableOpacity 
+                style={[styles.editAvatarButton, uploadingPhoto && styles.editAvatarButtonDisabled]} 
+                activeOpacity={0.8}
+                onPress={handleProfilePhotoUpload}
+                disabled={uploadingPhoto}
+              >
                 <View style={styles.editAvatarIcon}>
-                  <Ionicons name="camera" size={16} color="#fff" />
+                  {uploadingPhoto ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="camera" size={16} color="#fff" />
+                  )}
                 </View>
               </TouchableOpacity>
             </View>
@@ -884,5 +958,18 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+  },
+  avatarLoading: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editAvatarButtonDisabled: {
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
 }); 

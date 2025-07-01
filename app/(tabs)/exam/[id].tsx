@@ -4,7 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ExamCard from '../../../components/ExamCard';
 
 const ExamDetailScreen = () => {
     const { id } = useLocalSearchParams();
@@ -19,18 +20,21 @@ const ExamDetailScreen = () => {
     const [winnings, setWinnings] = useState<any[]>([]);
     const [winningsLoading, setWinningsLoading] = useState(false);
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
+    const [currentUser, setCurrentUser] = useState<any>(null);
     const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
     useEffect(() => {
         const fetchLeaderboardData = async () => {
-            if (!user?.token || !id || leaderboard.length > 0) return;
+            if (!user?.token || !id) return;
             try {
                 setLeaderboardLoading(true);
                 const response = await apiFetchAuth(`/student/live-exams/${id}/leaderboard`, user.token);
                 if (response.ok) {
-                    setLeaderboard(response.data);
+                    setCurrentUser(response.data.currentUser);
+                    setLeaderboard(response.data.leaderboard || []);
                 } else {
                     console.error("Failed to load leaderboard:", response.data);
+                    setLeaderboard([]);
                 }
             } catch (e: any) {
                 console.error("An error occurred while fetching leaderboard", e);
@@ -51,9 +55,10 @@ const ExamDetailScreen = () => {
                 setWinningsLoading(true);
                 const response = await apiFetchAuth(`/student/live-exams/${id}/winnings`, user.token);
                 if (response.ok) {
-                    setWinnings(response.data);
+                    setWinnings(response.data || []);
                 } else {
                     console.error("Failed to load winnings: ", response.data);
+                    setWinnings([]);
                 }
             } catch (e: any) {
                 console.error("An error occurred while fetching winnings", e);
@@ -100,25 +105,6 @@ const ExamDetailScreen = () => {
         fetchExamDetails();
     }, [id, user]);
 
-    const handleAttempt = async () => {
-        if (!user?.token || !id) return;
-        try {
-            const response = await apiFetchAuth('/student/live-exams/join', user.token, {
-                method: 'POST',
-                body: { examId: id }
-            });
-
-            if (response.ok) {
-                Alert.alert('Success', 'You have successfully joined the exam!');
-                router.push('/quiz');
-            } else {
-                 Alert.alert('Error', response.data?.message || 'Could not join the exam.');
-            }
-        } catch (e: any) {
-            Alert.alert('Error', e.data?.message || 'An error occurred while joining the exam.');
-        }
-    };
-
     if (loading) {
         return <ActivityIndicator size="large" color={AppColors.primary} style={styles.centered} />;
     }
@@ -135,129 +121,145 @@ const ExamDetailScreen = () => {
     
     return (
         <View style={styles.container}>
-            <ScrollView>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="chevron-back" size={28} color={AppColors.primary} />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>{exam.title}</Text>
-                </View>
-                
-                <View style={styles.prizePoolSection}>
-                    <Text style={styles.prizePoolLabel}>Prize Pool</Text>
-                    <View style={styles.prizePoolAmountContainer}>
-                        <Text style={styles.prizePoolAmount}>₹ {exam.prizePool.toFixed(1)}*</Text>
-                        <Ionicons name="information-circle-outline" size={24} color={AppColors.white} />
-                    </View>
-                </View>
-
-                <View style={styles.spotsContainer}>
-                    <View style={styles.progressBar}>
-                        <View style={[styles.progress, { width: `${progress}%` }]} />
-                    </View>
-                    <View style={styles.spotsTextContainer}>
-                        <Text style={styles.spotsLeft}>{exam.spotsLeft} Spots left</Text>
-                        <Text style={styles.totalSpots}>{exam.spots} Spots</Text>
-                    </View>
-                </View>
-
-                <View style={styles.tagsContainer}>
-                    <View style={styles.tag}><Ionicons name="gift-outline" size={16} color="#E67E22" /><Text style={styles.tagText}>145</Text></View>
-                    <View style={styles.tag}><Ionicons name="trophy-outline" size={16} color="#9B59B6" /><Text style={styles.tagText}>50%</Text></View>
-                    <Text style={styles.remainingTime}>Remaining time: 22:03:45</Text>
-                </View>
-
-                <View style={styles.tabContainer}>
-                    {['Info', 'Leaderboard', 'Winnings'].map(tabName => (
-                        <TouchableOpacity 
-                            key={tabName} 
-                            style={[styles.tab, activeTab === tabName && styles.activeTab]}
-                            onPress={() => setActiveTab(tabName)}
-                        >
-                            <Text style={[styles.tabText, activeTab === tabName && styles.activeTabText]}>{tabName}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-
-                <View style={styles.tabContent}>
-                    {activeTab === 'Info' && (
-                        <View style={styles.infoTable}>
-                            <InfoRow label="Standard" value="Daily GK & Current Affairs" />
-                            <InfoRow label="Subject" value="GK" />
-                            <InfoRow label="No. of questions" value={exam.questions?.length || 5} />
-                            <InfoRow label="Required Time" value={`${exam.duration} Min`} />
-                            <InfoRow label="Start Date" value={new Date(exam.startTime).toLocaleDateString()} />
-                            <InfoRow label="End Date" value={new Date(new Date(exam.startTime).getTime() + 24 * 60 * 60 * 1000).toLocaleDateString()} />
-                            <InfoRow label="Author" value={exam.createdBy?.name || 'Admin'} />
-                            <InfoRow label="Test Cost" value={`₹ ${exam.entryFee.toFixed(2)}`} isCost />
+            <FlatList
+                data={[{ key: 'content' }]}
+                renderItem={() => (
+                    <>
+                        <ExamCard exam={exam} />
+                        <View style={styles.header}>
+                            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                                <Ionicons name="chevron-back" size={28} color={AppColors.primary} />
+                            </TouchableOpacity>
+                            <Text style={styles.headerTitle}>{exam.title}</Text>
                         </View>
-                    )}
-                    {activeTab === 'Leaderboard' && (
-                        leaderboardLoading ? (
-                             <ActivityIndicator color={AppColors.primary} style={{ marginVertical: 20 }}/>
-                        ) : (
-                            <FlatList
-                                data={leaderboard}
-                                keyExtractor={(item) => item.userId}
-                                renderItem={({ item, index }) => (
-                                    <LeaderboardRow
-                                        rank={item.rank}
-                                        name={item.name}
-                                        score={item.score}
-                                        isCurrentUser={item.userId === user?.id}
-                                        isTopThree={index < 3}
+                        
+                        <View style={styles.prizePoolSection}>
+                            <Text style={styles.prizePoolLabel}>Prize Pool</Text>
+                            <View style={styles.prizePoolAmountContainer}>
+                                <Text style={styles.prizePoolAmount}>₹ {exam.prizePool.toFixed(1)}*</Text>
+                                <Ionicons name="information-circle-outline" size={24} color={AppColors.white} />
+                            </View>
+                        </View>
+
+                        <View style={styles.spotsContainer}>
+                            <View style={styles.progressBar}>
+                                <View style={[styles.progress, { width: `${progress}%` }]} />
+                            </View>
+                            <View style={styles.spotsTextContainer}>
+                                <Text style={styles.spotsLeft}>{exam.spotsLeft} Spots left</Text>
+                                <Text style={styles.totalSpots}>{exam.spots} Spots</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.tagsContainer}>
+                            <View style={styles.tag}><Ionicons name="gift-outline" size={16} color="#E67E22" /><Text style={styles.tagText}>145</Text></View>
+                            <View style={styles.tag}><Ionicons name="trophy-outline" size={16} color="#9B59B6" /><Text style={styles.tagText}>50%</Text></View>
+                            <Text style={styles.remainingTime}>Remaining time: 22:03:45</Text>
+                        </View>
+
+                        <View style={styles.tabContainer}>
+                            {['Info', 'Leaderboard', 'Winnings'].map(tabName => (
+                                <TouchableOpacity 
+                                    key={tabName} 
+                                    style={[styles.tab, activeTab === tabName && styles.activeTab]}
+                                    onPress={() => setActiveTab(tabName)}
+                                >
+                                    <Text style={[styles.tabText, activeTab === tabName && styles.activeTabText]}>{tabName}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <View style={styles.tabContent}>
+                            {activeTab === 'Info' && (
+                                <View style={styles.infoTable}>
+                                    <InfoRow label="Standard" value="Daily GK & Current Affairs" />
+                                    <InfoRow label="Subject" value="GK" />
+                                    <InfoRow label="No. of questions" value={exam.questions?.length || 5} />
+                                    <InfoRow label="Required Time" value={`${exam.duration} Min`} />
+                                    <InfoRow label="Start Date" value={new Date(exam.startTime).toLocaleDateString()} />
+                                    <InfoRow label="End Date" value={new Date(new Date(exam.startTime).getTime() + 24 * 60 * 60 * 1000).toLocaleDateString()} />
+                                    <InfoRow label="Author" value={exam.createdBy?.name || 'Admin'} />
+                                    <InfoRow label="Test Cost" value={`₹ ${exam.entryFee.toFixed(2)}`} isCost />
+                                </View>
+                            )}
+                            {activeTab === 'Leaderboard' && (
+                                leaderboardLoading ? (
+                                     <ActivityIndicator color={AppColors.primary} style={{ marginVertical: 20 }}/>
+                                ) : (
+                                    <View>
+                                        {/* Current User Section */}
+                                        {currentUser && (
+                                            <View style={styles.currentUserSection}>
+                                                <Text style={styles.currentUserTitle}>Your Position</Text>
+                                                <LeaderboardRow
+                                                    rank={currentUser.rank}
+                                                    name={currentUser.name}
+                                                    score={currentUser.score}
+                                                    prizeAmount={currentUser.prizeAmount}
+                                                    isCurrentUser={true}
+                                                    isTopThree={currentUser.rank <= 3}
+                                                />
+                                            </View>
+                                        )}
+                                        
+                                        {/* Leaderboard Section */}
+                                        <View style={styles.leaderboardSection}>
+                                            <Text style={styles.leaderboardTitle}>Top 25</Text>
+                                            <FlatList
+                                                data={leaderboard || []}
+                                                keyExtractor={(item) => item.userId}
+                                                renderItem={({ item, index }) => (
+                                                    <LeaderboardRow
+                                                        rank={item.rank}
+                                                        name={item.name}
+                                                        score={item.score}
+                                                        prizeAmount={item.prizeAmount}
+                                                        isCurrentUser={item.userId === user?.id}
+                                                        isTopThree={item.rank <= 3}
+                                                    />
+                                                )}
+                                                ListEmptyComponent={() => (
+                                                     <View style={{padding: 20, alignItems: 'center'}}>
+                                                        <Text style={styles.placeholderText}>Leaderboard is not available yet.</Text>
+                                                    </View>
+                                                )}
+                                            />
+                                        </View>
+                                    </View>
+                                )
+                            )}
+                            {activeTab === 'Winnings' && (
+                                winningsLoading ? (
+                                    <ActivityIndicator color={AppColors.primary} style={{ marginVertical: 20 }}/>
+                                ) : (
+                                    <FlatList
+                                        data={winnings || []}
+                                        keyExtractor={(item) => item.rank.toString()}
+                                        renderItem={({ item }) => <WinningRow rank={item.rank} prize={item.prize} />}
+                                        ListHeaderComponent={() => (
+                                            <View style={styles.winningsHeader}>
+                                                <Text style={styles.winningsHeaderText}>Rank</Text>
+                                                <Text style={styles.winningsHeaderText}>Prize</Text>
+                                            </View>
+                                        )}
+                                        ListEmptyComponent={() => (
+                                            <View style={{padding: 20, alignItems: 'center'}}>
+                                                <Text style={styles.placeholderText}>No prize distribution information available.</Text>
+                                            </View>
+                                        )}
                                     />
-                                )}
-                                ListEmptyComponent={() => (
-                                     <View style={{padding: 20, alignItems: 'center'}}>
-                                        <Text style={styles.placeholderText}>Leaderboard is not available yet.</Text>
-                                    </View>
-                                )}
-                            />
-                        )
-                    )}
-                    {activeTab === 'Winnings' && (
-                        winningsLoading ? (
-                            <ActivityIndicator color={AppColors.primary} style={{ marginVertical: 20 }}/>
-                        ) : (
-                            <FlatList
-                                data={winnings}
-                                keyExtractor={(item) => item.rank.toString()}
-                                renderItem={({ item }) => <WinningRow rank={item.rank} prize={item.prize} />}
-                                ListHeaderComponent={() => (
-                                    <View style={styles.winningsHeader}>
-                                        <Text style={styles.winningsHeaderText}>Rank</Text>
-                                        <Text style={styles.winningsHeaderText}>Prize</Text>
-                                    </View>
-                                )}
-                                ListEmptyComponent={() => (
-                                    <View style={{padding: 20, alignItems: 'center'}}>
-                                        <Text style={styles.placeholderText}>No prize distribution information available.</Text>
-                                    </View>
-                                )}
-                            />
-                        )
-                    )}
-                </View>
-            </ScrollView>
-            
-            <View style={styles.footer}>
-                <TouchableOpacity style={styles.shareButton}>
-                    <Ionicons name="share-social-outline" size={24} color={AppColors.primary} />
-                    <Text style={styles.shareButtonText}>Share</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.attemptButton} onPress={handleAttempt}>
-                    <Text style={styles.attemptButtonText}>Attempt</Text>
-                     <View style={styles.attemptFeeContainer}>
-                        <Text style={styles.attemptButtonFee}>₹{exam.entryFee}</Text>
-                    </View>
-                </TouchableOpacity>
-            </View>
+                                )
+                            )}
+                        </View>
+                    </>
+                )}
+                showsVerticalScrollIndicator={false}
+            />
         </View>
     );
 };
 
-const LeaderboardRow = ({ rank, name, score, isCurrentUser, isTopThree }: any) => {
+const LeaderboardRow = ({ rank, name, score, prizeAmount, isCurrentUser, isTopThree }: any) => {
     const rankColor = isTopThree ? ['#FFD700', '#C0C0C0', '#CD7F32'][rank - 1] : '#6c757d';
     return (
         <View style={[styles.leaderboardRow, isCurrentUser && styles.currentUserRow]}>
@@ -270,7 +272,12 @@ const LeaderboardRow = ({ rank, name, score, isCurrentUser, isTopThree }: any) =
             </View>
             <Ionicons name="person-circle-outline" size={40} color={AppColors.grey} style={styles.avatar} />
             <Text style={styles.leaderboardNameText} numberOfLines={1}>{name}</Text>
-            <Text style={styles.leaderboardScoreText}>{score} PTS</Text>
+            <View style={styles.scoreContainer}>
+                <Text style={styles.leaderboardScoreText}>{score} PTS</Text>
+                {prizeAmount > 0 && (
+                    <Text style={styles.prizeAmountText}>₹{prizeAmount}</Text>
+                )}
+            </View>
         </View>
     );
 };
@@ -590,71 +597,54 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: AppColors.primary,
     },
-    footer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
+    placeholderText: {
+        color: AppColors.grey,
+        fontSize: 14,
+        textAlign: 'center',
+    },
+    currentUserSection: {
         padding: 20,
         backgroundColor: AppColors.white,
-        borderTopWidth: 1,
-        borderTopColor: AppColors.lightGrey,
+        borderRadius: 12,
+        marginBottom: 15,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
         shadowRadius: 4,
-        elevation: 8,
+        elevation: 2,
     },
-    shareButton: {
+    currentUserTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginBottom: 10,
+    },
+    leaderboardSection: {
+        padding: 20,
+        backgroundColor: AppColors.white,
+        borderRadius: 12,
+        marginBottom: 15,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    leaderboardTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginBottom: 10,
+    },
+    scoreContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: AppColors.primary,
-        backgroundColor: AppColors.lightGrey,
     },
-    shareButtonText: {
-        marginLeft: 8,
+    prizeAmountText: {
         color: AppColors.primary,
-        fontWeight: '600',
         fontSize: 14,
-    },
-    attemptButton: {
-        backgroundColor: '#E91E63', // Vibrant pink/magenta
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingLeft: 25,
-        paddingRight: 15,
-        borderRadius: 10,
-        flex: 0.65,
-        justifyContent: 'center',
-        shadowColor: '#E91E63',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
-    },
-    attemptButtonText: {
-        color: AppColors.white,
-        fontWeight: '700',
-        fontSize: 16,
-        marginRight: 10,
-    },
-    attemptFeeContainer: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 6,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-    },
-    attemptButtonFee: {
-        color: AppColors.white,
-        fontWeight: '700',
-        fontSize: 12,
+        fontWeight: 'bold',
+        marginLeft: 4,
     },
 });
 

@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     Alert,
     Dimensions,
+    FlatList,
     Modal,
     RefreshControl,
     SafeAreaView,
@@ -114,10 +115,13 @@ const PracticeExamDetailsScreen = () => {
         try {
             const response = await apiFetchAuth(`/student/practice-exams/${id}/leaderboard`, user.token);
             if (response.ok) {
-                setLeaderboard(response.data);
+                setLeaderboard(response.data || []);
+            } else {
+                setLeaderboard([]);
             }
         } catch (error) {
             console.error('Error fetching leaderboard:', error);
+            setLeaderboard([]);
         }
     };
 
@@ -282,95 +286,153 @@ const PracticeExamDetailsScreen = () => {
                 ))}
             </View>
 
-            <ScrollView style={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-                {activeTab === 'Info' && (
+            <FlatList 
+              style={styles.content} 
+              data={[{ key: 'content' }]}
+              renderItem={() => (
+                <>
+                  {activeTab === 'Info' && (
                     <View style={styles.infoContainer}>
-                        <View style={styles.metaRow}>
-                            <Text style={styles.metaText}>Duration: <Text style={styles.metaValue}>{examMeta?.duration || '-'}</Text></Text>
-                            <Text style={styles.metaText}>Maximum Marks: <Text style={styles.metaValue}>{examMeta?.maxMarks || '-'}</Text></Text>
-                        </View>
+                      <View style={styles.metaRow}>
+                        <Text style={styles.metaText}>Duration: <Text style={styles.metaValue}>{examMeta?.duration || exam.duration || '-'}</Text></Text>
+                        <Text style={styles.metaText}>Maximum Marks: <Text style={styles.metaValue}>{examMeta?.maxMarks || '-'}</Text></Text>
+                      </View>
+                      
+                      {/* Exam Description */}
+                      {exam.description && (
                         <View style={styles.overviewCard}>
-                            <Text style={styles.overviewTitle}>Exam Overview</Text>
-                            <View style={styles.overviewRow}>
-                                <Ionicons name="book-outline" size={20} color={AppColors.primary} />
-                                <Text style={styles.overviewText}>{exam.description}</Text>
-                            </View>
-                            <View style={styles.overviewRow}>
-                                <Ionicons name="time-outline" size={20} color={AppColors.primary} />
-                                <Text style={styles.overviewText}>{exam.duration} minutes</Text>
-                            </View>
-                            <View style={styles.overviewRow}>
-                                <Ionicons name="calendar-outline" size={20} color={AppColors.primary} />
-                                <Text style={styles.overviewText}>
-                                    {formatDate(exam.startTime)} - {formatDate(exam.endTime)}
-                                </Text>
-                            </View>
+                          <Text style={styles.overviewTitle}>Description</Text>
+                          <Text style={styles.descriptionText}>{exam.description}</Text>
                         </View>
+                      )}
 
-                        <View style={styles.spotsCard}>
-                            <Text style={styles.spotsTitle}>Available Spots</Text>
-                            <View style={styles.spotsInfo}>
-                                <View style={styles.spotsLeft}>
-                                    <Text style={styles.spotsNumber}>{exam.spotsLeft}</Text>
-                                    <Text style={styles.spotsLabel}>Spots Left</Text>
-                                </View>
-                                <View style={styles.spotsTotal}>
-                                    <Text style={styles.spotsNumber}>{exam.spots}</Text>
-                                    <Text style={styles.spotsLabel}>Total Spots</Text>
-                                </View>
-                            </View>
-                            <View style={styles.progressBar}>
-                                <View 
-                                    style={[
-                                        styles.progressFill,
-                                        { width: `${progress}%` }
-                                    ]} 
-                                />
-                            </View>
-                            <Text style={styles.progressText}>
-                                {Math.round(progress)}% filled
-                            </Text>
+                      {/* Exam Details */}
+                      <View style={styles.overviewCard}>
+                        <Text style={styles.overviewTitle}>Exam Details</Text>
+                        <View style={styles.overviewRow}>
+                          <Ionicons name="time-outline" size={20} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Duration: {examMeta?.duration || exam.duration || '-'} minutes</Text>
                         </View>
+                        <View style={styles.overviewRow}>
+                          <Ionicons name="document-text-outline" size={20} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Questions: -</Text>
+                        </View>
+                        <View style={styles.overviewRow}>
+                          <Ionicons name="trophy-outline" size={20} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Max Marks: {examMeta?.maxMarks || '-'}</Text>
+                        </View>
+                        {exam.category && (
+                          <View style={styles.overviewRow}>
+                            <Ionicons name="folder-outline" size={20} color={AppColors.primary} />
+                            <Text style={styles.overviewText}>Category: {exam.category}</Text>
+                          </View>
+                        )}
+                        {exam.subcategory && (
+                          <View style={styles.overviewRow}>
+                            <Ionicons name="folder-open-outline" size={20} color={AppColors.primary} />
+                            <Text style={styles.overviewText}>Subcategory: {exam.subcategory}</Text>
+                          </View>
+                        )}
+                      </View>
 
-                        <TouchableOpacity 
+                      {/* Exam Schedule */}
+                      <View style={styles.overviewCard}>
+                        <Text style={styles.overviewTitle}>Schedule</Text>
+                        <View style={styles.overviewRow}>
+                          <Ionicons name="calendar-outline" size={20} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Start Date: {formatDate(exam.startTime)}</Text>
+                        </View>
+                        <View style={styles.overviewRow}>
+                          <Ionicons name="calendar-outline" size={20} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>End Date: {formatDate(exam.endTime)}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.spotsCard}>
+                        <Text style={styles.spotsTitle}>Available Spots</Text>
+                        <View style={styles.spotsInfo}>
+                          <View style={styles.spotsLeft}>
+                            <Text style={styles.spotsNumber}>{exam.spotsLeft}</Text>
+                            <Text style={styles.spotsLabel}>Available</Text>
+                          </View>
+                          <View style={styles.spotsTotal}>
+                            <Text style={styles.spotsNumber}>{exam.spots}</Text>
+                            <Text style={styles.spotsLabel}>Total</Text>
+                          </View>
+                        </View>
+                        <View style={styles.progressBar}>
+                          <View 
                             style={[
-                                styles.actionButton,
-                                exam.attempted ? styles.reviewButton : styles.startButton
-                            ]}
-                            onPress={exam.attempted ? handleReviewExam : handleStartExam}
-                        >
-                            <Text style={styles.actionButtonText}>
-                                {exam.attempted ? 'Review Results' : 'Start Practice Exam'}
-                            </Text>
-                            <Ionicons 
-                                name={exam.attempted ? "eye" : "play"} 
-                                size={20} 
-                                color={AppColors.white} 
-                            />
-                        </TouchableOpacity>
-                    </View>
-                )}
+                              styles.progressFill,
+                              { width: `${(exam.spots - exam.spotsLeft) / exam.spots * 100}%` }
+                            ]} 
+                          />
+                        </View>
+                        <Text style={styles.progressText}>
+                          {Math.round((exam.spots - exam.spotsLeft) / exam.spots * 100)}% Filled
+                        </Text>
+                      </View>
 
-                {activeTab === 'Leaderboard' && (
-                    <View style={styles.leaderboardContainer}>
-                        <LeaderboardPodium
-                          data={leaderboard.map((entry) => ({
-                            name: entry.name,
-                            points: entry.score,
-                            subtitle: entry.userId, // or any other subtitle you want
-                            rank: entry.rank,
-                          }))}
+                      <TouchableOpacity 
+                        style={[
+                          styles.actionButton,
+                          exam.attempted ? styles.reviewButton : styles.startButton
+                        ]}
+                        onPress={exam.attempted ? handleReviewExam : handleStartExam}
+                      >
+                        <Text style={styles.actionButtonText}>
+                          {exam.attempted ? 'Review Results' : 'Start Practice Exam'}
+                        </Text>
+                        <Ionicons 
+                          name={exam.attempted ? "eye" : "play"} 
+                          size={20} 
+                          color={AppColors.white} 
                         />
+                      </TouchableOpacity>
                     </View>
-                )}
+                  )}
 
-                {activeTab === 'Results' && (
-                    <View style={styles.resultsContainer}>
-                        <Text style={styles.comingSoonText}>Results Coming Soon</Text>
-                        <Ionicons name="analytics-outline" size={48} color={AppColors.grey} />
+                  {activeTab === 'Leaderboard' && (
+                    <View style={styles.leaderboardContainer}>
+                      {(() => {
+                        console.log('Leaderboard value:', leaderboard);
+                        console.log('Leaderboard type:', typeof leaderboard);
+                        console.log('Is Array:', Array.isArray(leaderboard));
+                        
+                        if (!leaderboard || !Array.isArray(leaderboard)) {
+                          return (
+                            <View style={styles.emptyLeaderboard}>
+                              <Text style={styles.emptyLeaderboardText}>Leaderboard not available</Text>
+                              <Ionicons name="trophy-outline" size={48} color={AppColors.grey} />
+                            </View>
+                          );
+                        }
+                        
+                        return (
+                          <LeaderboardPodium
+                            data={leaderboard.map((entry) => ({
+                              name: entry.name,
+                              points: entry.score,
+                              subtitle: entry.userId,
+                              rank: entry.rank,
+                            }))}
+                          />
+                        );
+                      })()}
                     </View>
-                )}
-            </ScrollView>
+                  )}
+
+                  {activeTab === 'Results' && (
+                    <View style={styles.resultsContainer}>
+                      <Text style={styles.comingSoonText}>Results Coming Soon</Text>
+                      <Ionicons name="analytics-outline" size={48} color={AppColors.grey} />
+                    </View>
+                  )}
+                </>
+              )}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              showsVerticalScrollIndicator={false}
+            />
 
             <Modal
                 visible={showInstructionsModal}
@@ -842,6 +904,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: 120,
+    },
+    descriptionText: {
+        color: AppColors.darkGrey,
+        fontSize: 15,
     },
 });
 

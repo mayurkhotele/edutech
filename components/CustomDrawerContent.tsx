@@ -26,6 +26,16 @@ const CustomDrawerContent = (props: any) => {
         navigation.closeDrawer();
     };
 
+    const navigateToProfile = () => {
+        navigation.navigate('(tabs)', { screen: 'profile' });
+        navigation.closeDrawer();
+    };
+
+    const navigateToMyExams = () => {
+        navigation.navigate('(tabs)', { screen: 'my-exams' });
+        navigation.closeDrawer();
+    };
+
     return (
         <View style={styles.container}>
             <SafeAreaView style={{ flex: 1 }}>
@@ -38,38 +48,35 @@ const CustomDrawerContent = (props: any) => {
                         style={styles.profileGradient}
                     >
                         <View style={styles.profileContainer}>
-                            <Image
-                                source={{ uri: user?.profilePicture || 'https://via.placeholder.com/80' }}
-                                style={styles.profileImage}
-                            />
+                            {user?.profilePhoto ? (
+                                <Image
+                                    source={{ uri: user.profilePhoto }}
+                                    style={styles.profileImage}
+                                />
+                            ) : (
+                                <View style={styles.profileImagePlaceholder}>
+                                    <Text style={styles.profileImageInitials}>
+                                        {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+                                    </Text>
+                                </View>
+                            )}
                             <Text style={styles.profileName}>{user?.name || 'MAYUR KJ'}</Text>
                             <Text style={styles.profileHandle}>{user?.handle || '@BB11A01833224'}</Text>
-                            
-                            {/* Simple Stats */}
-                            <View style={styles.statsContainer}>
-                                <View style={styles.statBox}>
-                                    <Text style={styles.statNumber}>12</Text>
-                                    <Text style={styles.statLabel}>Exams</Text>
-                                </View>
-                                <View style={styles.statBox}>
-                                    <Text style={styles.statNumber}>85%</Text>
-                                    <Text style={styles.statLabel}>Score</Text>
-                                </View>
-                            </View>
                         </View>
                     </LinearGradient>
 
                     {/* Menu Items */}
                     <View style={styles.menuContainer}>
-                        <DrawerItem icon="people-outline" label="Find Guru" />
-                        <DrawerItem icon="person-outline" label="My Profile" />
+                        <DrawerItem icon="person-outline" label="My Profile" onPress={navigateToProfile} />
+                        <DrawerItem icon="document-text-outline" label="My Exams" onPress={navigateToMyExams} />
                         <DrawerItem icon="stats-chart-outline" label="Leaderboard" />
                         <DrawerItem icon="calendar-outline" label="My Timetable" onPress={navigateToTimetable} />
                         <DrawerItem icon="wallet-outline" label="My Balance" value="₹0.00" onPress={navigateToWallet} />
                         <DrawerItem icon="person-add-outline" label="Refer & Earn" onPress={navigateToRefer} />
                         <DrawerItem icon="information-circle-outline" label="Settings" />
-                        <DrawerItem icon="star-outline" label="BB Pass" />
-                        <DrawerItem icon="document-text-outline" label="Point System" />
+                        <DrawerItem icon="headset-outline" label="24/7 Support" onPress={() => {}} />
+                        <DrawerItem icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => {}} />
+                        <DrawerItem icon="star-outline" label="Rate Us" onPress={() => {}} />
                         <DrawerItem icon="log-out-outline" label="Logout" onPress={logout} />
                     </View>
 
@@ -135,6 +142,21 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         borderColor: 'rgba(255, 255, 255, 0.3)',
         marginBottom: 10,
+    },
+    profileImagePlaceholder: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        borderWidth: 3,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        marginBottom: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    profileImageInitials: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: AppColors.white,
     },
     profileName: {
         fontSize: 18,
