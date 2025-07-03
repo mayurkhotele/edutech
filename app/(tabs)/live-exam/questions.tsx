@@ -268,7 +268,7 @@ const LiveExamQuestionsScreen = () => {
               <Text style={styles.markBtnText}>{statuses[current]?.marked ? 'Unmark' : 'Mark for Review'}</Text>
             </TouchableOpacity>
             <View style={styles.navigationButtons}>
-              {!isLastQuestion ? (
+              {!isLastQuestion && (
                 <>
                   <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
                     <Text style={styles.skipBtnText}>Next</Text>
@@ -277,19 +277,29 @@ const LiveExamQuestionsScreen = () => {
                     <Text style={styles.nextBtnText}>Save & Next →</Text>
                   </TouchableOpacity>
                 </>
-              ) : (
-                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                  <Text style={styles.submitBtnText}>Submit Test</Text>
-                </TouchableOpacity>
               )}
             </View>
           </View>
+          
+          {/* Submit Button - Centered below navigation buttons */}
+          <View style={styles.submitButtonContainer}>
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+              <Text style={styles.submitBtnText}>Submit Test</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+      </View>
 
-        {/* Bottom Buttons */}
-        <View style={styles.bottomRow}>
-          <TouchableOpacity style={styles.bottomBtn}><Text style={styles.bottomBtnText}>Question Paper</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.bottomBtn}><Text style={styles.bottomBtnText}>Instructions</Text></TouchableOpacity>
+      {/* Rough Work Section */}
+      <View style={styles.roughWorkContainer}>
+        <View style={styles.roughWorkHeader}>
+          <Ionicons name="create-outline" size={20} color={AppColors.primary} />
+          <Text style={styles.roughWorkTitle}>Rough Work</Text>
+        </View>
+        <View style={styles.roughWorkArea}>
+          <Text style={styles.roughWorkPlaceholder}>
+            Use this space for calculations, diagrams, or notes...
+          </Text>
         </View>
       </View>
 
@@ -550,17 +560,23 @@ const styles = StyleSheet.create({
     color: AppColors.primary, 
     fontWeight: 'bold' 
   },
+  submitButtonContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 16
+  },
   submitBtn: { 
     backgroundColor: AppColors.primary, 
     borderRadius: 8, 
-    paddingVertical: 10, 
-    paddingHorizontal: 18, 
-    marginLeft: 4 
+    paddingVertical: 12, 
+    paddingHorizontal: 24,
+    minWidth: 140
   },
   submitBtnText: { 
     color: '#fff', 
     fontWeight: 'bold', 
-    fontSize: 15 
+    fontSize: 16,
+    textAlign: 'center'
   },
   // Side Panel Styles
   sidePanel: {
@@ -667,6 +683,46 @@ const styles = StyleSheet.create({
     position: 'absolute', 
     top: -6, 
     right: -6 
+  },
+  // Rough Work Styles
+  roughWorkContainer: {
+    backgroundColor: '#fff',
+    margin: 10,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    marginTop: 0
+  },
+  roughWorkHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#F8F9FA'
+  },
+  roughWorkTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: AppColors.primary,
+    marginLeft: 8
+  },
+  roughWorkArea: {
+    minHeight: 120,
+    padding: 16,
+    backgroundColor: '#FAFAFA',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12
+  },
+  roughWorkPlaceholder: {
+    fontSize: 14,
+    color: '#9E9E9E',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 20
   }
 });
 

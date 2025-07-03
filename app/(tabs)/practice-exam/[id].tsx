@@ -19,7 +19,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import LeaderboardPodium from '../../../components/LeaderboardPodium';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -42,7 +41,57 @@ interface LeaderboardEntry {
     name: string;
     userId: string;
     score: number;
+    timeTaken?: number;
+    completedAt?: string;
 }
+
+interface LeaderboardResponse {
+    currentUser: LeaderboardEntry | null;
+    leaderboard: LeaderboardEntry[];
+}
+
+const PracticeLeaderboardRow = ({ rank, name, score, isCurrentUser }: any) => {
+    const numericRank = typeof rank === 'string' ? parseInt(rank, 10) : rank;
+    const displayRank = numericRank !== undefined && numericRank !== null && !isNaN(numericRank) ? numericRank : 'N/A';
+    const isTopThree = numericRank && numericRank <= 3;
+    const rankColor = isTopThree ? ['#FFD700', '#C0C0C0', '#CD7F32'][numericRank - 1] : '#6c757d';
+    
+    return (
+        <View style={[styles.leaderboardRow, isCurrentUser && styles.currentUserRow]}>
+            <View style={[styles.rankContainer, isCurrentUser && styles.currentUserRankContainer]}>
+                {isTopThree ? (
+                    <Ionicons name="trophy" size={20} color={rankColor} />
+                ) : (
+                    <Text style={[styles.rankText, { color: rankColor }]}>#{displayRank}</Text>
+                )}
+            </View>
+            <View style={styles.userSection}>
+                <View style={styles.avatarContainer}>
+                    <Ionicons 
+                        name="person-circle" 
+                        size={36} 
+                        color={isCurrentUser ? '#667eea' : '#ddd'} 
+                    />
+                </View>
+                <View style={styles.userInfo}>
+                    <Text style={[styles.nameText, isCurrentUser && styles.currentUserNameText]} numberOfLines={1}>
+                        {name || 'Anonymous'}
+                    </Text>
+                    {isCurrentUser && (
+                        <View style={styles.currentUserBadge}>
+                            <Text style={styles.currentUserBadgeText}>You</Text>
+                        </View>
+                    )}
+                </View>
+            </View>
+            <View style={styles.scoreSection}>
+                <Text style={[styles.scoreText, isCurrentUser && styles.currentUserScoreText]}>
+                    {score || 0}
+                </Text>
+            </View>
+        </View>
+    );
+};
 
 const PracticeExamDetailsScreen = () => {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -50,6 +99,7 @@ const PracticeExamDetailsScreen = () => {
     const { user } = useAuth();
     const [exam, setExam] = useState<PracticeExamDetails | null>(null);
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [currentUser, setCurrentUser] = useState<LeaderboardEntry | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('Info');
     const [showInstructionsModal, setShowInstructionsModal] = useState(false);
@@ -59,6 +109,8 @@ const PracticeExamDetailsScreen = () => {
     const [instructionsLoading, setInstructionsLoading] = useState(false);
     const [joiningExam, setJoiningExam] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [resultLoading, setResultLoading] = useState(false);
+    const [result, setResult] = useState<any>(null);
 
     useEffect(() => {
         if (id) {
@@ -66,6 +118,14 @@ const PracticeExamDetailsScreen = () => {
             fetchLeaderboard();
         }
     }, [id]);
+
+    // Fetch leaderboard when tab is clicked
+    useEffect(() => {
+        if (activeTab === 'Leaderboard' && id && user?.token) {
+            console.log('Leaderboard tab clicked, fetching data...');
+            fetchLeaderboard();
+        }
+    }, [activeTab, id, user?.token]);
 
     // Refresh data when screen comes into focus
     useFocusEffect(
@@ -76,6 +136,19 @@ const PracticeExamDetailsScreen = () => {
             }
         }, [id, user?.token])
     );
+
+    useEffect(() => {
+        if (activeTab === 'Results' && exam?.attempted && id && user?.token) {
+            setResultLoading(true);
+            apiFetchAuth(`/student/practice-exams/${id}/result`, user.token)
+                .then(res => {
+                    if (res.ok) setResult(res.data);
+                    else setResult(null);
+                })
+                .catch(() => setResult(null))
+                .finally(() => setResultLoading(false));
+        }
+    }, [activeTab, exam?.attempted, id, user?.token]);
 
     const fetchExamDetails = async () => {
         if (!user?.token || !id) {
@@ -113,14 +186,23 @@ const PracticeExamDetailsScreen = () => {
         if (!user?.token || !id) return;
 
         try {
+            console.log('Fetching practice exam leaderboard for ID:', id);
             const response = await apiFetchAuth(`/student/practice-exams/${id}/leaderboard`, user.token);
+            console.log('Practice exam leaderboard response:', response);
+            
             if (response.ok) {
-                setLeaderboard(response.data || []);
+                console.log('Practice exam leaderboard data:', response.data);
+                const data: LeaderboardResponse = response.data;
+                setCurrentUser(data.currentUser);
+                setLeaderboard(data.leaderboard || []);
             } else {
+                console.error('Failed to fetch practice exam leaderboard:', response.data);
+                setCurrentUser(null);
                 setLeaderboard([]);
             }
         } catch (error) {
-            console.error('Error fetching leaderboard:', error);
+            console.error('Error fetching practice exam leaderboard:', error);
+            setCurrentUser(null);
             setLeaderboard([]);
         }
     };
@@ -395,28 +477,139 @@ const PracticeExamDetailsScreen = () => {
                   {activeTab === 'Leaderboard' && (
                     <View style={styles.leaderboardContainer}>
                       {(() => {
+                        console.log('Rendering leaderboard tab');
+                        console.log('Current user:', currentUser);
                         console.log('Leaderboard value:', leaderboard);
                         console.log('Leaderboard type:', typeof leaderboard);
                         console.log('Is Array:', Array.isArray(leaderboard));
-                        
-                        if (!leaderboard || !Array.isArray(leaderboard)) {
-                          return (
-                            <View style={styles.emptyLeaderboard}>
-                              <Text style={styles.emptyLeaderboardText}>Leaderboard not available</Text>
-                              <Ionicons name="trophy-outline" size={48} color={AppColors.grey} />
-                            </View>
-                          );
-                        }
+                        console.log('Leaderboard length:', leaderboard?.length);
                         
                         return (
-                          <LeaderboardPodium
-                            data={leaderboard.map((entry) => ({
-                              name: entry.name,
-                              points: entry.score,
-                              subtitle: entry.userId,
-                              rank: entry.rank,
-                            }))}
-                          />
+                          <View style={styles.leaderboardFullScreen}>
+                            {/* Header Section */}
+                            <View style={styles.leaderboardHeader}>
+                              <View style={styles.leaderboardHeaderContent}>
+                                <Ionicons name="trophy" size={28} color="#FFD700" />
+                                <Text style={styles.leaderboardHeaderTitle}>Practice Exam Leaderboard</Text>
+                              </View>
+                            </View>
+
+                            {/* Current User Section */}
+                            {currentUser && (
+                              <View style={styles.currentUserSection}>
+                                <View style={styles.currentUserCard}>
+                                  <LinearGradient
+                                    colors={['#667eea', '#764ba2']}
+                                    style={styles.currentUserGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                  >
+                                    <View style={styles.currentUserContent}>
+                                      <View style={styles.currentUserLeft}>
+                                        <View style={styles.currentUserRankBadge}>
+                                          <Text style={styles.currentUserRankNumber}>#{currentUser.rank}</Text>
+                                        </View>
+                                        <View style={styles.currentUserInfo}>
+                                          <Text style={styles.currentUserLabel}>Your Rank</Text>
+                                          <Text style={styles.currentUserName}>{currentUser.name}</Text>
+                                        </View>
+                                      </View>
+                                                                             <View style={styles.currentUserRight}>
+                                         <Text style={styles.currentUserScore}>{currentUser.score}</Text>
+                                       </View>
+                                    </View>
+                                  </LinearGradient>
+                                </View>
+                              </View>
+                            )}
+                            
+                            {/* Top 3 Podium */}
+                            {leaderboard.length >= 3 && (
+                              <View style={styles.podiumSection}>
+                                <Text style={styles.sectionTitle}>🏆 Top Performers</Text>
+                                <View style={styles.podiumContainer}>
+                                  {/* 2nd Place */}
+                                  <View style={[styles.podiumItem, styles.podiumSecond]}>
+                                    <View style={styles.podiumMedalContainer}>
+                                      <Ionicons name="trophy" size={24} color="#C0C0C0" />
+                                    </View>
+                                    <View style={styles.podiumAvatar}>
+                                      <Ionicons name="person-circle" size={44} color="#C0C0C0" />
+                                    </View>
+                                    <Text style={styles.podiumName} numberOfLines={1}>
+                                      {leaderboard[1]?.name || 'Anonymous'}
+                                    </Text>
+                                    <Text style={styles.podiumScore}>{leaderboard[1]?.score || 0}</Text>
+                                    <Text style={styles.podiumRank}>2nd</Text>
+                                  </View>
+                                  
+                                  {/* 1st Place */}
+                                  <View style={[styles.podiumItem, styles.podiumFirst]}>
+                                    <View style={styles.podiumCrown}>
+                                      <Ionicons name="star" size={32} color="#FFD700" />
+                                    </View>
+                                    <View style={styles.podiumMedalContainer}>
+                                      <Ionicons name="trophy" size={28} color="#FFD700" />
+                                    </View>
+                                    <View style={styles.podiumAvatar}>
+                                      <Ionicons name="person-circle" size={52} color="#FFD700" />
+                                    </View>
+                                    <Text style={styles.podiumName} numberOfLines={1}>
+                                      {leaderboard[0]?.name || 'Anonymous'}
+                                    </Text>
+                                    <Text style={styles.podiumScore}>{leaderboard[0]?.score || 0}</Text>
+                                    <Text style={styles.podiumRank}>1st</Text>
+                                  </View>
+                                  
+                                  {/* 3rd Place */}
+                                  <View style={[styles.podiumItem, styles.podiumThird]}>
+                                    <View style={styles.podiumMedalContainer}>
+                                      <Ionicons name="trophy" size={20} color="#CD7F32" />
+                                    </View>
+                                    <View style={styles.podiumAvatar}>
+                                      <Ionicons name="person-circle" size={44} color="#CD7F32" />
+                                    </View>
+                                    <Text style={styles.podiumName} numberOfLines={1}>
+                                      {leaderboard[2]?.name || 'Anonymous'}
+                                    </Text>
+                                    <Text style={styles.podiumScore}>{leaderboard[2]?.score || 0}</Text>
+                                    <Text style={styles.podiumRank}>3rd</Text>
+                                  </View>
+                                </View>
+                              </View>
+                            )}
+                            
+                            {/* Leaderboard List */}
+                            <View style={styles.leaderboardListSection}>
+                              <View style={styles.leaderboardListHeader}>
+                                <Text style={styles.leaderboardListTitle}>📊 All Participants</Text>
+                                <Text style={styles.leaderboardListSubtitle}>Complete ranking</Text>
+                              </View>
+                              <View style={styles.leaderboardListContainer}>
+                                <FlatList
+                                  data={leaderboard}
+                                  keyExtractor={item => item.userId}
+                                  renderItem={({ item }) => (
+                                    <PracticeLeaderboardRow
+                                      rank={item.rank}
+                                      name={item.name}
+                                      score={item.score}
+                                      isCurrentUser={currentUser && item.userId === currentUser.userId}
+                                    />
+                                  )}
+                                  ListEmptyComponent={() => (
+                                    <View style={styles.emptyLeaderboard}>
+                                      <Ionicons name="people-outline" size={64} color="#ddd" />
+                                      <Text style={styles.emptyLeaderboardText}>No participants yet</Text>
+                                      <Text style={styles.emptyLeaderboardSubtext}>Be the first to attempt this exam!</Text>
+                                    </View>
+                                  )}
+                                  showsVerticalScrollIndicator={false}
+                                  contentContainerStyle={styles.leaderboardList}
+                                />
+                              </View>
+                            </View>
+                          </View>
                         );
                       })()}
                     </View>
@@ -424,8 +617,47 @@ const PracticeExamDetailsScreen = () => {
 
                   {activeTab === 'Results' && (
                     <View style={styles.resultsContainer}>
-                      <Text style={styles.comingSoonText}>Results Coming Soon</Text>
-                      <Ionicons name="analytics-outline" size={48} color={AppColors.grey} />
+                        {exam?.attempted ? (
+                            resultLoading ? (
+                                <ActivityIndicator size="large" color="#6C63FF" style={{ marginTop: 40 }} />
+                            ) : result ? (
+                                <View style={styles.resultCard}>
+                                    <View style={styles.resultHeader}>
+                                        <Ionicons name="trophy" size={40} color="#FFD700" style={{ marginBottom: 8 }} />
+                                        <Text style={styles.resultTitle}>Practice Exam Results</Text>
+                                        <Text style={styles.resultScore}>Score: <Text style={{ color: '#FFD700' }}>{result.score}</Text> / {result.totalQuestions}</Text>
+                                    </View>
+                                    <View style={styles.summaryGrid}>
+                                        <View style={[styles.summaryCard, { backgroundColor: '#d4edda' }]}> 
+                                            <Ionicons name="checkmark-circle" size={24} color="#28a745" />
+                                            <Text style={[styles.summaryCardValue, { color: '#28a745' }]}>{result.correctAnswers}</Text>
+                                            <Text style={styles.summaryCardLabel}>Correct</Text>
+                                        </View>
+                                        <View style={[styles.summaryCard, { backgroundColor: '#f8d7da' }]}> 
+                                            <Ionicons name="close-circle" size={24} color="#dc3545" />
+                                            <Text style={[styles.summaryCardValue, { color: '#dc3545' }]}>{result.wrongAnswers}</Text>
+                                            <Text style={styles.summaryCardLabel}>Incorrect</Text>
+                                        </View>
+                                        <View style={[styles.summaryCard, { backgroundColor: '#e2e3e5' }]}> 
+                                            <Ionicons name="remove-circle" size={24} color="#6c757d" />
+                                            <Text style={[styles.summaryCardValue, { color: '#6c757d' }]}>{result.unattempted}</Text>
+                                            <Text style={styles.summaryCardLabel}>Unattempted</Text>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.analysisButton}
+                                        onPress={() => router.push({ pathname: '/(tabs)/practice-exam/result/[id]', params: { id } })}
+                                    >
+                                        <Ionicons name="analytics-outline" size={20} color="#6C63FF" />
+                                        <Text style={styles.analysisButtonText}>View Detailed Analysis</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <Text style={styles.placeholderText}>Could not load result.</Text>
+                            )
+                        ) : (
+                            <Text style={styles.placeholderText}>You haven't attempted this exam yet.</Text>
+                        )}
                     </View>
                   )}
                 </>
@@ -504,7 +736,8 @@ const PracticeExamDetailsScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: AppColors.lightGrey,
+        backgroundColor: '#f6f8fb',
+        padding: 12,
     },
     loadingContainer: {
         flex: 1,
@@ -696,70 +929,90 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 10,
     },
-    rankContainer: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: AppColors.lightGrey,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 10,
-    },
-    rankText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: AppColors.primary,
-    },
-    playerInfo: {
-        flex: 1,
-    },
-    playerName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: AppColors.darkGrey,
-    },
-    playerScore: {
-        fontSize: 14,
-        color: AppColors.grey,
-    },
-    scoreContainer: {
-        width: 50,
-        height: 30,
-        backgroundColor: AppColors.lightGrey,
-        borderRadius: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    scoreText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: AppColors.primary,
-    },
-    emptyLeaderboard: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: 50,
-    },
-    emptyLeaderboardText: {
-        fontSize: 16,
-        color: AppColors.grey,
-        marginBottom: 10,
-    },
-    emptyLeaderboardSubtext: {
-        fontSize: 14,
-        color: AppColors.grey,
-    },
+
     resultsContainer: {
         flex: 1,
-        justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 50,
+        justifyContent: 'center',
+        padding: 20,
     },
-    comingSoonText: {
-        fontSize: 16,
-        color: AppColors.grey,
+    resultCard: {
+        backgroundColor: '#fff',
+        borderRadius: 18,
+        padding: 24,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+        width: '100%',
+        maxWidth: 400,
+    },
+    resultHeader: {
+        alignItems: 'center',
+        marginBottom: 18,
+    },
+    resultTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 6,
+    },
+    resultScore: {
+        fontSize: 18,
+        color: '#333',
+        fontWeight: '600',
         marginBottom: 10,
+    },
+    summaryGrid: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 18,
+        width: '100%',
+    },
+    summaryCard: {
+        flex: 1,
+        marginHorizontal: 4,
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    summaryCardValue: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginTop: 8,
+        marginBottom: 4,
+    },
+    summaryCardLabel: {
+        fontSize: 13,
+        color: '#666',
+        fontWeight: '500',
+    },
+    analysisButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 18,
+        backgroundColor: '#f6f8fb',
+        borderRadius: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 18,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    analysisButtonText: {
+        color: '#6C63FF',
+        fontWeight: 'bold',
+        fontSize: 15,
+        marginLeft: 8,
     },
     backButtonText: {
         color: AppColors.primary,
@@ -908,6 +1161,513 @@ const styles = StyleSheet.create({
     descriptionText: {
         color: AppColors.darkGrey,
         fontSize: 15,
+    },
+    currentUserCard: {
+        backgroundColor: '#fffbe6',
+        borderRadius: 16,
+        padding: 18,
+        marginBottom: 18,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    currentUserHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    currentUserLabel: {
+        color: '#bfa100',
+        fontWeight: 'bold',
+        fontSize: 15,
+        marginLeft: 8,
+    },
+    currentUserInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    currentUserRankContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    currentUserRank: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#bfa100',
+    },
+    currentUserRankLabel: {
+        fontSize: 14,
+        color: '#bfa100',
+        fontWeight: 'bold',
+        marginLeft: 4,
+    },
+    currentUserAvatarContainer: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    currentUserDetails: {
+        flexDirection: 'column',
+        marginLeft: 10,
+    },
+    currentUserName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#222',
+    },
+    currentUserScore: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1a73e8',
+    },
+    currentUserBadge: {
+        backgroundColor: '#1a73e8',
+        borderRadius: 12,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        marginLeft: 8,
+        color: AppColors.white,
+        fontWeight: 'bold',
+        fontSize: 12,
+    },
+    currentUserNameText: {
+        color: '#222',
+    },
+    currentUserScoreText: {
+        color: '#1a73e8',
+    },
+    podiumSection: {
+        marginBottom: 20,
+    },
+    podiumTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginBottom: 10,
+    },
+    podiumContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+    },
+    podiumItem: {
+        flexDirection: 'column',
+        alignItems: 'center',
+    },
+    podiumMedal: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f0f0f0',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    podiumName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginBottom: 4,
+    },
+    podiumScore: {
+        fontSize: 14,
+        color: AppColors.grey,
+    },
+    podiumRank: {
+        fontSize: 14,
+        color: AppColors.grey,
+        fontWeight: 'bold',
+    },
+    leaderboardCard: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        paddingVertical: 4,
+        paddingHorizontal: 0,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    leaderboardListTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginBottom: 10,
+    },
+    leaderboardList: {
+        padding: 10,
+    },
+    leaderboardRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    currentUserRow: {
+        backgroundColor: '#e3f2fd',
+    },
+    avatar: {
+        marginHorizontal: 8,
+    },
+    userInfo: {
+        flex: 1,
+    },
+    rankContainer: {
+        width: 50,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f8f9fa',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    rankText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#6c757d',
+    },
+    nameText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 2,
+    },
+    scoreText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1a73e8',
+    },
+    scoreContainer: {
+        minWidth: 80,
+        alignItems: 'flex-end',
+    },
+    emptyLeaderboard: {
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
+    emptyLeaderboardText: {
+        fontSize: 16,
+        color: '#666',
+        marginTop: 12,
+        fontWeight: '600',
+    },
+    emptyLeaderboardSubtext: {
+        fontSize: 14,
+        color: '#999',
+        marginTop: 4,
+    },
+    podiumFirst: {
+        transform: [{ translateY: -20 }],
+        zIndex: 2,
+    },
+    placeholderText: {
+        color: '#888',
+        fontSize: 15,
+        textAlign: 'center',
+        marginVertical: 30,
+    },
+    // New Professional Leaderboard Styles
+    leaderboardFullScreen: {
+        flex: 1,
+        backgroundColor: '#f8f9fa',
+    },
+    leaderboardHeader: {
+        backgroundColor: '#fff',
+        paddingVertical: 20,
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e9ecef',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    leaderboardHeaderContent: {
+        alignItems: 'center',
+    },
+    leaderboardHeaderTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#2c3e50',
+        marginTop: 8,
+        marginBottom: 4,
+    },
+    leaderboardHeaderSubtitle: {
+        fontSize: 14,
+        color: '#6c757d',
+        fontWeight: '500',
+    },
+    currentUserSection: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    currentUserGradient: {
+        borderRadius: 16,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    currentUserContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    currentUserLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    currentUserRankBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        marginRight: 12,
+    },
+    currentUserRankNumber: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    currentUserInfo: {
+        flex: 1,
+    },
+    currentUserLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    currentUserName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    currentUserRight: {
+        alignItems: 'flex-end',
+    },
+    currentUserScore: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    currentUserScoreLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontWeight: '600',
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#2c3e50',
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    podiumSection: {
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+        backgroundColor: '#fff',
+        marginHorizontal: 20,
+        marginVertical: 16,
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    podiumContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'flex-end',
+        paddingTop: 20,
+    },
+    podiumItem: {
+        alignItems: 'center',
+        flex: 1,
+        marginHorizontal: 8,
+    },
+    podiumFirst: {
+        transform: [{ translateY: -30 }],
+        zIndex: 3,
+    },
+    podiumSecond: {
+        transform: [{ translateY: -15 }],
+        zIndex: 2,
+    },
+    podiumThird: {
+        transform: [{ translateY: 0 }],
+        zIndex: 1,
+    },
+    podiumCrown: {
+        marginBottom: 8,
+    },
+    podiumMedalContainer: {
+        marginBottom: 8,
+    },
+    podiumAvatar: {
+        marginBottom: 8,
+    },
+    podiumName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#2c3e50',
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    podiumScore: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#667eea',
+        marginBottom: 2,
+    },
+    podiumRank: {
+        fontSize: 12,
+        color: '#6c757d',
+        fontWeight: '600',
+    },
+    leaderboardListSection: {
+        flex: 1,
+        backgroundColor: '#fff',
+        marginHorizontal: 20,
+        marginBottom: 20,
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 3,
+        overflow: 'hidden',
+    },
+    leaderboardListHeader: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e9ecef',
+    },
+    leaderboardListTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#2c3e50',
+        marginBottom: 4,
+    },
+    leaderboardListSubtitle: {
+        fontSize: 14,
+        color: '#6c757d',
+    },
+    leaderboardListContainer: {
+        flex: 1,
+    },
+    leaderboardRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f8f9fa',
+    },
+    currentUserRow: {
+        backgroundColor: '#f8f9ff',
+        borderLeftWidth: 4,
+        borderLeftColor: '#667eea',
+    },
+    currentUserRankContainer: {
+        backgroundColor: '#667eea',
+    },
+    rankContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#f8f9fa',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    rankText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#6c757d',
+    },
+    userSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    avatarContainer: {
+        marginRight: 12,
+    },
+    userInfo: {
+        flex: 1,
+    },
+    nameText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#2c3e50',
+        marginBottom: 2,
+    },
+    currentUserNameText: {
+        color: '#667eea',
+        fontWeight: 'bold',
+    },
+    currentUserBadge: {
+        backgroundColor: '#667eea',
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        alignSelf: 'flex-start',
+        marginTop: 2,
+    },
+    currentUserBadgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    scoreSection: {
+        alignItems: 'flex-end',
+    },
+    scoreText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#667eea',
+    },
+    currentUserScoreText: {
+        color: '#667eea',
+    },
+    scoreLabel: {
+        fontSize: 12,
+        color: '#6c757d',
+        fontWeight: '500',
+        marginTop: 2,
+    },
+    emptyLeaderboard: {
+        alignItems: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 20,
+    },
+    emptyLeaderboardText: {
+        fontSize: 18,
+        color: '#6c757d',
+        marginTop: 16,
+        fontWeight: '600',
+    },
+    emptyLeaderboardSubtext: {
+        fontSize: 14,
+        color: '#adb5bd',
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    leaderboardList: {
+        paddingBottom: 20,
     },
 });
 

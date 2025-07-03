@@ -30,8 +30,15 @@ const ExamDetailScreen = () => {
                 setLeaderboardLoading(true);
                 const response = await apiFetchAuth(`/student/live-exams/${id}/leaderboard`, user.token);
                 if (response.ok) {
+                    console.log('Leaderboard API Response:', response.data);
                     setCurrentUser(response.data.currentUser);
                     setLeaderboard(response.data.leaderboard || []);
+                    
+                    // Debug: Log the first few items to check rank structure
+                    if (response.data.leaderboard && response.data.leaderboard.length > 0) {
+                        console.log('First leaderboard item:', response.data.leaderboard[0]);
+                        console.log('Current user data:', response.data.currentUser);
+                    }
                 } else {
                     console.error("Failed to load leaderboard:", response.data);
                     setLeaderboard([]);
@@ -188,42 +195,56 @@ const ExamDetailScreen = () => {
                                 ) : (
                                     <View>
                                         {/* Current User Section */}
-                                        {currentUser && (
+                                        {currentUser ? (
                                             <View style={styles.currentUserSection}>
                                                 <Text style={styles.currentUserTitle}>Your Position</Text>
                                                 <LeaderboardRow
-                                                    rank={currentUser.rank}
+                                                    rank={currentUser.rank || 'N/A'}
                                                     name={currentUser.name}
                                                     score={currentUser.score}
                                                     prizeAmount={currentUser.prizeAmount}
                                                     isCurrentUser={true}
-                                                    isTopThree={currentUser.rank <= 3}
+                                                    isTopThree={currentUser.rank && currentUser.rank <= 3}
                                                 />
+                                            </View>
+                                        ) : (
+                                            <View style={styles.currentUserSection}>
+                                                <Text style={styles.currentUserTitle}>Your Position</Text>
+                                                <Text style={styles.placeholderText}>You haven't taken this exam yet.</Text>
                                             </View>
                                         )}
                                         
                                         {/* Leaderboard Section */}
                                         <View style={styles.leaderboardSection}>
                                             <Text style={styles.leaderboardTitle}>Top 25</Text>
-                                            <FlatList
-                                                data={leaderboard || []}
-                                                keyExtractor={(item) => item.userId}
-                                                renderItem={({ item, index }) => (
-                                                    <LeaderboardRow
-                                                        rank={item.rank}
-                                                        name={item.name}
-                                                        score={item.score}
-                                                        prizeAmount={item.prizeAmount}
-                                                        isCurrentUser={item.userId === user?.id}
-                                                        isTopThree={item.rank <= 3}
-                                                    />
-                                                )}
-                                                ListEmptyComponent={() => (
-                                                     <View style={{padding: 20, alignItems: 'center'}}>
-                                                        <Text style={styles.placeholderText}>Leaderboard is not available yet.</Text>
-                                                    </View>
-                                                )}
-                                            />
+                                            {leaderboard && leaderboard.length > 0 ? (
+                                                <FlatList
+                                                    data={leaderboard}
+                                                    keyExtractor={(item) => item.userId}
+                                                    renderItem={({ item, index }) => {
+                                                        console.log('FlatList renderItem:', { item, index });
+                                                        return (
+                                                            <LeaderboardRow
+                                                                rank={item.rank}
+                                                                name={item.name}
+                                                                score={item.score}
+                                                                prizeAmount={item.prizeAmount}
+                                                                isCurrentUser={item.userId === user?.id}
+                                                                isTopThree={item.rank <= 3}
+                                                            />
+                                                        );
+                                                    }}
+                                                    ListEmptyComponent={() => (
+                                                         <View style={{padding: 20, alignItems: 'center'}}>
+                                                            <Text style={styles.placeholderText}>Leaderboard is not available yet.</Text>
+                                                        </View>
+                                                    )}
+                                                />
+                                            ) : (
+                                                <View style={{padding: 20, alignItems: 'center'}}>
+                                                    <Text style={styles.placeholderText}>No participants yet.</Text>
+                                                </View>
+                                            )}
                                         </View>
                                     </View>
                                 )
@@ -260,20 +281,35 @@ const ExamDetailScreen = () => {
 };
 
 const LeaderboardRow = ({ rank, name, score, prizeAmount, isCurrentUser, isTopThree }: any) => {
-    const rankColor = isTopThree ? ['#FFD700', '#C0C0C0', '#CD7F32'][rank - 1] : '#6c757d';
+    // Convert rank to number and ensure it's displayed properly
+    const numericRank = typeof rank === 'string' ? parseInt(rank, 10) : rank;
+    const displayRank = numericRank !== undefined && numericRank !== null && !isNaN(numericRank) ? numericRank : 'N/A';
+    const rankColor = isTopThree && numericRank && numericRank <= 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][numericRank - 1] : '#6c757d';
+    
+    console.log('LeaderboardRow render:', { 
+        originalRank: rank, 
+        numericRank, 
+        displayRank, 
+        name, 
+        score, 
+        isTopThree,
+        rankType: typeof rank,
+        numericRankType: typeof numericRank
+    });
+    
     return (
         <View style={[styles.leaderboardRow, isCurrentUser && styles.currentUserRow]}>
             <View style={styles.rankContainer}>
-                {isTopThree ? (
+                {isTopThree && numericRank && numericRank <= 3 ? (
                     <Ionicons name="trophy" size={24} color={rankColor} />
                 ) : (
-                    <Text style={styles.leaderboardRankText}>{rank}</Text>
+                    <Text style={styles.leaderboardRankText}>RANK: {displayRank}</Text>
                 )}
             </View>
             <Ionicons name="person-circle-outline" size={40} color={AppColors.grey} style={styles.avatar} />
-            <Text style={styles.leaderboardNameText} numberOfLines={1}>{name}</Text>
+            <Text style={styles.leaderboardNameText} numberOfLines={1}>{name || 'Unknown User'}</Text>
             <View style={styles.scoreContainer}>
-                <Text style={styles.leaderboardScoreText}>{score} PTS</Text>
+                <Text style={styles.leaderboardScoreText}>{score || 0} PTS</Text>
                 {prizeAmount > 0 && (
                     <Text style={styles.prizeAmountText}>₹{prizeAmount}</Text>
                 )}
@@ -574,14 +610,19 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
     },
     rankContainer: {
-        width: 35,
+        width: 50,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: '#f0f0f0', // Temporary background to see the container
     },
     leaderboardRankText: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
         color: AppColors.darkGrey,
+        backgroundColor: '#e0e0e0',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
     },
     avatar: {
         marginHorizontal: 10,

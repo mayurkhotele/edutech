@@ -36,6 +36,16 @@ const CustomDrawerContent = (props: any) => {
         navigation.closeDrawer();
     };
 
+    const navigateToPracticeExam = () => {
+        navigation.navigate('(tabs)', { screen: 'practice-exam' });
+        navigation.closeDrawer();
+    };
+
+    const navigateToPrivacyPolicy = () => {
+        navigation.navigate('privacy-policy');
+        navigation.closeDrawer();
+    };
+
     return (
         <View style={styles.container}>
             <SafeAreaView style={{ flex: 1 }}>
@@ -69,13 +79,14 @@ const CustomDrawerContent = (props: any) => {
                     <View style={styles.menuContainer}>
                         <DrawerItem icon="person-outline" label="My Profile" onPress={navigateToProfile} />
                         <DrawerItem icon="document-text-outline" label="My Exams" onPress={navigateToMyExams} />
+                        <DrawerItem icon="school-outline" label="Practice Exam" onPress={navigateToPracticeExam} />
                         <DrawerItem icon="stats-chart-outline" label="Leaderboard" />
                         <DrawerItem icon="calendar-outline" label="My Timetable" onPress={navigateToTimetable} />
                         <DrawerItem icon="wallet-outline" label="My Balance" value="₹0.00" onPress={navigateToWallet} />
                         <DrawerItem icon="person-add-outline" label="Refer & Earn" onPress={navigateToRefer} />
                         <DrawerItem icon="information-circle-outline" label="Settings" />
-                        <DrawerItem icon="headset-outline" label="24/7 Support" onPress={() => {}} />
-                        <DrawerItem icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => {}} />
+                        <DrawerItem icon="headset-outline" label="24/7 Support" onPress={() => navigation.navigate('(tabs)', { screen: 'support-tickets' })} />
+                        <DrawerItem icon="shield-checkmark-outline" label="Privacy Policy" onPress={navigateToPrivacyPolicy} />
                         <DrawerItem icon="star-outline" label="Rate Us" onPress={() => {}} />
                         <DrawerItem icon="log-out-outline" label="Logout" onPress={logout} />
                     </View>
