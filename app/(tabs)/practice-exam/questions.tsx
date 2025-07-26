@@ -2,9 +2,10 @@ import { AppColors } from '@/constants/Colors';
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface Question {
   id: string;
@@ -33,6 +34,8 @@ const PracticeExamQuestionsScreen = () => {
   const [timer, setTimer] = useState(() => duration ? parseInt(duration) * 60 : 12 * 60);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showSidePanel, setShowSidePanel] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Fetch questions directly since join is already handled in the previous screen
   useEffect(() => {
@@ -152,51 +155,44 @@ const PracticeExamQuestionsScreen = () => {
   const isLastQuestion = current === questions.length - 1;
 
   const handleSubmit = async () => {
-    Alert.alert('Submit Test', 'Are you sure you want to submit the test?', [
-      { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Submit', 
-        style: 'destructive', 
-        onPress: async () => {
-          try {
-            // Prepare answers payload
-            const answers: { [key: string]: number } = {};
-            statuses.forEach((status, index) => {
-              if (status.answered && status.selectedOption !== undefined) {
-                answers[questions[index].id] = status.selectedOption;
-              }
-            });
+    setShowSubmitModal(true);
+  };
 
-            console.log('Submitting answers:', answers);
-
-            // Make API call to submit the test
-            const response = await apiFetchAuth(`/student/practice-exams/${id}/submit`, user?.token || '', {
-              method: 'POST',
-              body: { answers }
-            });
-
-            if (response.ok) {
-              console.log('Test submitted successfully');
-              Alert.alert('Success', 'Your test has been submitted successfully!', [
-                {
-                  text: 'View Results',
-                  onPress: () => {
-                    // Navigate to result page with the exam ID
-                    router.push(`/(tabs)/practice-exam/result/${id}`);
-                  }
-                }
-              ]);
-            } else {
-              console.error('Failed to submit test:', response);
-              Alert.alert('Error', 'Failed to submit the test. Please try again.');
-            }
-          } catch (error) {
-            console.error('Error submitting test:', error);
-            Alert.alert('Error', 'An error occurred while submitting the test. Please try again.');
-          }
+  const confirmSubmit = async () => {
+    setSubmitting(true);
+    try {
+      // Prepare answers payload
+      const answers: { [key: string]: number } = {};
+      statuses.forEach((status, index) => {
+        if (status.answered && status.selectedOption !== undefined) {
+          answers[questions[index].id] = status.selectedOption;
         }
+      });
+
+      console.log('Submitting answers:', answers);
+
+      // Make API call to submit the test
+      const response = await apiFetchAuth(`/student/practice-exams/${id}/submit`, user?.token || '', {
+        method: 'POST',
+        body: { answers }
+      });
+
+      if (response.ok) {
+        console.log('Test submitted successfully');
+        setShowSubmitModal(false);
+        setSubmitting(false);
+        // Direct redirect to result page
+        router.push(`/(tabs)/practice-exam/result/${id}`);
+      } else {
+        console.error('Failed to submit test:', response);
+        setSubmitting(false);
+        Alert.alert('Error', 'Failed to submit the test. Please try again.');
       }
-    ]);
+    } catch (error) {
+      console.error('Error submitting test:', error);
+      setSubmitting(false);
+      Alert.alert('Error', 'An error occurred while submitting the test. Please try again.');
+    }
   };
 
   // Summary counts
@@ -226,9 +222,6 @@ const PracticeExamQuestionsScreen = () => {
           <Ionicons name={showSidePanel ? "close" : "menu"} size={24} color={AppColors.primary} />
         </TouchableOpacity>
         <Text style={styles.timerText}>{formatTime(timer)}</Text>
-        <TouchableOpacity style={styles.pauseBtn}>
-          <Text style={styles.pauseText}>Pause</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Main Content Area */}
@@ -275,18 +268,7 @@ const PracticeExamQuestionsScreen = () => {
         </View>
       </View>
 
-      {/* Rough Work Section */}
-      <View style={styles.roughWorkContainer}>
-        <View style={styles.roughWorkHeader}>
-          <Ionicons name="create-outline" size={20} color={AppColors.primary} />
-          <Text style={styles.roughWorkTitle}>Rough Work</Text>
-        </View>
-        <View style={styles.roughWorkArea}>
-          <Text style={styles.roughWorkPlaceholder}>
-            Use this space for calculations, diagrams, or notes...
-          </Text>
-        </View>
-      </View>
+
 
       {/* Side Panel */}
       {showSidePanel && (
@@ -363,6 +345,83 @@ const PracticeExamQuestionsScreen = () => {
           </ScrollView>
         </View>
       )}
+
+      {/* Advanced Submit Confirmation Modal */}
+      <Modal
+        visible={showSubmitModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSubmitModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <LinearGradient
+              colors={['#667eea', '#764ba2']}
+              style={styles.modalHeader}
+            >
+              <View style={styles.modalIconContainer}>
+                <Ionicons name="checkmark-circle" size={40} color="#fff" />
+              </View>
+              <Text style={styles.modalTitle}>Submit Exam</Text>
+              <Text style={styles.modalSubtitle}>Are you sure you want to submit your exam?</Text>
+            </LinearGradient>
+
+            <View style={styles.modalContent}>
+              <View style={styles.summarySection}>
+                <Text style={styles.summaryTitle}>Exam Summary</Text>
+                <View style={styles.summaryGrid}>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.summaryLabel}>Answered</Text>
+                    <Text style={styles.summaryValue}>{answered}</Text>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="close-circle" size={20} color="#F44336" />
+                    <Text style={styles.summaryLabel}>Unanswered</Text>
+                    <Text style={styles.summaryValue}>{questions.length - answered}</Text>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="bookmark" size={20} color="#FFC107" />
+                    <Text style={styles.summaryLabel}>Marked</Text>
+                    <Text style={styles.summaryValue}>{marked}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.warningSection}>
+                <Ionicons name="warning" size={24} color="#FF9800" />
+                <Text style={styles.warningText}>
+                  Once submitted, you cannot change your answers. Please review all questions before proceeding.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowSubmitModal(false)}
+                disabled={submitting}
+              >
+                <Text style={styles.cancelButtonText}>Review More</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.submitConfirmButton}
+                onPress={confirmSubmit}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="send" size={20} color="#fff" />
+                    <Text style={styles.submitConfirmButtonText}>Submit Exam</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -702,6 +761,136 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     lineHeight: 20
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)'
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalHeader: {
+    padding: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee'
+  },
+  modalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 20
+  },
+  modalContent: {
+    padding: 20,
+    paddingBottom: 10
+  },
+  summarySection: {
+    marginBottom: 20
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: AppColors.primary,
+    marginBottom: 10
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap'
+  },
+  summaryItem: {
+    alignItems: 'center',
+    marginHorizontal: 10,
+    marginBottom: 10
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: AppColors.darkGrey,
+    marginTop: 5
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: AppColors.primary,
+    marginTop: 5
+  },
+  warningSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3CD',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 10
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#856404',
+    marginLeft: 10,
+    flexShrink: 1
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#eee'
+  },
+  cancelButton: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    flex: 1,
+    marginRight: 10
+  },
+  cancelButtonText: {
+    color: AppColors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center'
+  },
+  submitConfirmButton: {
+    backgroundColor: AppColors.primary,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    marginLeft: 10
+  },
+  submitConfirmButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 5
   }
 });
 

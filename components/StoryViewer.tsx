@@ -1,15 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Image,
-    Modal,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { apiFetchAuth, getImageUrl } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
@@ -58,6 +58,10 @@ export default function StoryViewer({ visible, onClose, initialStoryIndex = 0, s
       setCurrentStoryIndex(initialStoryIndex);
       // Initialize progress animations for each story
       progressAnimations.current = propStories.map(() => new Animated.Value(0));
+    } else if (visible && propStories.length === 0) {
+      // Handle case where no stories are provided
+      setError('No stories available');
+      setStories([]);
     }
   }, [visible, propStories, initialStoryIndex]);
 
@@ -165,6 +169,48 @@ export default function StoryViewer({ visible, onClose, initialStoryIndex = 0, s
   const currentStory = stories[currentStoryIndex];
 
   if (!visible) return null;
+
+  // Safety check for current story
+  if (!currentStory && stories.length > 0) {
+    return (
+      <Modal
+        visible={visible}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={handleClose}
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Story not found</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={handleClose}>
+              <Text style={styles.retryButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    );
+  }
+
+  // Validate current story has required properties
+  if (currentStory && (!currentStory.author || !currentStory.mediaUrl)) {
+    return (
+      <Modal
+        visible={visible}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={handleClose}
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Invalid story data</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={handleClose}>
+              <Text style={styles.retryButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    );
+  }
 
   return (
     <Modal

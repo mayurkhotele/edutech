@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { apiFetchAuth, getImageUrl } from '../constants/api';
@@ -29,6 +30,12 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<number>(Date.now());
 
   // Comment modal state
   const [commentModalVisible, setCommentModalVisible] = useState(false);
@@ -63,46 +70,55 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
   // Refresh when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger) {
-      fetchPosts();
+      resetAndFetchPosts();
       fetchStories();
     }
   }, [refreshTrigger]);
 
-  const fetchPosts = async () => {
-    setLoading(true);
+  // Refresh every time the screen comes into focus (with throttling)
+  useFocusEffect(
+    React.useCallback(() => {
+      const now = Date.now();
+      // Only refresh if it's been more than 30 seconds since last refresh
+      if (now - lastRefresh > 30000) {
+        resetAndFetchPosts();
+        fetchStories();
+        setLastRefresh(now);
+      }
+    }, [user?.token, lastRefresh])
+  );
+
+  const resetAndFetchPosts = () => {
+    setPage(1);
+    setHasMorePosts(true);
+    setPosts([]);
+    fetchPosts(true);
+  };
+
+  const fetchPosts = async (isRefresh = false) => {
+    if (isRefresh) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    
     setError('');
     try {
-      const res = await apiFetchAuth('/student/posts', user?.token || '');
+      // Use pagination parameters
+      const res = await apiFetchAuth(`/student/posts?page=${page}&limit=10`, user?.token || '');
       if (res.ok) {
-        // Fetch follow status for each author
-        const postsWithFollowStatus = await Promise.all(
-          res.data.map(async (post: any) => {
-            if (post.author?.id && post.author.id !== user?.id) {
-              try {
-                const followRes = await apiFetchAuth(`/student/profile?userId=${post.author.id}`, user?.token || '');
-                if (followRes.ok) {
-                  return {
-                    ...post,
-                    author: {
-                      ...post.author,
-                      isFollowing: followRes.data.isFollowing || false
-                    }
-                  };
-                }
-              } catch (e) {
-                console.error('Error fetching follow status for user:', post.author.id);
-              }
-            }
-            return {
-              ...post,
-              author: {
-                ...post.author,
-                isFollowing: false
-              }
-            };
-          })
-        );
-        setPosts(postsWithFollowStatus);
+        const newPosts = res.data.posts || res.data; // Handle different API response formats
+        
+        // Check if we have more posts
+        if (newPosts.length < 10) {
+          setHasMorePosts(false);
+        }
+        
+        if (isRefresh) {
+          setPosts(newPosts);
+        } else {
+          setPosts(prev => [...prev, ...newPosts]);
+        }
       } else {
         setError('Failed to load posts');
       }
@@ -110,12 +126,20 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
       setError('Failed to load posts');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMorePosts = () => {
+    if (!loadingMore && hasMorePosts) {
+      setPage(prev => prev + 1);
+      fetchPosts();
     }
   };
 
   const fetchStories = async () => {
     try {
-      const response = await apiFetchAuth('/student/stories', user?.token || '');
+      const response = await apiFetchAuth('/student/stories?limit=20', user?.token || '');
       
       if (response.ok) {
         // Transform the API response structure
@@ -129,8 +153,9 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
           }
         ];
 
-        // Process each user's stories
-        response.data.forEach((userData: any) => {
+        // Process each user's stories (limit to first 20 users for performance)
+        const limitedUserData = response.data.slice(0, 20);
+        limitedUserData.forEach((userData: any) => {
           if (userData.user && userData.stories && userData.stories.length > 0) {
             storiesArray.push({
               id: userData.user.id,
@@ -155,8 +180,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchPosts();
-    await fetchStories();
+    await Promise.all([resetAndFetchPosts(), fetchStories()]);
     setRefreshing(false);
   };
 
@@ -298,7 +322,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 
   const handleMessageUser = async (authorId: string, authorName: string) => {
     try {
-      const res = await apiFetchAuth(`/student/messages?user=${authorId}`, user?.token || '');
+      const res = await apiFetchAuth(`/student/messages/${authorId}`, user?.token || '');
       if (res.ok) {
         // Navigate to chat screen with user information
         if (navigation) {
@@ -326,9 +350,11 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 
   const handleStoryPress = (storyIndex: number) => {
     const selectedStory = stories[storyIndex];
-    if (selectedStory && !selectedStory.isAdd) {
-      setSelectedStoryIndex(storyIndex - 1); // Subtract 1 because first item is "Add Story"
+    if (selectedStory && !selectedStory.isAdd && selectedStory.stories && selectedStory.stories.length > 0) {
+      setSelectedStoryIndex(storyIndex);
       setStoryViewerVisible(true);
+    } else {
+      console.log('No stories available for this user');
     }
   };
 
@@ -350,13 +376,23 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
           <Ionicons name="alert-circle-outline" size={48} color="#ff6b6b" />
           <Text style={styles.errorTitle}>Unable to load posts</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchPosts}>
+          <TouchableOpacity style={styles.retryButton} onPress={resetAndFetchPosts}>
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color="#667eea" />
+        <Text style={styles.loadingFooterText}>Loading more posts...</Text>
+      </View>
+    );
+  };
 
   const renderPost = ({ item }: { item: any }) => (
     <View style={styles.postCard}>
@@ -567,6 +603,9 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
           </View>
         }
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMorePosts}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
       />
 
       {/* Add Story Modal */}
@@ -580,8 +619,8 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
       <StoryViewer
         visible={storyViewerVisible}
         onClose={() => setStoryViewerVisible(false)}
-        initialStoryIndex={selectedStoryIndex}
-        stories={stories[selectedStoryIndex + 1]?.stories || []}
+        initialStoryIndex={0}
+        stories={stories[selectedStoryIndex]?.stories || []}
       />
 
       {/* Professional Comment Modal */}
@@ -1188,5 +1227,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     marginLeft: 4,
+  },
+  loadingFooter: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  loadingFooterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 8,
   },
 }); 

@@ -3,21 +3,21 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { apiFetchAuth } from '../constants/api';
+import { apiFetchAuth, uploadFile } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -53,40 +53,6 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
     setImage(null);
   };
 
-  const uploadImage = async (imageUri: string): Promise<string | null> => {
-    try {
-      const formData = new FormData();
-      const filename = imageUri.split('/').pop() || 'image.jpg';
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-      formData.append('file', {
-        uri: imageUri,
-        name: filename,
-        type,
-      } as any);
-
-      const response = await fetch('http://192.168.1.4:3000/api/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${user?.token || ''}`,
-        },
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.url || data.imageUrl;
-      } else {
-        throw new Error('Upload failed');
-      }
-    } catch (error) {
-      console.error('Image upload error:', error);
-      return null;
-    }
-  };
-
   const handleSubmit = async () => {
     if (!content.trim()) {
       Alert.alert('Error', 'Please enter some content for your post');
@@ -97,12 +63,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
     try {
       let imageUrl = null;
       if (image) {
-        const uploadedImageUrl = await uploadImage(image);
-        if (!uploadedImageUrl) {
-          Alert.alert('Error', 'Failed to upload image. Please try again.');
-          setLoading(false);
-          return;
-        }
+        const uploadedImageUrl = await uploadFile(image, user?.token || '');
         imageUrl = uploadedImageUrl;
       }
 
@@ -215,7 +176,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Ionicons name="send" size={18} color="#fff" style={{ marginRight: 6 }} />
+                  <Ionicons name="send" size={18} color="#fff" style={styles.sendIcon} />
                   <Text style={styles.postButtonText}>Post</Text>
                 </LinearGradient>
               )}
@@ -748,5 +709,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  sendIcon: {
+    marginRight: 6,
   },
 }); 

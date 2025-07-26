@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import CreatePost from '../../components/CreatePost';
 import SocialFeed from '../../components/SocialFeed';
@@ -14,6 +14,14 @@ export default function SocialScreen() {
     // Trigger refresh of the social feed when a new post is created
     setRefreshTrigger(prev => prev + 1);
   };
+
+  // Refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Trigger a refresh when the screen comes into focus
+      setRefreshTrigger(prev => prev + 1);
+    }, [])
+  );
 
   return (
     <View style={styles.container}>

@@ -1,4 +1,5 @@
-const BASE_URL = 'http://192.168.1.6:3000/api';
+const BASE_URL = 'https://examindia-production.up.railway.app/api';
+
 
 type ApiOptions = {
   method?: string;
@@ -70,9 +71,20 @@ export async function uploadFile(fileUri: string, token: string): Promise<string
   });
 
   if (!response.ok) {
-    throw new Error('Failed to upload file');
+    const errorText = await response.text();
+    console.error('Upload failed:', response.status, errorText);
+    throw new Error(`Failed to upload file: ${response.status} - ${errorText}`);
   }
 
   const result = await response.json();
-  return result.url;
+  console.log('Upload response:', result);
+  
+  // Handle different possible response formats
+  const url = result.url || result.imageUrl || result.fileUrl || result.mediaUrl;
+  if (!url) {
+    console.error('No URL found in upload response:', result);
+    throw new Error('Upload response does not contain a valid URL');
+  }
+  
+  return url;
 } 

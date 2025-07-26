@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -35,11 +35,19 @@ interface CategoryStats {
   subcategories: string[];
 }
 
-const PracticeExamSection = () => {
+interface CategoryDisplay {
+  name: string;
+  icon: string;
+  gradient: readonly [string, string];
+  stats: CategoryStats;
+}
+
+const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
   const router = useRouter();
   const { user } = useAuth();
   const [exams, setExams] = useState<PracticeExam[]>([]);
   const [categoryStats, setCategoryStats] = useState<{ [key: string]: CategoryStats }>({});
+  const [topCategories, setTopCategories] = useState<CategoryDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -52,6 +60,12 @@ const PracticeExamSection = () => {
       calculateCategoryStats();
     }
   }, [exams]);
+
+  useEffect(() => {
+    if (Object.keys(categoryStats).length > 0) {
+      generateTopCategories();
+    }
+  }, [categoryStats]);
 
   const fetchPracticeExams = async () => {
     if (!user?.token) {
@@ -78,6 +92,11 @@ const PracticeExamSection = () => {
     await fetchPracticeExams();
     setRefreshing(false);
   };
+
+  // Expose handleRefresh method to parent component
+  useImperativeHandle(ref, () => ({
+    handleRefresh
+  }));
 
   const calculateCategoryStats = () => {
     const stats: { [key: string]: CategoryStats } = {};
@@ -113,22 +132,54 @@ const PracticeExamSection = () => {
     if (categoryLower.includes('english')) return 'book';
     if (categoryLower.includes('computer')) return 'laptop';
     if (categoryLower.includes('general')) return 'bulb';
+    if (categoryLower.includes('reasoning')) return 'brain';
+    if (categoryLower.includes('banking')) return 'card';
+    if (categoryLower.includes('upsc')) return 'library';
     return 'library';
   };
 
   const getGradientColors = (category: string) => {
     const categoryLower = category.toLowerCase();
-    if (categoryLower.includes('railway')) return ['#FF6B6B', '#FF8E53'] as const;
-    if (categoryLower.includes('ssc')) return ['#4ECDC4', '#44A08D'] as const;
-    if (categoryLower.includes('math')) return ['#A8E6CF', '#7FCDCD'] as const;
-    if (categoryLower.includes('science')) return ['#FFD93D', '#FF6B6B'] as const;
-    if (categoryLower.includes('english')) return ['#667eea', '#764ba2'] as const;
-    if (categoryLower.includes('computer')) return ['#FF9A9E', '#FECFEF'] as const;
-    return ['#667eea', '#764ba2'] as const;
+    if (categoryLower.includes('railway')) return ['#FFB3BA', '#FF8A95'] as const;
+    if (categoryLower.includes('ssc')) return ['#A8E6CF', '#88D8C0'] as const;
+    if (categoryLower.includes('math')) return ['#B8E6B8', '#9DD6A8'] as const;
+    if (categoryLower.includes('science')) return ['#FFE5B4', '#FFD280'] as const;
+    if (categoryLower.includes('english')) return ['#B8D4E3', '#A5C7D7'] as const;
+    if (categoryLower.includes('computer')) return ['#E6B3D9', '#D19BC8'] as const;
+    if (categoryLower.includes('general')) return ['#FFD4B3', '#FFC085'] as const;
+    if (categoryLower.includes('reasoning')) return ['#D4B3FF', '#C19BED'] as const;
+    if (categoryLower.includes('banking')) return ['#B3E6CC', '#9DD6B8'] as const;
+    if (categoryLower.includes('upsc')) return ['#E6B3D9', '#D19BC8'] as const;
+    return ['#B8D4E3', '#A5C7D7'] as const;
+  };
+
+  const generateTopCategories = () => {
+    const categories = Object.keys(categoryStats);
+    
+    // Sort categories by total exams (most popular first)
+    const sortedCategories = categories.sort((a, b) => {
+      const statsA = categoryStats[a];
+      const statsB = categoryStats[b];
+      return statsB.totalExams - statsA.totalExams;
+    });
+
+    // Take top 8 categories
+    const top8Categories = sortedCategories.slice(0, 8).map(category => ({
+      name: category,
+      icon: getCategoryIcon(category),
+      gradient: getGradientColors(category),
+      stats: categoryStats[category]
+    }));
+
+    setTopCategories(top8Categories);
   };
 
   const handleCategoryClick = (category: string) => {
     router.push({ pathname: '/exam-category', params: { category } });
+  };
+
+  const handleViewAll = () => {
+    router.push('/practice-exam');
   };
 
   if (loading) {
@@ -143,28 +194,10 @@ const PracticeExamSection = () => {
     );
   }
 
-  if (exams.length === 0) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.emptyContainer}>
-          <Ionicons name="library-outline" size={64} color={AppColors.grey} />
-          <Text style={styles.emptyTitle}>No Practice Exams Available</Text>
-          <Text style={styles.emptySubtext}>
-            Check back later for new practice exams or contact your instructor.
-          </Text>
-          <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-            <Ionicons name="refresh" size={16} color={AppColors.white} />
-            <Text style={styles.refreshButtonText}>Refresh</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+  // Calculate total stats for header
+  const totalExams = Object.values(categoryStats).reduce((sum, stat) => sum + stat.totalExams, 0);
+  const totalAttempted = Object.values(categoryStats).reduce((sum, stat) => sum + stat.attemptedExams, 0);
 
-  // Only show categories grid
-  const categories = Object.keys(categoryStats);
-  const totalExams = exams.length;
-  const totalAttempted = exams.filter(exam => exam.attempted).length;
   return (
     <View style={styles.container}>
       {/* Header with Stats */}
@@ -200,59 +233,86 @@ const PracticeExamSection = () => {
           <View 
             style={[
               styles.progressFill,
-              { width: `${(totalAttempted / totalExams) * 100}%` }
+              { width: `${totalExams > 0 ? (totalAttempted / totalExams) * 100 : 0}%` }
             ]} 
           />
         </View>
         <Text style={styles.progressText}>
-          {Math.round((totalAttempted / totalExams) * 100)}% Complete
+          {totalExams > 0 ? Math.round((totalAttempted / totalExams) * 100) : 0}% Complete
         </Text>
       </View>
 
-      {/* Categories Grid */}
-      <View style={styles.categoriesContainer}>
-        {Array.from({ length: Math.ceil(categories.length / 2) }, (_, rowIndex) => (
-          <View key={rowIndex} style={styles.categoryRow}>
-            {categories.slice(rowIndex * 2, rowIndex * 2 + 2).map((category, cardIndex) => {
-              const stats = categoryStats[category];
-              return (
-                <TouchableOpacity
-                  key={category}
-                  style={[
-                    styles.categoryCard,
-                    cardIndex === 0 ? styles.leftCard : styles.rightCard
-                  ]}
-                  onPress={() => handleCategoryClick(category)}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={getGradientColors(category)}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.categoryGradient}
+      {/* Dynamic Top Categories Grid */}
+      {topCategories.length > 0 && (
+        <View style={styles.categoriesContainer}>
+          {Array.from({ length: Math.ceil(topCategories.length / 2) }, (_, rowIndex) => (
+            <View key={rowIndex} style={styles.categoryRow}>
+              {topCategories.slice(rowIndex * 2, rowIndex * 2 + 2).map((category, cardIndex) => {
+                const progress = category.stats.totalExams > 0 ? (category.stats.attemptedExams / category.stats.totalExams) * 100 : 0;
+                
+                return (
+                  <TouchableOpacity
+                    key={category.name}
+                    style={[
+                      styles.categoryCard,
+                      cardIndex === 0 ? styles.leftCard : styles.rightCard
+                    ]}
+                    onPress={() => handleCategoryClick(category.name)}
+                    activeOpacity={0.8}
                   >
-                    <View style={styles.categoryContent}>
-                      <View style={styles.categoryIconContainer}>
-                        <Ionicons 
-                          name={getCategoryIcon(category) as any} 
-                          size={28} 
-                          color={AppColors.white} 
-                        />
+                    <LinearGradient
+                      colors={category.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.categoryGradient}
+                    >
+                      <View style={styles.categoryContent}>
+                        <View style={styles.categoryIconContainer}>
+                          <Ionicons 
+                            name={category.icon as any} 
+                            size={24} 
+                            color="#2C3E50" 
+                          />
+                        </View>
+                        <View style={styles.categoryInfo}>
+                          <Text style={styles.categoryTitle}>{category.name}</Text>
+                          <Text style={styles.categoryStats}>
+                            {category.stats.attemptedExams}/{category.stats.totalExams} completed
+                          </Text>
+                          <View style={styles.categoryProgressBar}>
+                            <View 
+                              style={[
+                                styles.categoryProgressFill,
+                                { width: `${progress}%` }
+                              ]} 
+                            />
+                          </View>
+                        </View>
                       </View>
-                      <View style={styles.categoryInfo}>
-                        <Text style={styles.categoryTitle}>{category}</Text>
-                      </View>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ))}
-      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* View All Button */}
+      <TouchableOpacity style={styles.viewAllButton} onPress={handleViewAll}>
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.viewAllGradient}
+        >
+          <Text style={styles.viewAllText}>View All Categories</Text>
+          <Ionicons name="arrow-forward" size={20} color={AppColors.white} />
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -283,23 +343,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 14,
     color: AppColors.grey,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: AppColors.darkGrey,
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: AppColors.grey,
-    marginTop: 8,
-    textAlign: 'center',
-    paddingHorizontal: 20,
   },
   header: {
     flexDirection: 'row',
@@ -364,6 +407,7 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     gap: 12,
+    marginBottom: 20,
   },
   categoryCard: {
     width: '48%',
@@ -387,24 +431,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryIconContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   categoryInfo: {
     alignItems: 'center',
+    width: '100%',
   },
   categoryTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: AppColors.white,
-    textAlign: 'center',
-  },
-  refreshButtonText: {
-    color: AppColors.white,
-    fontWeight: '600',
     fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2C3E50',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  categoryStats: {
+    fontSize: 11,
+    color: '#34495E',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  categoryProgressBar: {
+    width: '100%',
+    height: 4,
+    backgroundColor: 'rgba(44, 62, 80, 0.2)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  categoryProgressFill: {
+    height: '100%',
+    backgroundColor: '#3498DB',
+    borderRadius: 2,
   },
   leftCard: {
     marginRight: 6,
@@ -416,6 +480,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  viewAllButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  viewAllGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewAllText: {
+    color: AppColors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 8,
   },
 });
 

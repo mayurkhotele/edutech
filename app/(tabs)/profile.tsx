@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
@@ -33,6 +33,7 @@ function timeAgo(dateString: string) {
 }
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<any>();
   const { user, updateUser } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [userPosts, setUserPosts] = useState<any[]>([]);
@@ -122,12 +123,10 @@ export default function ProfileScreen() {
   const fetchUserPosts = async () => {
     setPostsLoading(true);
     try {
-      const res = await apiFetchAuth('/student/posts', user?.token || '');
+      const res = await apiFetchAuth(`/student/posts?authorId=${user?.id}&limit=20`, user?.token || '');
       if (res.ok) {
-        // Filter posts to only show posts by the current user
-        const currentUserId = user?.id;
-        const filteredPosts = res.data.filter((post: any) => post.authorId === currentUserId);
-        setUserPosts(filteredPosts);
+        // Posts are already filtered by authorId on the backend
+        setUserPosts(res.data);
       }
     } catch (e) {
       console.error('Error fetching user posts:', e);
@@ -193,8 +192,7 @@ export default function ProfileScreen() {
 
   // User-friendly helper functions
   const handleEditProfile = () => {
-    // TODO: Navigate to edit profile screen
-    console.log('Edit profile pressed');
+    navigation.navigate('edit-profile');
   };
 
   const handleShareProfile = () => {
@@ -439,10 +437,17 @@ export default function ProfileScreen() {
 
           {/* Clean Action Buttons */}
           <View style={styles.actionSection}>
-            <TouchableOpacity style={styles.followButton} activeOpacity={0.8} onPress={handleFollow}>
-              <Ionicons name="person-add-outline" size={20} color="#fff" />
-              <Text style={styles.followButtonText}>Follow</Text>
-            </TouchableOpacity>
+            {user?.id !== profile?.id ? (
+              <TouchableOpacity style={styles.followButton} activeOpacity={0.8} onPress={handleFollow}>
+                <Ionicons name="person-add-outline" size={20} color="#fff" />
+                <Text style={styles.followButtonText}>Follow</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.editProfileButton} activeOpacity={0.8} onPress={handleEditProfile}>
+                <Ionicons name="create-outline" size={20} color="#667eea" />
+                <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -719,6 +724,23 @@ const styles = StyleSheet.create({
   },
   followButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  editProfileButton: {
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#667eea',
+  },
+  editProfileButtonText: {
+    color: '#667eea',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

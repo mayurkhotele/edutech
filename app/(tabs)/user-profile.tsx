@@ -3,17 +3,17 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
@@ -65,11 +65,10 @@ export default function UserProfileScreen() {
   const fetchUserPosts = async () => {
     setPostsLoading(true);
     try {
-      const res = await apiFetchAuth('/student/posts', user?.token || '');
+      const res = await apiFetchAuth(`/student/posts?authorId=${userId}&limit=20`, user?.token || '');
       if (res.ok) {
-        // Filter posts to only show posts by the specific user
-        const filteredPosts = res.data.filter((post: any) => post.authorId === userId);
-        setUserPosts(filteredPosts);
+        // Posts are already filtered by authorId on the backend
+        setUserPosts(res.data);
       }
     } catch (e) {
       console.error('Error fetching user posts:', e);
@@ -139,7 +138,7 @@ export default function UserProfileScreen() {
 
   const handleMessageUser = async () => {
     try {
-      const res = await apiFetchAuth(`/student/messages?user=${userId}`, user?.token || '');
+      const res = await apiFetchAuth(`/student/messages/${userId}`, user?.token || '');
       if (res.ok) {
         // Navigate to chat screen with user information
         navigation.navigate('chat', { 

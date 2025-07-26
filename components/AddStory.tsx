@@ -70,19 +70,33 @@ export default function AddStory({ visible, onClose, onStoryCreated }: AddStoryP
   };
 
   const uploadImage = async (imageUri: string): Promise<string> => {
-    return await uploadFile(imageUri, user?.token || '');
+    try {
+      console.log('Starting image upload for:', imageUri);
+      const result = await uploadFile(imageUri, user?.token || '');
+      console.log('Upload result:', result);
+      return result;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
   };
 
   const createStory = async (mediaUrl: string) => {
     try {
+      const payload = {
+        mediaUrl,
+        mediaType: 'IMAGE',
+        caption: caption.trim(),
+      };
+      
+      console.log('Sending story creation request with payload:', payload);
+      
       const response = await apiFetchAuth('/student/stories', user?.token || '', {
         method: 'POST',
-        body: {
-          mediaUrl,
-          mediaType: 'IMAGE',
-          caption: caption.trim(),
-        },
+        body: payload,
       });
+
+      console.log('Story creation response:', response);
 
       if (response.ok) {
         Alert.alert('Success', 'Story created successfully!');
@@ -90,10 +104,13 @@ export default function AddStory({ visible, onClose, onStoryCreated }: AddStoryP
         resetForm();
         onClose();
       } else {
-        throw new Error('Failed to create story');
+        console.error('Story creation failed:', response);
+        throw new Error(`Failed to create story: ${response.status} - ${JSON.stringify(response.data)}`);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to create story');
+      console.error('Error in createStory:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      Alert.alert('Error', 'Failed to create story: ' + errorMessage);
     }
   };
 
@@ -108,12 +125,26 @@ export default function AddStory({ visible, onClose, onStoryCreated }: AddStoryP
 
     try {
       // First upload the image
+      console.log('Uploading image...');
       const mediaUrl = await uploadImage(selectedImage);
+      console.log('Uploaded mediaUrl:', mediaUrl);
+      
+      if (!mediaUrl) {
+        throw new Error('Failed to upload image - no URL returned');
+      }
       
       // Then create the story
+      console.log('Creating story with payload:', {
+        mediaUrl,
+        mediaType: 'IMAGE',
+        caption: caption.trim(),
+      });
+      
       await createStory(mediaUrl);
     } catch (error) {
-      Alert.alert('Error', 'Failed to upload image or create story');
+      console.error('Error in handleSubmit:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      Alert.alert('Error', 'Failed to upload image or create story: ' + errorMessage);
     } finally {
       setUploading(false);
       setCreatingStory(false);

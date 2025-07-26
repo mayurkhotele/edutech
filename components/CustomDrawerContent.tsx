@@ -37,7 +37,7 @@ const CustomDrawerContent = (props: any) => {
     };
 
     const navigateToPracticeExam = () => {
-        navigation.navigate('(tabs)', { screen: 'practice-exam' });
+        navigation.navigate('practice-exam');
         navigation.closeDrawer();
     };
 

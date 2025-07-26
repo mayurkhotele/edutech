@@ -182,21 +182,14 @@ const LiveExamQuestionsScreen = () => {
               // Store the result data
               const resultData = response.data;
               
-              Alert.alert('Success', 'Your test has been submitted successfully!', [
-                {
-                  text: 'View Results',
-                  onPress: () => {
-                    // Navigate to result page with the exam ID and result data
-                    router.push({
-                      pathname: '/(tabs)/live-exam/result/[id]' as any,
-                      params: { 
-                        id: id,
-                        resultData: JSON.stringify(resultData)
-                      }
-                    });
-                  }
+              // Navigate directly to result page with the exam ID and result data
+              router.push({
+                pathname: '/(tabs)/live-exam/result/[id]' as any,
+                params: { 
+                  id: id,
+                  resultData: JSON.stringify(resultData)
                 }
-              ]);
+              });
             } else {
               console.error('Failed to submit test:', response);
               Alert.alert('Error', 'Failed to submit the test. Please try again.');
@@ -237,9 +230,6 @@ const LiveExamQuestionsScreen = () => {
           <Ionicons name={showSidePanel ? "close" : "menu"} size={24} color={AppColors.primary} />
         </TouchableOpacity>
         <Text style={styles.timerText}>{formatTime(timer)}</Text>
-        <TouchableOpacity style={styles.pauseBtn}>
-          <Text style={styles.pauseText}>Pause</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Main Content Area */}
@@ -290,18 +280,7 @@ const LiveExamQuestionsScreen = () => {
         </View>
       </View>
 
-      {/* Rough Work Section */}
-      <View style={styles.roughWorkContainer}>
-        <View style={styles.roughWorkHeader}>
-          <Ionicons name="create-outline" size={20} color={AppColors.primary} />
-          <Text style={styles.roughWorkTitle}>Rough Work</Text>
-        </View>
-        <View style={styles.roughWorkArea}>
-          <Text style={styles.roughWorkPlaceholder}>
-            Use this space for calculations, diagrams, or notes...
-          </Text>
-        </View>
-      </View>
+
 
       {/* Side Panel */}
       {showSidePanel && (
@@ -350,11 +329,30 @@ const LiveExamQuestionsScreen = () => {
               <View style={styles.questionGrid}>
                 {questions.map((q, idx) => {
                   let bg = '#fff', border = '#BDBDBD', color = AppColors.darkGrey;
-                  if (statuses[idx]?.answered && statuses[idx]?.marked) { bg = '#4CAF50'; color = '#fff'; }
-                  else if (statuses[idx]?.answered) { bg = '#4CAF50'; color = '#fff'; }
-                  else if (statuses[idx]?.marked) { bg = '#FFC107'; color = '#000'; }
-                  else if (!statuses[idx]?.visited) { bg = '#fff'; border = '#BDBDBD'; color = AppColors.darkGrey; }
-                  else if (statuses[idx]?.visited && !statuses[idx]?.answered) { bg = '#F44336'; color = '#fff'; }
+                  let showCheckmark = false;
+                  
+                  if (statuses[idx]?.answered && statuses[idx]?.marked) { 
+                    bg = '#4CAF50'; 
+                    color = '#fff'; 
+                    showCheckmark = true;
+                  }
+                  else if (statuses[idx]?.answered) { 
+                    bg = '#4CAF50'; 
+                    color = '#fff'; 
+                  }
+                  else if (statuses[idx]?.marked) { 
+                    bg = '#FFC107'; 
+                    color = '#000'; 
+                  }
+                  else if (!statuses[idx]?.visited) { 
+                    bg = '#fff'; 
+                    border = '#BDBDBD'; 
+                    color = AppColors.darkGrey; 
+                  }
+                  else if (statuses[idx]?.visited && !statuses[idx]?.answered) { 
+                    bg = '#F44336'; 
+                    color = '#fff'; 
+                  }
                   
                   return (
                     <TouchableOpacity
@@ -367,7 +365,7 @@ const LiveExamQuestionsScreen = () => {
                       onPress={() => handleNav(idx)}
                     >
                       <Text style={[styles.qNavText, { color }]}>{idx + 1}</Text>
-                      {statuses[idx]?.answered && statuses[idx]?.marked && (
+                      {showCheckmark && (
                         <Ionicons name="checkmark" size={14} color="#fff" style={styles.checkmarkIcon} />
                       )}
                     </TouchableOpacity>
@@ -416,18 +414,6 @@ const styles = StyleSheet.create({
     fontSize: 18, 
     fontWeight: 'bold', 
     color: AppColors.primary 
-  },
-  pauseBtn: { 
-    backgroundColor: '#fff', 
-    borderRadius: 6, 
-    paddingHorizontal: 14, 
-    paddingVertical: 4, 
-    borderWidth: 1, 
-    borderColor: AppColors.primary 
-  },
-  pauseText: { 
-    color: AppColors.primary, 
-    fontWeight: 'bold' 
   },
   mainContent: {
     flex: 1,
@@ -683,46 +669,6 @@ const styles = StyleSheet.create({
     position: 'absolute', 
     top: -6, 
     right: -6 
-  },
-  // Rough Work Styles
-  roughWorkContainer: {
-    backgroundColor: '#fff',
-    margin: 10,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    marginTop: 0
-  },
-  roughWorkHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    backgroundColor: '#F8F9FA'
-  },
-  roughWorkTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: AppColors.primary,
-    marginLeft: 8
-  },
-  roughWorkArea: {
-    minHeight: 120,
-    padding: 16,
-    backgroundColor: '#FAFAFA',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12
-  },
-  roughWorkPlaceholder: {
-    fontSize: 14,
-    color: '#9E9E9E',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    lineHeight: 20
   }
 });
 

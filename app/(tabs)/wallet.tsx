@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 // import client from '../../api/client';
 import { apiFetchAuth } from '@/constants/api';
 
@@ -11,6 +11,7 @@ const WalletScreen = () => {
     const { user, logout } = useAuth();
     const [walletData, setWalletData] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
+    const [refreshing, setRefreshing] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const [depositModalVisible, setDepositModalVisible] = React.useState(false);
     const [depositAmount, setDepositAmount] = React.useState('');
@@ -43,6 +44,17 @@ const WalletScreen = () => {
             setLoading(false);
         }
     }, [user, logout]);
+
+    const onRefresh = React.useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await fetchWalletData();
+        } catch (error) {
+            console.error('Error refreshing wallet:', error);
+        } finally {
+            setRefreshing(false);
+        }
+    }, [fetchWalletData]);
 
     React.useEffect(() => {
         fetchWalletData();
@@ -102,7 +114,20 @@ const WalletScreen = () => {
 
     return (
         <>
-            <ScrollView style={styles.container}>
+            <ScrollView 
+                style={styles.container}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[AppColors.primary]}
+                        tintColor={AppColors.primary}
+                        title="Pull to refresh"
+                        titleColor={AppColors.primary}
+                        progressBackgroundColor="#f4f4f4"
+                    />
+                }
+            >
                 {/* Balance Card */}
                 <LinearGradient
                     colors={['#667eea', '#764ba2']}

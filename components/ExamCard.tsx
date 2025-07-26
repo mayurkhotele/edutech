@@ -11,10 +11,121 @@ const ExamCard = ({ exam, navigation }: any) => {
     const { user } = useAuth();
     const [remainingTime, setRemainingTime] = useState('');
     const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [instructions, setInstructions] = useState<string[] | null>(null);
     const [instructionsLoading, setInstructionsLoading] = useState(false);
     const [liveExamTitle, setLiveExamTitle] = useState('');
     const [declarationChecked, setDeclarationChecked] = useState(false);
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [walletLoading, setWalletLoading] = useState(false);
+    const [paymentLoading, setPaymentLoading] = useState(false);
+
+    // Fetch wallet balance
+    const fetchWalletBalance = async () => {
+        if (!user?.token) return;
+        
+        try {
+            setWalletLoading(true);
+            const response = await apiFetchAuth('/student/wallet', user.token);
+            if (response.ok) {
+                setWalletBalance(response.data.balance || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching wallet balance:', error);
+        } finally {
+            setWalletLoading(false);
+        }
+    };
+
+    // Check if user has sufficient balance
+    const hasSufficientBalance = () => {
+        console.log('Checking balance - Wallet:', walletBalance, 'Fee:', exam.entryFee);
+        return walletBalance >= exam.entryFee;
+    };
+
+    // Handle payment and join exam
+    const handlePaymentAndJoin = async () => {
+        if (!user?.token) {
+            Alert.alert('Error', 'You must be logged in to attempt this exam.');
+            return;
+        }
+
+        if (walletBalance < exam.entryFee) {
+            Alert.alert(
+                'Insufficient Balance',
+                `You need ₹${exam.entryFee} to join this exam. Your current balance is ₹${walletBalance.toFixed(2)}.`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Add Money', onPress: () => router.push('/(tabs)/wallet') }
+                ]
+            );
+            return;
+        }
+
+        setPaymentLoading(true);
+        try {
+            // 1. Deduct amount from wallet
+            const paymentResponse = await apiFetchAuth('/student/wallet/deduct', user.token, {
+                method: 'POST',
+                body: { 
+                    amount: exam.entryFee,
+                    examId: exam.id,
+                    description: `Payment for ${exam.title}`
+                }
+            });
+
+            if (!paymentResponse.ok) {
+                throw new Error(paymentResponse.data?.message || 'Payment failed');
+            }
+
+            // 2. Join the exam
+            const joinRes = await apiFetchAuth('/student/live-exams/join', user.token, {
+                method: 'POST',
+                body: { examId: exam.id },
+            });
+            
+            if (!joinRes.ok) {
+                throw new Error(joinRes.data?.message || 'Failed to join exam');
+            }
+
+            // 3. Get participant info
+            const participantRes = await apiFetchAuth(`/student/live-exams/${exam.id}/participant`, user.token);
+            if (!participantRes.ok) {
+                throw new Error('Failed to get participant info');
+            }
+
+            // 4. Fetch questions
+            const questionsRes = await apiFetchAuth(`/student/live-exams/${exam.id}/questions`, user.token);
+            if (!questionsRes.ok) {
+                throw new Error('Failed to fetch questions');
+            }
+
+            // 5. Update wallet balance locally
+            setWalletBalance(prev => prev - exam.entryFee);
+            
+            // 5. Update wallet balance locally
+            setWalletBalance(prev => prev - exam.entryFee);
+            
+            // 6. Close modals and start exam directly
+            setShowPaymentModal(false);
+            setShowInstructionsModal(false);
+            
+            // Navigate directly to questions page to start the exam
+            router.push({ 
+                pathname: '/(tabs)/live-exam/questions', 
+                params: { 
+                    id: exam.id, 
+                    duration: exam.duration, 
+                    questions: JSON.stringify(questionsRes.data) 
+                } 
+            });
+
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to process payment and join exam.');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
 
     useEffect(() => {
         const calculateRemainingTime = () => {
@@ -56,61 +167,42 @@ const ExamCard = ({ exam, navigation }: any) => {
             Alert.alert('Error', 'You must be logged in to attempt this exam.');
             return;
         }
-        setInstructionsLoading(true);
+
         try {
-            const res = await apiFetchAuth(`/student/live-exams/${exam.id}`, user.token);
-            if (res.ok) {
-                setLiveExamTitle(res.data.title || 'Live Exam');
-                if (res.data.instructions) {
-                    // If instructions is a string, wrap in array
-                    const instrArr = Array.isArray(res.data.instructions)
-                        ? res.data.instructions
-                        : typeof res.data.instructions === 'string'
-                        ? [res.data.instructions]
-                        : [];
-                    setInstructions(instrArr);
-                    setShowInstructionsModal(true);
-                } else {
-                    // No instructions - proceed directly with exam flow
-                    setInstructions(null);
-                    setShowInstructionsModal(false);
-                    
-                    // Directly start the exam flow
-                    try {
-                        // 1. Join the exam as participant (POST)
-                        const joinRes = await apiFetchAuth('/student/live-exams/join', user.token, {
-                            method: 'POST',
-                            body: { examId: exam.id },
-                        });
-                        if (!joinRes.ok) throw new Error(joinRes.data?.message || 'Failed to join exam');
-                        
-                        // 2. Now call /participant
-                        const participantRes = await apiFetchAuth(`/student/live-exams/${exam.id}/participant`, user.token);
-                        if (!participantRes.ok) throw new Error('Failed to get participant info');
-                        
-                        // 3. Fetch questions
-                        const questionsRes = await apiFetchAuth(`/student/live-exams/${exam.id}/questions`, user.token);
-                        if (!questionsRes.ok) throw new Error('Failed to fetch questions');
-                        
-                        router.push({ 
-                            pathname: '/(tabs)/live-exam/questions', 
-                            params: { 
-                                id: exam.id, 
-                                duration: exam.duration, 
-                                questions: JSON.stringify(questionsRes.data) 
-                            } 
-                        });
-                    } catch (e: any) {
-                        Alert.alert('Error', e.message || 'Could not start the exam.');
-                    }
+            // First fetch wallet balance
+            setWalletLoading(true);
+            const response = await apiFetchAuth('/student/wallet', user.token);
+            if (response.ok) {
+                const currentBalance = response.data.balance || 0;
+                setWalletBalance(currentBalance);
+                
+                console.log('Wallet Balance:', currentBalance);
+                console.log('Exam Entry Fee:', exam.entryFee);
+                console.log('Has Sufficient Balance:', currentBalance >= exam.entryFee);
+                
+                // Check if user has sufficient balance
+                if (currentBalance < exam.entryFee) {
+                    Alert.alert(
+                        'Insufficient Balance',
+                        `You need ₹${exam.entryFee} to join this exam. Your current balance is ₹${currentBalance.toFixed(2)}.`,
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Add Money', onPress: () => router.push('/(tabs)/wallet') }
+                        ]
+                    );
+                    return;
                 }
+
+                // Show payment confirmation modal
+                setShowPaymentModal(true);
             } else {
-                Alert.alert('Error', 'Failed to fetch live exam details.');
+                Alert.alert('Error', 'Failed to fetch wallet balance.');
             }
-        } catch (e) {
-            Alert.alert('Error', 'Failed to fetch live exam details.');
+        } catch (error) {
+            console.error('Error fetching wallet:', error);
+            Alert.alert('Error', 'Failed to fetch wallet balance.');
         } finally {
-            setInstructionsLoading(false);
+            setWalletLoading(false);
         }
     };
 
@@ -162,6 +254,90 @@ const ExamCard = ({ exam, navigation }: any) => {
                 </TouchableOpacity>
             </View>
         </TouchableOpacity>
+        
+        {/* Payment Confirmation Modal */}
+        <Modal
+          visible={showPaymentModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowPaymentModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Payment Confirmation</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setShowPaymentModal(false)}
+                >
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.paymentDetails}>
+                <View style={styles.examInfo}>
+                  <Text style={styles.examTitle}>{exam.title}</Text>
+                  <Text style={styles.examSubtitle}>Live Exam</Text>
+                </View>
+                
+                <View style={styles.paymentBreakdown}>
+                  <View style={styles.paymentRow}>
+                    <Text style={styles.paymentLabel}>Entry Fee:</Text>
+                    <Text style={styles.paymentAmount}>₹{exam.entryFee}</Text>
+                  </View>
+                  <View style={styles.paymentRow}>
+                    <Text style={styles.paymentLabel}>Your Balance:</Text>
+                    <Text style={[styles.paymentAmount, { color: walletBalance >= exam.entryFee ? '#28a745' : '#dc3545' }]}>
+                      ₹{walletBalance.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={[styles.paymentRow, styles.balanceAfterRow]}>
+                    <Text style={styles.paymentLabel}>Balance After:</Text>
+                    <Text style={styles.paymentAmount}>
+                      ₹{(walletBalance - exam.entryFee).toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+                
+                {walletBalance < exam.entryFee && (
+                  <View style={styles.insufficientWarning}>
+                    <Ionicons name="warning" size={20} color="#dc3545" />
+                    <Text style={styles.insufficientText}>
+                      Insufficient balance. Please add money to your wallet.
+                    </Text>
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setShowPaymentModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.confirmButton,
+                    (walletBalance < exam.entryFee || paymentLoading) && styles.confirmButtonDisabled
+                  ]}
+                  disabled={walletBalance < exam.entryFee || paymentLoading}
+                  onPress={handlePaymentAndJoin}
+                >
+                  {paymentLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.confirmButtonText}>
+                      Pay ₹{exam.entryFee} & Join
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         {/* Instructions Modal for Live Exam */}
         <Modal
           visible={showInstructionsModal}
@@ -169,93 +345,73 @@ const ExamCard = ({ exam, navigation }: any) => {
           transparent={true}
           onRequestClose={() => setShowInstructionsModal(false)}
         >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: '#fff', borderRadius: 18, padding: 24, width: '90%', maxWidth: 400 }}>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 12, color: AppColors.primary }}>{liveExamTitle}</Text>
-              <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 10 }}>Instructions</Text>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{liveExamTitle}</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setShowInstructionsModal(false)}
+                >
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.instructionsTitle}>Instructions</Text>
               {instructionsLoading ? (
                 <ActivityIndicator size="large" color={AppColors.primary} />
               ) : instructions && instructions.length > 0 ? (
-                <ScrollView style={{ maxHeight: 120, marginBottom: 10 }}>
+                <ScrollView style={styles.instructionsScroll}>
                   {instructions.map((inst, idx) => (
-                    <Text key={idx} style={{ fontSize: 15, color: '#333', marginBottom: 8 }}>• {inst}</Text>
+                    <Text key={idx} style={styles.instructionText}>• {inst}</Text>
                   ))}
                 </ScrollView>
               ) : (
-                <Text style={{ color: '#888', marginBottom: 10 }}>No instructions found.</Text>
+                <Text style={styles.noInstructionsText}>No instructions found.</Text>
               )}
+              
               {/* Declaration Section */}
-              <Text style={{ fontWeight: 'bold', marginTop: 10, marginBottom: 4 }}>Declaration:</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 }}>
+              <Text style={styles.declarationTitle}>Declaration:</Text>
+              <View style={styles.declarationContainer}>
                 <TouchableOpacity
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderWidth: 2,
-                    borderColor: declarationChecked ? AppColors.primary : '#ccc',
-                    borderRadius: 4,
-                    backgroundColor: declarationChecked ? AppColors.primary : 'transparent',
-                    marginRight: 8,
-                    marginTop: 2,
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
+                  style={[
+                    styles.checkbox,
+                    declarationChecked && styles.checkboxChecked
+                  ]}
                   onPress={() => setDeclarationChecked(!declarationChecked)}
                 >
                   {declarationChecked && (
                     <Ionicons name="checkmark" size={14} color="#fff" />
                   )}
                 </TouchableOpacity>
-                <Text style={{ flex: 1, color: '#333' }}>
+                <Text style={styles.declarationText}>
                   I have read all the instructions carefully and have understood them. I agree not to cheat or use unfair means in this examination. I understand that using unfair means of any sort for my own or someone else's advantage will lead to my immediate disqualification.
                 </Text>
               </View>
-              <TouchableOpacity
-                style={{ backgroundColor: declarationChecked ? AppColors.primary : '#ccc', borderRadius: 10, padding: 12, alignItems: 'center', marginTop: 8 }}
-                disabled={!declarationChecked || instructionsLoading}
-                onPress={async () => {
-                  if (!user?.token) return;
-                  setInstructionsLoading(true);
-                  try {
-                    // 1. Join the exam as participant (POST)
-                    const joinRes = await apiFetchAuth('/student/live-exams/join', user.token, {
-                      method: 'POST',
-                      body: { examId: exam.id },
-                    });
-                    if (!joinRes.ok) throw new Error(joinRes.data?.message || 'Failed to join exam');
-                    
-                    // 2. Now call /participant
-                    const participantRes = await apiFetchAuth(`/student/live-exams/${exam.id}/participant`, user.token);
-                    if (!participantRes.ok) throw new Error('Failed to get participant info');
-                    
-                    // 3. Fetch questions
-                    const questionsRes = await apiFetchAuth(`/student/live-exams/${exam.id}/questions`, user.token);
-                    if (!questionsRes.ok) throw new Error('Failed to fetch questions');
-                    
-                    setShowInstructionsModal(false);
-                    setInstructionsLoading(false);
-                    router.push({ 
-                      pathname: '/(tabs)/live-exam/questions', 
-                      params: { 
-                        id: exam.id, 
-                        duration: exam.duration, 
-                        questions: JSON.stringify(questionsRes.data) 
-                      } 
-                    });
-                  } catch (e: any) {
-                    setInstructionsLoading(false);
-                    Alert.alert('Error', e.message || 'Could not start the exam.');
-                  }
-                }}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>I am ready to begin</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ marginTop: 10, alignItems: 'center' }}
-                onPress={() => setShowInstructionsModal(false)}
-              >
-                <Text style={{ color: AppColors.primary, fontWeight: 'bold', fontSize: 16 }}>Cancel</Text>
-              </TouchableOpacity>
+              
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setShowInstructionsModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.confirmButton,
+                    (!declarationChecked || instructionsLoading) && styles.confirmButtonDisabled
+                  ]}
+                  disabled={!declarationChecked || instructionsLoading}
+                  onPress={handlePaymentAndJoin}
+                >
+                  {instructionsLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.confirmButtonText}>Start Exam</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -389,6 +545,195 @@ const styles = StyleSheet.create({
         color: AppColors.white,
         fontWeight: 'bold',
         fontSize: 12,
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: AppColors.white,
+        borderRadius: 20,
+        margin: 20,
+        maxHeight: '80%',
+        width: '90%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+    },
+    closeButton: {
+        padding: 5,
+    },
+    // Payment Modal Styles
+    paymentDetails: {
+        padding: 20,
+    },
+    examInfo: {
+        marginBottom: 20,
+    },
+    examTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginBottom: 4,
+    },
+    examSubtitle: {
+        fontSize: 14,
+        color: AppColors.grey,
+    },
+    paymentBreakdown: {
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+    },
+    paymentRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    balanceAfterRow: {
+        borderTopWidth: 1,
+        borderTopColor: '#dee2e6',
+        paddingTop: 8,
+        marginTop: 8,
+    },
+    paymentLabel: {
+        fontSize: 16,
+        color: AppColors.darkGrey,
+        fontWeight: '500',
+    },
+    paymentAmount: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: AppColors.primary,
+    },
+    insufficientWarning: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f8d7da',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 20,
+    },
+    insufficientText: {
+        fontSize: 14,
+        color: '#721c24',
+        marginLeft: 8,
+        flex: 1,
+    },
+    // Instructions Modal Styles
+    instructionsTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 10,
+        color: AppColors.darkGrey,
+        paddingHorizontal: 20,
+    },
+    instructionsScroll: {
+        maxHeight: 120,
+        marginBottom: 10,
+        paddingHorizontal: 20,
+    },
+    instructionText: {
+        fontSize: 15,
+        color: '#333',
+        marginBottom: 8,
+    },
+    noInstructionsText: {
+        color: '#888',
+        marginBottom: 10,
+        paddingHorizontal: 20,
+    },
+    declarationTitle: {
+        fontWeight: 'bold',
+        marginTop: 10,
+        marginBottom: 4,
+        color: AppColors.darkGrey,
+        paddingHorizontal: 20,
+    },
+    declarationContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 10,
+        paddingHorizontal: 20,
+    },
+    checkbox: {
+        width: 20,
+        height: 20,
+        borderWidth: 2,
+        borderColor: '#ccc',
+        borderRadius: 4,
+        backgroundColor: 'transparent',
+        marginRight: 8,
+        marginTop: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkboxChecked: {
+        backgroundColor: AppColors.primary,
+        borderColor: AppColors.primary,
+    },
+    declarationText: {
+        flex: 1,
+        color: '#333',
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    // Modal Actions
+    modalActions: {
+        flexDirection: 'row',
+        padding: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+        gap: 12,
+    },
+    cancelButton: {
+        flex: 1,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 10,
+        padding: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#dee2e6',
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: AppColors.darkGrey,
+    },
+    confirmButton: {
+        flex: 1,
+        backgroundColor: AppColors.primary,
+        borderRadius: 10,
+        padding: 12,
+        alignItems: 'center',
+    },
+    confirmButtonDisabled: {
+        backgroundColor: '#ccc',
+    },
+    confirmButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: AppColors.white,
     },
 });
 

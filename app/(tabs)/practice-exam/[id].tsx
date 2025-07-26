@@ -2,12 +2,12 @@ import { AppColors } from '@/constants/Colors';
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Animated,
     Dimensions,
     FlatList,
     Modal,
@@ -17,7 +17,7 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -111,6 +111,17 @@ const PracticeExamDetailsScreen = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [resultLoading, setResultLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
+    const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+
+    // Advanced Animation States
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(50)).current;
+    const scaleAnim = useRef(new Animated.Value(0.8)).current;
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const shimmerAnim = useRef(new Animated.Value(0)).current;
+    const cardAnimations = useRef(Array(3).fill(0).map(() => new Animated.Value(0))).current;
+    const tabAnimations = useRef(Array(3).fill(0).map(() => new Animated.Value(0))).current;
 
     useEffect(() => {
         if (id) {
@@ -138,17 +149,28 @@ const PracticeExamDetailsScreen = () => {
     );
 
     useEffect(() => {
-        if (activeTab === 'Results' && exam?.attempted && id && user?.token) {
+        if (activeTab === 'Results' && id && user?.token) {
+            console.log('Results tab clicked, fetching result data...');
+            console.log('Exam attempted:', exam?.attempted);
             setResultLoading(true);
             apiFetchAuth(`/student/practice-exams/${id}/result`, user.token)
                 .then(res => {
-                    if (res.ok) setResult(res.data);
-                    else setResult(null);
+                    console.log('Result API response:', res);
+                    if (res.ok) {
+                        setResult(res.data);
+                        console.log('Result data set:', res.data);
+                    } else {
+                        console.log('Result API failed:', res.data);
+                        setResult(null);
+                    }
                 })
-                .catch(() => setResult(null))
+                .catch((error) => {
+                    console.error('Result API error:', error);
+                    setResult(null);
+                })
                 .finally(() => setResultLoading(false));
         }
-    }, [activeTab, exam?.attempted, id, user?.token]);
+    }, [activeTab, id, user?.token]);
 
     const fetchExamDetails = async () => {
         if (!user?.token || !id) {
@@ -186,6 +208,7 @@ const PracticeExamDetailsScreen = () => {
         if (!user?.token || !id) return;
 
         try {
+            setLeaderboardLoading(true);
             console.log('Fetching practice exam leaderboard for ID:', id);
             const response = await apiFetchAuth(`/student/practice-exams/${id}/leaderboard`, user.token);
             console.log('Practice exam leaderboard response:', response);
@@ -204,6 +227,8 @@ const PracticeExamDetailsScreen = () => {
             console.error('Error fetching practice exam leaderboard:', error);
             setCurrentUser(null);
             setLeaderboard([]);
+        } finally {
+            setLeaderboardLoading(false);
         }
     };
 
@@ -336,23 +361,119 @@ const PracticeExamDetailsScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <LinearGradient
-                colors={['#667eea', '#764ba2']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.header}
+            {/* Instructions Modal */}
+            <Modal
+                visible={showInstructionsModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowInstructionsModal(false)}
             >
-                <TouchableOpacity 
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
-                    <Ionicons name="arrow-back" size={24} color={AppColors.white} />
-                </TouchableOpacity>
-                
-                <Text style={styles.headerTitle}>{exam.title}</Text>
-                
-                <View style={styles.placeholder} />
-            </LinearGradient>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Exam Instructions</Text>
+                            <TouchableOpacity 
+                                style={styles.closeButton}
+                                onPress={() => setShowInstructionsModal(false)}
+                            >
+                                <Ionicons name="close" size={24} color={AppColors.grey} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.instructionsScroll} showsVerticalScrollIndicator={false}>
+                            {/* Exam Meta Info */}
+                            {examMeta && (
+                                <View style={styles.examMetaSection}>
+                                    <View style={styles.metaRow}>
+                                        <Ionicons name="time-outline" size={20} color={AppColors.primary} />
+                                        <Text style={styles.metaText}>Duration: {examMeta.duration} minutes</Text>
+                                    </View>
+                                    <View style={styles.metaRow}>
+                                        <Ionicons name="help-circle-outline" size={20} color={AppColors.primary} />
+                                        <Text style={styles.metaText}>Total Questions: {examMeta.maxMarks}</Text>
+                                    </View>
+                                    <View style={styles.metaRow}>
+                                        <Ionicons name="trophy-outline" size={20} color={AppColors.primary} />
+                                        <Text style={styles.metaText}>Maximum Marks: {examMeta.maxMarks}</Text>
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* Instructions List */}
+                            <View style={styles.instructionsSection}>
+                                <Text style={styles.instructionsTitle}>Instructions:</Text>
+                                {instructions.length > 0 ? (
+                                    instructions.map((instruction, index) => (
+                                        <View key={index} style={styles.instructionItem}>
+                                            <Text style={styles.instructionNumber}>{index + 1}.</Text>
+                                            <Text style={styles.instructionText}>{instruction}</Text>
+                                        </View>
+                                    ))
+                                ) : (
+                                    <View style={styles.defaultInstructions}>
+                                        <Text style={styles.instructionText}>• Read each question carefully before answering</Text>
+                                        <Text style={styles.instructionText}>• You can navigate between questions using the navigation buttons</Text>
+                                        <Text style={styles.instructionText}>• Once you submit an answer, you cannot change it</Text>
+                                        <Text style={styles.instructionText}>• Ensure you have a stable internet connection</Text>
+                                        <Text style={styles.instructionText}>• Do not refresh the page during the exam</Text>
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Declaration */}
+                            <View style={styles.declarationSection}>
+                                <Text style={styles.declarationTitle}>Declaration:</Text>
+                                <Text style={styles.declarationText}>
+                                    I hereby declare that I will attempt this exam honestly and follow all the instructions provided. 
+                                    I understand that any form of cheating or malpractice will result in disqualification.
+                                </Text>
+                                
+                                <TouchableOpacity 
+                                    style={styles.checkboxContainer}
+                                    onPress={() => setDeclarationChecked(!declarationChecked)}
+                                >
+                                    <View style={[styles.checkbox, declarationChecked && styles.checkboxChecked]}>
+                                        {declarationChecked && (
+                                            <Ionicons name="checkmark" size={16} color={AppColors.white} />
+                                        )}
+                                    </View>
+                                    <Text style={styles.checkboxText}>
+                                        I agree to the terms and conditions
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </ScrollView>
+
+                        {/* Action Buttons */}
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity 
+                                style={styles.cancelButton}
+                                onPress={() => setShowInstructionsModal(false)}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity 
+                                style={[
+                                    styles.beginButton,
+                                    (!declarationChecked || joiningExam) && styles.beginButtonDisabled
+                                ]}
+                                onPress={handleBeginExam}
+                                disabled={!declarationChecked || joiningExam}
+                            >
+                                {joiningExam ? (
+                                    <ActivityIndicator size="small" color={AppColors.white} />
+                                ) : (
+                                    <>
+                                        <Ionicons name="play" size={20} color={AppColors.white} />
+                                        <Text style={styles.beginButtonText}>Begin Exam</Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <View style={styles.tabContainer}>
                 {['Info', 'Leaderboard', 'Results'].map(tabName => (
@@ -375,11 +496,6 @@ const PracticeExamDetailsScreen = () => {
                 <>
                   {activeTab === 'Info' && (
                     <View style={styles.infoContainer}>
-                      <View style={styles.metaRow}>
-                        <Text style={styles.metaText}>Duration: <Text style={styles.metaValue}>{examMeta?.duration || exam.duration || '-'}</Text></Text>
-                        <Text style={styles.metaText}>Maximum Marks: <Text style={styles.metaValue}>{examMeta?.maxMarks || '-'}</Text></Text>
-                      </View>
-                      
                       {/* Exam Description */}
                       {exam.description && (
                         <View style={styles.overviewCard}>
@@ -392,69 +508,42 @@ const PracticeExamDetailsScreen = () => {
                       <View style={styles.overviewCard}>
                         <Text style={styles.overviewTitle}>Exam Details</Text>
                         <View style={styles.overviewRow}>
-                          <Ionicons name="time-outline" size={20} color={AppColors.primary} />
-                          <Text style={styles.overviewText}>Duration: {examMeta?.duration || exam.duration || '-'} minutes</Text>
+                          <Ionicons name="folder-outline" size={18} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Category: {exam.category}</Text>
                         </View>
-                        <View style={styles.overviewRow}>
-                          <Ionicons name="document-text-outline" size={20} color={AppColors.primary} />
-                          <Text style={styles.overviewText}>Questions: -</Text>
-                        </View>
-                        <View style={styles.overviewRow}>
-                          <Ionicons name="trophy-outline" size={20} color={AppColors.primary} />
-                          <Text style={styles.overviewText}>Max Marks: {examMeta?.maxMarks || '-'}</Text>
-                        </View>
-                        {exam.category && (
-                          <View style={styles.overviewRow}>
-                            <Ionicons name="folder-outline" size={20} color={AppColors.primary} />
-                            <Text style={styles.overviewText}>Category: {exam.category}</Text>
-                          </View>
-                        )}
                         {exam.subcategory && (
                           <View style={styles.overviewRow}>
-                            <Ionicons name="folder-open-outline" size={20} color={AppColors.primary} />
+                            <Ionicons name="folder-open-outline" size={18} color={AppColors.primary} />
                             <Text style={styles.overviewText}>Subcategory: {exam.subcategory}</Text>
                           </View>
                         )}
-                      </View>
-
-                      {/* Exam Schedule */}
-                      <View style={styles.overviewCard}>
-                        <Text style={styles.overviewTitle}>Schedule</Text>
                         <View style={styles.overviewRow}>
-                          <Ionicons name="calendar-outline" size={20} color={AppColors.primary} />
-                          <Text style={styles.overviewText}>Start Date: {formatDate(exam.startTime)}</Text>
+                          <Ionicons name="time-outline" size={18} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Duration: {exam.duration} minutes</Text>
                         </View>
                         <View style={styles.overviewRow}>
-                          <Ionicons name="calendar-outline" size={20} color={AppColors.primary} />
-                          <Text style={styles.overviewText}>End Date: {formatDate(exam.endTime)}</Text>
+                          <Ionicons name="help-circle-outline" size={18} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Total Questions: {examMeta?.maxMarks || 'Not specified'}</Text>
+                        </View>
+                        <View style={styles.overviewRow}>
+                          <Ionicons name="trophy-outline" size={18} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Maximum Marks: {examMeta?.maxMarks || 'Not specified'}</Text>
+                        </View>
+                        <View style={styles.overviewRow}>
+                          <Ionicons name="people-outline" size={18} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Available Spots: {exam.spotsLeft} / {exam.spots}</Text>
+                        </View>
+                        <View style={styles.overviewRow}>
+                          <Ionicons name="calendar-outline" size={18} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>Start Time: {formatDate(exam.startTime)}</Text>
+                        </View>
+                        <View style={styles.overviewRow}>
+                          <Ionicons name="calendar-outline" size={18} color={AppColors.primary} />
+                          <Text style={styles.overviewText}>End Time: {formatDate(exam.endTime)}</Text>
                         </View>
                       </View>
 
-                      <View style={styles.spotsCard}>
-                        <Text style={styles.spotsTitle}>Available Spots</Text>
-                        <View style={styles.spotsInfo}>
-                          <View style={styles.spotsLeft}>
-                            <Text style={styles.spotsNumber}>{exam.spotsLeft}</Text>
-                            <Text style={styles.spotsLabel}>Available</Text>
-                          </View>
-                          <View style={styles.spotsTotal}>
-                            <Text style={styles.spotsNumber}>{exam.spots}</Text>
-                            <Text style={styles.spotsLabel}>Total</Text>
-                          </View>
-                        </View>
-                        <View style={styles.progressBar}>
-                          <View 
-                            style={[
-                              styles.progressFill,
-                              { width: `${(exam.spots - exam.spotsLeft) / exam.spots * 100}%` }
-                            ]} 
-                          />
-                        </View>
-                        <Text style={styles.progressText}>
-                          {Math.round((exam.spots - exam.spotsLeft) / exam.spots * 100)}% Filled
-                        </Text>
-                      </View>
-
+                      {/* Action Button */}
                       <TouchableOpacity 
                         style={[
                           styles.actionButton,
@@ -462,202 +551,134 @@ const PracticeExamDetailsScreen = () => {
                         ]}
                         onPress={exam.attempted ? handleReviewExam : handleStartExam}
                       >
-                        <Text style={styles.actionButtonText}>
-                          {exam.attempted ? 'Review Results' : 'Start Practice Exam'}
-                        </Text>
                         <Ionicons 
                           name={exam.attempted ? "eye" : "play"} 
                           size={20} 
                           color={AppColors.white} 
                         />
+                        <Text style={styles.actionButtonText}>
+                          {exam.attempted ? 'Review Results' : 'Start Practice Exam'}
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   )}
 
                   {activeTab === 'Leaderboard' && (
                     <View style={styles.leaderboardContainer}>
-                      {(() => {
-                        console.log('Rendering leaderboard tab');
-                        console.log('Current user:', currentUser);
-                        console.log('Leaderboard value:', leaderboard);
-                        console.log('Leaderboard type:', typeof leaderboard);
-                        console.log('Is Array:', Array.isArray(leaderboard));
-                        console.log('Leaderboard length:', leaderboard?.length);
-                        
-                        return (
-                          <View style={styles.leaderboardFullScreen}>
-                            {/* Header Section */}
-                            <View style={styles.leaderboardHeader}>
-                              <View style={styles.leaderboardHeaderContent}>
-                                <Ionicons name="trophy" size={28} color="#FFD700" />
-                                <Text style={styles.leaderboardHeaderTitle}>Practice Exam Leaderboard</Text>
+                      {leaderboardLoading ? (
+                        <View style={styles.loadingContainer}>
+                          <ActivityIndicator size="large" color={AppColors.primary} />
+                          <Text style={styles.loadingText}>Loading Leaderboard...</Text>
+                        </View>
+                      ) : leaderboard.length > 0 ? (
+                        <>
+                          {/* Current User Section */}
+                          {currentUser && (
+                            <View style={styles.currentUserSection}>
+                              <Text style={styles.sectionTitle}>Your Performance</Text>
+                              <View style={styles.currentUserCard}>
+                                <View style={styles.currentUserRank}>
+                                  <Text style={styles.currentUserRankText}>#{currentUser.rank}</Text>
+                                </View>
+                                <View style={styles.currentUserInfo}>
+                                  <Text style={styles.currentUserName}>{currentUser.name}</Text>
+                                  <Text style={styles.currentUserScore}>Score: {currentUser.score}</Text>
+                                </View>
                               </View>
                             </View>
+                          )}
 
-                            {/* Current User Section */}
-                            {currentUser && (
-                              <View style={styles.currentUserSection}>
-                                <View style={styles.currentUserCard}>
-                                  <LinearGradient
-                                    colors={['#667eea', '#764ba2']}
-                                    style={styles.currentUserGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                  >
-                                    <View style={styles.currentUserContent}>
-                                      <View style={styles.currentUserLeft}>
-                                        <View style={styles.currentUserRankBadge}>
-                                          <Text style={styles.currentUserRankNumber}>#{currentUser.rank}</Text>
-                                        </View>
-                                        <View style={styles.currentUserInfo}>
-                                          <Text style={styles.currentUserLabel}>Your Rank</Text>
-                                          <Text style={styles.currentUserName}>{currentUser.name}</Text>
-                                        </View>
-                                      </View>
-                                                                             <View style={styles.currentUserRight}>
-                                         <Text style={styles.currentUserScore}>{currentUser.score}</Text>
-                                       </View>
-                                    </View>
-                                  </LinearGradient>
-                                </View>
-                              </View>
-                            )}
-                            
-                            {/* Top 3 Podium */}
-                            {leaderboard.length >= 3 && (
-                              <View style={styles.podiumSection}>
-                                <Text style={styles.sectionTitle}>🏆 Top Performers</Text>
-                                <View style={styles.podiumContainer}>
-                                  {/* 2nd Place */}
-                                  <View style={[styles.podiumItem, styles.podiumSecond]}>
-                                    <View style={styles.podiumMedalContainer}>
-                                      <Ionicons name="trophy" size={24} color="#C0C0C0" />
-                                    </View>
-                                    <View style={styles.podiumAvatar}>
-                                      <Ionicons name="person-circle" size={44} color="#C0C0C0" />
-                                    </View>
-                                    <Text style={styles.podiumName} numberOfLines={1}>
-                                      {leaderboard[1]?.name || 'Anonymous'}
-                                    </Text>
-                                    <Text style={styles.podiumScore}>{leaderboard[1]?.score || 0}</Text>
-                                    <Text style={styles.podiumRank}>2nd</Text>
-                                  </View>
-                                  
-                                  {/* 1st Place */}
-                                  <View style={[styles.podiumItem, styles.podiumFirst]}>
-                                    <View style={styles.podiumCrown}>
-                                      <Ionicons name="star" size={32} color="#FFD700" />
-                                    </View>
-                                    <View style={styles.podiumMedalContainer}>
-                                      <Ionicons name="trophy" size={28} color="#FFD700" />
-                                    </View>
-                                    <View style={styles.podiumAvatar}>
-                                      <Ionicons name="person-circle" size={52} color="#FFD700" />
-                                    </View>
-                                    <Text style={styles.podiumName} numberOfLines={1}>
-                                      {leaderboard[0]?.name || 'Anonymous'}
-                                    </Text>
-                                    <Text style={styles.podiumScore}>{leaderboard[0]?.score || 0}</Text>
-                                    <Text style={styles.podiumRank}>1st</Text>
-                                  </View>
-                                  
-                                  {/* 3rd Place */}
-                                  <View style={[styles.podiumItem, styles.podiumThird]}>
-                                    <View style={styles.podiumMedalContainer}>
-                                      <Ionicons name="trophy" size={20} color="#CD7F32" />
-                                    </View>
-                                    <View style={styles.podiumAvatar}>
-                                      <Ionicons name="person-circle" size={44} color="#CD7F32" />
-                                    </View>
-                                    <Text style={styles.podiumName} numberOfLines={1}>
-                                      {leaderboard[2]?.name || 'Anonymous'}
-                                    </Text>
-                                    <Text style={styles.podiumScore}>{leaderboard[2]?.score || 0}</Text>
-                                    <Text style={styles.podiumRank}>3rd</Text>
-                                  </View>
-                                </View>
-                              </View>
-                            )}
-                            
-                            {/* Leaderboard List */}
-                            <View style={styles.leaderboardListSection}>
-                              <View style={styles.leaderboardListHeader}>
-                                <Text style={styles.leaderboardListTitle}>📊 All Participants</Text>
-                                <Text style={styles.leaderboardListSubtitle}>Complete ranking</Text>
-                              </View>
-                              <View style={styles.leaderboardListContainer}>
-                                <FlatList
-                                  data={leaderboard}
-                                  keyExtractor={item => item.userId}
-                                  renderItem={({ item }) => (
-                                    <PracticeLeaderboardRow
-                                      rank={item.rank}
-                                      name={item.name}
-                                      score={item.score}
-                                      isCurrentUser={currentUser && item.userId === currentUser.userId}
-                                    />
-                                  )}
-                                  ListEmptyComponent={() => (
-                                    <View style={styles.emptyLeaderboard}>
-                                      <Ionicons name="people-outline" size={64} color="#ddd" />
-                                      <Text style={styles.emptyLeaderboardText}>No participants yet</Text>
-                                      <Text style={styles.emptyLeaderboardSubtext}>Be the first to attempt this exam!</Text>
-                                    </View>
-                                  )}
-                                  showsVerticalScrollIndicator={false}
-                                  contentContainerStyle={styles.leaderboardList}
+                          {/* Leaderboard List */}
+                          <View style={styles.leaderboardSection}>
+                            <Text style={styles.sectionTitle}>Top Performers</Text>
+                            <FlatList
+                              data={leaderboard}
+                              keyExtractor={(item) => item.userId}
+                              renderItem={({ item }) => (
+                                <PracticeLeaderboardRow
+                                  rank={item.rank}
+                                  name={item.name}
+                                  score={item.score}
+                                  isCurrentUser={currentUser?.userId === item.userId}
                                 />
-                              </View>
-                            </View>
+                              )}
+                              showsVerticalScrollIndicator={false}
+                              scrollEnabled={false}
+                            />
                           </View>
-                        );
-                      })()}
+                        </>
+                      ) : (
+                        <View style={styles.emptyContainer}>
+                          <Ionicons name="trophy-outline" size={64} color="#ccc" />
+                          <Text style={styles.emptyTitle}>No Leaderboard Data</Text>
+                          <Text style={styles.emptySubtext}>
+                            Be the first to attempt this exam and see your ranking!
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
 
                   {activeTab === 'Results' && (
                     <View style={styles.resultsContainer}>
-                        {exam?.attempted ? (
-                            resultLoading ? (
-                                <ActivityIndicator size="large" color="#6C63FF" style={{ marginTop: 40 }} />
-                            ) : result ? (
-                                <View style={styles.resultCard}>
-                                    <View style={styles.resultHeader}>
-                                        <Ionicons name="trophy" size={40} color="#FFD700" style={{ marginBottom: 8 }} />
-                                        <Text style={styles.resultTitle}>Practice Exam Results</Text>
-                                        <Text style={styles.resultScore}>Score: <Text style={{ color: '#FFD700' }}>{result.score}</Text> / {result.totalQuestions}</Text>
-                                    </View>
-                                    <View style={styles.summaryGrid}>
-                                        <View style={[styles.summaryCard, { backgroundColor: '#d4edda' }]}> 
-                                            <Ionicons name="checkmark-circle" size={24} color="#28a745" />
-                                            <Text style={[styles.summaryCardValue, { color: '#28a745' }]}>{result.correctAnswers}</Text>
-                                            <Text style={styles.summaryCardLabel}>Correct</Text>
-                                        </View>
-                                        <View style={[styles.summaryCard, { backgroundColor: '#f8d7da' }]}> 
-                                            <Ionicons name="close-circle" size={24} color="#dc3545" />
-                                            <Text style={[styles.summaryCardValue, { color: '#dc3545' }]}>{result.wrongAnswers}</Text>
-                                            <Text style={styles.summaryCardLabel}>Incorrect</Text>
-                                        </View>
-                                        <View style={[styles.summaryCard, { backgroundColor: '#e2e3e5' }]}> 
-                                            <Ionicons name="remove-circle" size={24} color="#6c757d" />
-                                            <Text style={[styles.summaryCardValue, { color: '#6c757d' }]}>{result.unattempted}</Text>
-                                            <Text style={styles.summaryCardLabel}>Unattempted</Text>
-                                        </View>
-                                    </View>
-                                    <TouchableOpacity
-                                        style={styles.analysisButton}
-                                        onPress={() => router.push({ pathname: '/(tabs)/practice-exam/result/[id]', params: { id } })}
-                                    >
-                                        <Ionicons name="analytics-outline" size={20} color="#6C63FF" />
-                                        <Text style={styles.analysisButtonText}>View Detailed Analysis</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            ) : (
-                                <Text style={styles.placeholderText}>Could not load result.</Text>
-                            )
-                        ) : (
-                            <Text style={styles.placeholderText}>You haven't attempted this exam yet.</Text>
-                        )}
+                      {resultLoading ? (
+                        <View style={styles.loadingContainer}>
+                          <ActivityIndicator size="large" color={AppColors.primary} />
+                          <Text style={styles.loadingText}>Loading Results...</Text>
+                        </View>
+                      ) : result ? (
+                        <View style={styles.resultCard}>
+                          <View style={styles.resultHeader}>
+                            <Ionicons name="trophy" size={40} color="#FFD700" style={{ marginBottom: 8 }} />
+                            <Text style={styles.resultTitle}>Practice Exam Results</Text>
+                            <Text style={styles.resultScore}>Score: <Text style={{ color: '#FFD700' }}>{result.score}</Text> / {result.totalQuestions}</Text>
+                          </View>
+                          <View style={styles.summaryGrid}>
+                            <View style={[styles.summaryCard, { backgroundColor: '#d4edda' }]}> 
+                              <Ionicons name="checkmark-circle" size={24} color="#28a745" />
+                              <Text style={[styles.summaryCardValue, { color: '#28a745' }]}>{result.correctAnswers}</Text>
+                              <Text style={styles.summaryCardLabel}>Correct</Text>
+                            </View>
+                            <View style={[styles.summaryCard, { backgroundColor: '#f8d7da' }]}> 
+                              <Ionicons name="close-circle" size={24} color="#dc3545" />
+                              <Text style={[styles.summaryCardValue, { color: '#dc3545' }]}>{result.wrongAnswers}</Text>
+                              <Text style={styles.summaryCardLabel}>Incorrect</Text>
+                            </View>
+                            <View style={[styles.summaryCard, { backgroundColor: '#e2e3e5' }]}> 
+                              <Ionicons name="remove-circle" size={24} color="#6c757d" />
+                              <Text style={[styles.summaryCardValue, { color: '#6c757d' }]}>{result.unattempted}</Text>
+                              <Text style={styles.summaryCardLabel}>Unattempted</Text>
+                            </View>
+                          </View>
+                          <TouchableOpacity 
+                            style={styles.analysisButton}
+                            onPress={() => router.push({ pathname: '/(tabs)/practice-exam/result/[id]', params: { id } })}
+                          >
+                            <Ionicons name="analytics-outline" size={20} color="#6C63FF" />
+                            <Text style={styles.analysisButtonText}>View Detailed Analysis</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <View style={styles.noResultContainer}>
+                          <Ionicons name="document-text-outline" size={64} color="#ccc" />
+                          <Text style={styles.noResultTitle}>No Results Available</Text>
+                          <Text style={styles.noResultText}>
+                            {exam?.attempted 
+                              ? "Could not load your exam results. Please try again later."
+                              : "You haven't attempted this exam yet. Start the exam to see your results."
+                            }
+                          </Text>
+                          {!exam?.attempted && (
+                            <TouchableOpacity
+                              style={styles.startExamButton}
+                              onPress={handleStartExam}
+                            >
+                              <Ionicons name="play" size={20} color="#fff" />
+                              <Text style={styles.startExamButtonText}>Start Exam</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
                     </View>
                   )}
                 </>
@@ -665,70 +686,6 @@ const PracticeExamDetailsScreen = () => {
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
               showsVerticalScrollIndicator={false}
             />
-
-            <Modal
-                visible={showInstructionsModal}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setShowInstructionsModal(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Instructions</Text>
-                        </View>
-                        <ScrollView style={styles.modalContent}>
-                            <View style={styles.metaRow}>
-                                <Text style={styles.metaText}>Duration: <Text style={styles.metaValue}>{examMeta?.duration || '-'}</Text></Text>
-                                <Text style={styles.metaText}>Maximum Marks: <Text style={styles.metaValue}>{examMeta?.maxMarks || '-'}</Text></Text>
-                            </View>
-                            <Text style={styles.instructionsHeading}>Read the following instructions carefully.</Text>
-                            <View style={styles.instructionsList}>
-                                {instructions.length > 0 ? instructions.map((item, idx) => (
-                                    <View key={idx} style={styles.instructionItem}>
-                                        <Text style={styles.instructionIndex}>{idx + 1}.</Text>
-                                        <Text style={styles.instructionText}>{item}</Text>
-                                    </View>
-                                )) : (
-                                    <Text style={styles.instructionText}>No instructions available.</Text>
-                                )}
-                            </View>
-                            <Text style={styles.declarationHeading}>Declaration:</Text>
-                            <TouchableOpacity
-                                style={styles.declarationRow}
-                                onPress={() => setDeclarationChecked(!declarationChecked)}
-                                activeOpacity={0.8}
-                            >
-                                <View style={[styles.checkbox, declarationChecked && styles.checkboxChecked]}>
-                                    {declarationChecked && <Ionicons name="checkmark" size={16} color={AppColors.white} />}
-                                </View>
-                                <Text style={styles.declarationText}>
-                                    I have read all the instructions carefully and have understood them. I agree not to cheat or use unfair means in this examination. I understand that using unfair means of any sort for my own or someone else's advantage will lead to my immediate disqualification.
-                                </Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity
-                                style={styles.modalButtonSecondary}
-                                onPress={() => setShowInstructionsModal(false)}
-                            >
-                                <Text style={styles.modalButtonSecondaryText}>Previous</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.modalButtonPrimary, (!declarationChecked || joiningExam) && styles.modalButtonDisabled]}
-                                onPress={handleBeginExam}
-                                disabled={!declarationChecked || joiningExam}
-                            >
-                                {joiningExam ? (
-                                    <ActivityIndicator size="small" color={AppColors.white} />
-                                ) : (
-                                    <Text style={styles.modalButtonPrimaryText}>I am ready to begin</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
         </SafeAreaView>
     );
 };
@@ -736,8 +693,7 @@ const PracticeExamDetailsScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f6f8fb',
-        padding: 12,
+        backgroundColor: AppColors.lightGrey,
     },
     loadingContainer: {
         flex: 1,
@@ -763,9 +719,9 @@ const styles = StyleSheet.create({
         marginTop: 16,
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 15,
+        paddingTop: 20,
+        paddingBottom: 20,
+        paddingHorizontal: 20,
     },
     backButton: {
         marginRight: 15,
@@ -807,14 +763,17 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        padding: 15,
+    },
+    contentContainer: {
+        padding: 20,
+        paddingBottom: 40,
     },
     infoContainer: {
         gap: 20,
     },
     overviewCard: {
         backgroundColor: AppColors.white,
-        borderRadius: 12,
+        borderRadius: 16,
         padding: 20,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -822,11 +781,16 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
     },
+    overviewHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
     overviewTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: AppColors.darkGrey,
-        marginBottom: 15,
+        marginLeft: 10,
     },
     overviewRow: {
         flexDirection: 'row',
@@ -1439,28 +1403,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
     },
-    currentUserInfo: {
-        flex: 1,
-    },
-    currentUserLabel: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontWeight: '600',
-        marginBottom: 2,
-    },
-    currentUserName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
+   
+    
     currentUserRight: {
         alignItems: 'flex-end',
     },
-    currentUserScore: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
+   
     currentUserScoreLabel: {
         fontSize: 12,
         color: 'rgba(255, 255, 255, 0.8)',
@@ -1473,34 +1421,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         textAlign: 'center',
     },
-    podiumSection: {
-        paddingHorizontal: 20,
-        paddingVertical: 20,
-        backgroundColor: '#fff',
-        marginHorizontal: 20,
-        marginVertical: 16,
-        borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
-        elevation: 3,
-    },
-    podiumContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'flex-end',
-        paddingTop: 20,
-    },
-    podiumItem: {
-        alignItems: 'center',
-        flex: 1,
-        marginHorizontal: 8,
-    },
-    podiumFirst: {
-        transform: [{ translateY: -30 }],
-        zIndex: 3,
-    },
+  
     podiumSecond: {
         transform: [{ translateY: -15 }],
         zIndex: 2,
@@ -1518,24 +1439,7 @@ const styles = StyleSheet.create({
     podiumAvatar: {
         marginBottom: 8,
     },
-    podiumName: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#2c3e50',
-        textAlign: 'center',
-        marginBottom: 4,
-    },
-    podiumScore: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#667eea',
-        marginBottom: 2,
-    },
-    podiumRank: {
-        fontSize: 12,
-        color: '#6c757d',
-        fontWeight: '600',
-    },
+    
     leaderboardListSection: {
         flex: 1,
         backgroundColor: '#fff',
@@ -1555,12 +1459,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#e9ecef',
     },
-    leaderboardListTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#2c3e50',
-        marginBottom: 4,
-    },
+   
     leaderboardListSubtitle: {
         fontSize: 14,
         color: '#6c757d',
@@ -1568,36 +1467,7 @@ const styles = StyleSheet.create({
     leaderboardListContainer: {
         flex: 1,
     },
-    leaderboardRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f8f9fa',
-    },
-    currentUserRow: {
-        backgroundColor: '#f8f9ff',
-        borderLeftWidth: 4,
-        borderLeftColor: '#667eea',
-    },
-    currentUserRankContainer: {
-        backgroundColor: '#667eea',
-    },
-    rankContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#f8f9fa',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    rankText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#6c757d',
-    },
+  
     userSection: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1606,27 +1476,7 @@ const styles = StyleSheet.create({
     avatarContainer: {
         marginRight: 12,
     },
-    userInfo: {
-        flex: 1,
-    },
-    nameText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#2c3e50',
-        marginBottom: 2,
-    },
-    currentUserNameText: {
-        color: '#667eea',
-        fontWeight: 'bold',
-    },
-    currentUserBadge: {
-        backgroundColor: '#667eea',
-        borderRadius: 10,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        alignSelf: 'flex-start',
-        marginTop: 2,
-    },
+   
     currentUserBadgeText: {
         color: '#fff',
         fontSize: 10,
@@ -1635,39 +1485,419 @@ const styles = StyleSheet.create({
     scoreSection: {
         alignItems: 'flex-end',
     },
-    scoreText: {
+   
+    // Advanced Enhanced Styles
+    enhancedOverviewCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: 20,
+        padding: 24,
+        marginBottom: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(102, 126, 234, 0.1)',
+    },
+    enhancedOverviewTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#2c3e50',
+        marginLeft: 12,
+    },
+    enhancedDescriptionText: {
+        fontSize: 16,
+        lineHeight: 24,
+        color: '#34495e',
+        textAlign: 'justify',
+    },
+    enhancedDetailsGrid: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+    },
+    detailItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(102, 126, 234, 0.05)',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+        flex: 1,
+        marginHorizontal: 4,
+        minWidth: '45%',
+    },
+    detailLabel: {
+        fontSize: 12,
+        color: '#7f8c8d',
+        fontWeight: '600',
+        marginLeft: 8,
+        marginBottom: 4,
+    },
+    detailValue: {
+        fontSize: 14,
+        color: '#2c3e50',
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
+    enhancedActionButton: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        elevation: 8,
+        marginTop: 20,
+    },
+    enhancedStartButton: {
+        backgroundColor: 'transparent',
+    },
+    enhancedReviewButton: {
+        backgroundColor: 'transparent',
+    },
+    actionButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 18,
+        paddingHorizontal: 32,
+        borderRadius: 16,
+    },
+    enhancedActionButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 18,
+        marginLeft: 12,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    // Results Tab Styles
+    noResultContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 40,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        margin: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    noResultTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    noResultText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 24,
+        marginBottom: 20,
+    },
+    startExamButton: {
+        backgroundColor: AppColors.primary,
+        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    startExamButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginLeft: 8,
+    },
+ 
+    headerContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    examIconContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 20,
+        padding: 8,
+        marginRight: 10,
+    },
+    examInfo: {
+        flex: 1,
+    },
+    examTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: AppColors.white,
+        marginBottom: 4,
+    },
+    examCategory: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.8)',
+    },
+    headerRight: {
+        alignItems: 'flex-end',
+    },
+    timeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 10,
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+    },
+    timeText: {
+        fontSize: 14,
+        color: AppColors.white,
+        fontWeight: 'bold',
+    },
+    overviewGrid: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        marginTop: 10,
+    },
+    overviewItem: {
+        width: '48%', // Two items per row
+        marginBottom: 15,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
+        padding: 15,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    overviewIconContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 15,
+        padding: 8,
+        marginBottom: 8,
+    },
+    overviewLabel: {
+        fontSize: 14,
+        color: AppColors.darkGrey,
+        fontWeight: '600',
+        marginBottom: 5,
+    },
+    overviewValue: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#667eea',
+        color: AppColors.primary,
     },
-    currentUserScoreText: {
-        color: '#667eea',
+    descriptionCard: {
+        backgroundColor: AppColors.white,
+        borderRadius: 12,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        marginTop: 15,
     },
-    scoreLabel: {
-        fontSize: 12,
-        color: '#6c757d',
-        fontWeight: '500',
-        marginTop: 2,
-    },
-    emptyLeaderboard: {
+    descriptionHeader: {
+        flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 60,
-        paddingHorizontal: 20,
+        marginBottom: 10,
     },
-    emptyLeaderboardText: {
+    descriptionTitle: {
         fontSize: 18,
-        color: '#6c757d',
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginLeft: 10,
+    },
+    actionContainer: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    buttonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 18,
+        paddingHorizontal: 32,
+        borderRadius: 16,
+    },
+    tabContent: {
+        marginTop: 15,
+    },
+    detailsCard: {
+        backgroundColor: AppColors.white,
+        borderRadius: 12,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    detailsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    detailsTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginLeft: 10,
+    },
+    detailsList: {
+        marginTop: 10,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    detailText: {
+        fontSize: 16,
+        color: AppColors.darkGrey,
+        flex: 1,
+    },
+   
+    currentUserRankText: {
+        color: AppColors.white,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+   
+    leaderboardSection: {
+        flex: 1,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 40,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
         marginTop: 16,
-        fontWeight: '600',
+        marginBottom: 8,
     },
-    emptyLeaderboardSubtext: {
-        fontSize: 14,
-        color: '#adb5bd',
-        marginTop: 8,
+    emptySubtext: {
+        fontSize: 16,
+        color: '#666',
         textAlign: 'center',
+        lineHeight: 24,
     },
-    leaderboardList: {
-        paddingBottom: 20,
+    // Modal Styles
+  
+
+    closeButton: {
+        padding: 5,
+    },
+    instructionsScroll: {
+        flex: 1,
+        padding: 20,
+    },
+    examMetaSection: {
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+    },
+ 
+    instructionsSection: {
+        marginBottom: 20,
+    },
+    instructionsTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginBottom: 12,
+    },
+   
+    instructionNumber: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: AppColors.primary,
+        marginRight: 8,
+        minWidth: 20,
+    },
+  
+    defaultInstructions: {
+        gap: 8,
+    },
+    declarationSection: {
+        marginBottom: 20,
+    },
+    declarationTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginBottom: 12,
+    },
+  
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+   
+    checkboxText: {
+        fontSize: 16,
+        color: AppColors.darkGrey,
+        flex: 1,
+    },
+
+    cancelButton: {
+        flex: 1,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: AppColors.grey,
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: AppColors.grey,
+    },
+    beginButton: {
+        flex: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        backgroundColor: AppColors.primary,
+        gap: 8,
+    },
+    beginButtonDisabled: {
+        backgroundColor: AppColors.grey,
+        opacity: 0.6,
+    },
+    beginButtonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: AppColors.white,
     },
 });
 

@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ExamCard from '../../../components/ExamCard';
 
 const ExamDetailScreen = () => {
@@ -22,6 +22,53 @@ const ExamDetailScreen = () => {
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+    const [isParticipant, setIsParticipant] = useState(false);
+    const [participantLoading, setParticipantLoading] = useState(false);
+
+    // Check if user is a participant in this exam
+    const checkParticipantStatus = async () => {
+        if (!user?.token || !id) return;
+        
+        try {
+            setParticipantLoading(true);
+            const response = await apiFetchAuth(`/student/live-exams/${id}/participant`, user.token);
+            if (response.ok) {
+                setIsParticipant(true);
+            } else {
+                setIsParticipant(false);
+            }
+        } catch (error) {
+            console.error('Error checking participant status:', error);
+            setIsParticipant(false);
+        } finally {
+            setParticipantLoading(false);
+        }
+    };
+
+    // Handle start exam for participants
+    const handleStartExam = async () => {
+        if (!user?.token || !id || !exam) return;
+        
+        try {
+            // Fetch questions
+            const questionsRes = await apiFetchAuth(`/student/live-exams/${id}/questions`, user.token);
+            if (!questionsRes.ok) {
+                throw new Error('Failed to fetch questions');
+            }
+            
+            // Navigate to questions page
+            router.push({ 
+                pathname: '/(tabs)/live-exam/questions', 
+                params: { 
+                    id: exam.id, 
+                    duration: exam.duration, 
+                    questions: JSON.stringify(questionsRes.data) 
+                } 
+            });
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to start exam.');
+        }
+    };
 
     useEffect(() => {
         const fetchLeaderboardData = async () => {
@@ -87,6 +134,7 @@ const ExamDetailScreen = () => {
             setLeaderboard([]);
             setActiveTab('Info');
             setError(null);
+            setIsParticipant(false);
 
             if (!user?.token || !id) return;
             
@@ -97,6 +145,8 @@ const ExamDetailScreen = () => {
                     const examData = response.data.find((e: any) => e.id === id);
                     if (examData) {
                         setExam(examData);
+                        // Check participant status after exam is loaded
+                        checkParticipantStatus();
                     } else {
                         setError('Exam not found.');
                     }
@@ -178,16 +228,34 @@ const ExamDetailScreen = () => {
 
                         <View style={styles.tabContent}>
                             {activeTab === 'Info' && (
-                                <View style={styles.infoTable}>
-                                    <InfoRow label="Standard" value="Daily GK & Current Affairs" />
-                                    <InfoRow label="Subject" value="GK" />
-                                    <InfoRow label="No. of questions" value={exam.questions?.length || 5} />
-                                    <InfoRow label="Required Time" value={`${exam.duration} Min`} />
-                                    <InfoRow label="Start Date" value={new Date(exam.startTime).toLocaleDateString()} />
-                                    <InfoRow label="End Date" value={new Date(new Date(exam.startTime).getTime() + 24 * 60 * 60 * 1000).toLocaleDateString()} />
-                                    <InfoRow label="Author" value={exam.createdBy?.name || 'Admin'} />
-                                    <InfoRow label="Test Cost" value={`₹ ${exam.entryFee.toFixed(2)}`} isCost />
-                                </View>
+                                <>
+                                    <View style={styles.infoTable}>
+                                        <InfoRow label="Standard" value="Daily GK & Current Affairs" />
+                                        <InfoRow label="Subject" value="GK" />
+                                        <InfoRow label="No. of questions" value={exam.questions?.length || 5} />
+                                        <InfoRow label="Required Time" value={`${exam.duration} Min`} />
+                                        <InfoRow label="Start Date" value={new Date(exam.startTime).toLocaleDateString()} />
+                                        <InfoRow label="End Date" value={new Date(new Date(exam.startTime).getTime() + 24 * 60 * 60 * 1000).toLocaleDateString()} />
+                                        <InfoRow label="Author" value={exam.createdBy?.name || 'Admin'} />
+                                        <InfoRow label="Test Cost" value={`₹ ${exam.entryFee.toFixed(2)}`} isCost />
+                                    </View>
+                                    
+                                    {/* Start Exam Button for Participants */}
+                                    {isParticipant && (
+                                        <View style={styles.startExamContainer}>
+                                            <TouchableOpacity 
+                                                style={styles.startExamButton}
+                                                onPress={handleStartExam}
+                                                disabled={participantLoading}
+                                            >
+                                                <Ionicons name="play" size={20} color={AppColors.white} />
+                                                <Text style={styles.startExamButtonText}>
+                                                    {participantLoading ? 'Loading...' : 'Start Exam'}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </>
                             )}
                             {activeTab === 'Leaderboard' && (
                                 leaderboardLoading ? (
@@ -686,6 +754,29 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
         marginLeft: 4,
+    },
+    startExamContainer: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    startExamButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: AppColors.primary,
+        paddingVertical: 12,
+        paddingHorizontal: 25,
+        borderRadius: 10,
+        shadowColor: AppColors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    startExamButtonText: {
+        color: AppColors.white,
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 10,
     },
 });
 

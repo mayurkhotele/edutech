@@ -7,14 +7,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import CustomDrawerContent from '../components/CustomDrawerContent';
+import SplashScreen from '../components/SplashScreen';
 import { apiFetchAuth } from '../constants/api';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { WebSocketProvider } from '../context/WebSocketContext';
 
 // Header Right Component
 const HeaderRight = ({ navigation }: any) => {
@@ -160,19 +162,30 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const colorScheme = useColorScheme();
+  const [showSplash, setShowSplash] = useState(true);
+
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
 
   if (!loaded) {
     // Async font loading only occurs in development.
     return null;
   }
 
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
         <AuthProvider>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <RootNavigator />
-                <StatusBar style="light" />
-            </ThemeProvider>
+            <WebSocketProvider>
+                <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                    <RootNavigator />
+                    <StatusBar style="light" />
+                </ThemeProvider>
+            </WebSocketProvider>
         </AuthProvider>
     </GestureHandlerRootView>
   );

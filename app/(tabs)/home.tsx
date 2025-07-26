@@ -3,7 +3,7 @@ import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ExamCard from '../../components/ExamCard';
 import ExamNotificationsSection from '../../components/ExamNotificationsSection';
 import PracticeExamSection from '../../components/PracticeExamSection';
@@ -22,28 +22,49 @@ export default function HomeScreen() {
     const router = useRouter();
     const [exams, setExams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     
-    // Refs for sliders
+    // Refs for sliders and components
     const examSliderRef = useRef<FlatList<any>>(null);
     const bannerSliderRef = useRef<FlatList<any>>(null);
+    const practiceExamRef = useRef<any>(null);
 
     // Data for sliders
     const featuredExams = exams.slice(0, 5);
 
+    // Fetch Exams Function
+    const fetchExams = async () => {
+        if (!user?.token) { 
+            setLoading(false); 
+            return; 
+        }
+        try {
+            setLoading(true);
+            const response = await apiFetchAuth('/student/exams', user.token);
+            if (response.ok) setExams(response.data);
+        } catch (error) {
+            console.error('Error fetching exams:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Refresh Function - Now refreshes all sections
+    const onRefresh = async () => {
+        setRefreshing(true);
+        
+        // Refresh all sections in parallel
+        await Promise.all([
+            fetchExams(),
+            // Trigger practice exam refresh if ref exists
+            practiceExamRef.current?.handleRefresh?.()
+        ]);
+        
+        setRefreshing(false);
+    };
+
     // Fetch Exams Effect
     useEffect(() => {
-        const fetchExams = async () => {
-            if (!user?.token) { setLoading(false); return; }
-            try {
-                setLoading(true);
-                const response = await apiFetchAuth('/student/exams', user.token);
-                if (response.ok) setExams(response.data);
-            } catch (error) {
-                console.error('Error fetching exams:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchExams();
     }, [user]);
 
@@ -79,7 +100,21 @@ export default function HomeScreen() {
     );
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView 
+            style={styles.container}
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={[AppColors.primary]}
+                    tintColor={AppColors.primary}
+                    title="Pull to refresh"
+                    titleColor={AppColors.primary}
+                />
+            }
+        >
+
+
             {/* Featured Exams Section */}
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Featured Exams</Text>
@@ -119,7 +154,7 @@ export default function HomeScreen() {
             <QuestionOfTheDayPreview />
 
             {/* Practice Exam Section */}
-            <PracticeExamSection />
+            <PracticeExamSection ref={practiceExamRef} />
             <View style={styles.bannerContainer}>
                  <FlatList
                     ref={bannerSliderRef}
@@ -147,16 +182,17 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     bannerImage: {
-        width: screenWidth,
+        width: screenWidth - 40,
         height: 60,
+        borderRadius: 12,
+        marginHorizontal: 10,
     },
     sectionHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 15,
+        justifyContent: 'space-between',
+        marginTop: 20,
+        marginHorizontal: 20,
     },
     sectionTitle: {
         fontSize: 20,
@@ -166,9 +202,41 @@ const styles = StyleSheet.create({
     viewAll: {
         fontSize: 14,
         color: AppColors.primary,
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
     listContainer: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 15,
+        paddingBottom: 10,
+    },
+    quickStatsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        backgroundColor: '#fff',
+        margin: 20,
+        marginTop: 10,
+        borderRadius: 16,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    statItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    statNumber: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginTop: 8,
+        marginBottom: 4,
+    },
+    statLabel: {
+        fontSize: 12,
+        color: AppColors.grey,
+        fontWeight: '600',
+        textAlign: 'center',
     },
 }); 

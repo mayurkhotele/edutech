@@ -1,4 +1,4 @@
-import { apiFetchAuth } from '@/constants/api';
+import { apiFetchAuth, uploadFile } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -121,29 +121,18 @@ const TicketDetailsScreen = () => {
             if (!result.canceled && result.assets[0]) {
                 const asset = result.assets[0];
                 
-                // Create form data for file upload
-                const formData = new FormData();
-                formData.append('file', {
-                    uri: asset.uri,
-                    type: 'image/jpeg',
-                    name: `attachment_${Date.now()}.jpg`,
-                } as any);
-
-                // Upload file to server
-                const uploadResponse = await apiFetchAuth('/upload', user?.token || '', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
-
-                if (uploadResponse.ok) {
-                    const uploadedFile = uploadResponse.data;
-                    setAttachments(prev => [...prev, uploadedFile]);
-                } else {
-                    Alert.alert('Error', 'Failed to upload attachment.');
-                }
+                // Upload file using API service
+                const uploadedFileUrl = await uploadFile(asset.uri, user?.token || '');
+                
+                // Create attachment object
+                const attachment = {
+                    fileName: `attachment_${Date.now()}.jpg`,
+                    fileSize: asset.fileSize || 0,
+                    fileUrl: uploadedFileUrl,
+                    mimeType: 'image/jpeg',
+                };
+                
+                setAttachments(prev => [...prev, attachment]);
             }
         } catch (error) {
             console.error('Error picking image:', error);

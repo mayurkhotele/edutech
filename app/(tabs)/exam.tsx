@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
+    RefreshControl,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -24,6 +25,7 @@ export default function ExamScreen() {
     const [exams, setExams] = useState<any[]>([]);
     const [filteredExams, setFilteredExams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [categories, setCategories] = useState<string[]>([]);
@@ -61,6 +63,17 @@ export default function ExamScreen() {
             setError(err.data?.message || 'An unknown error occurred');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await fetchExams();
+        } catch (error) {
+            console.error('Error refreshing:', error);
+        } finally {
+            setRefreshing(false);
         }
     };
 
@@ -220,16 +233,6 @@ export default function ExamScreen() {
                             </Text>
                         </View>
                     </View>
-                    <TouchableOpacity 
-                        style={styles.refreshButton}
-                        onPress={() => {
-                            setLoading(true);
-                            // Re-fetch exams
-                            fetchExams();
-                        }}
-                    >
-                        <Ionicons name="refresh" size={24} color={AppColors.white} />
-                    </TouchableOpacity>
                 </View>
             </LinearGradient>
 
@@ -309,6 +312,9 @@ export default function ExamScreen() {
                     renderItem={renderExamCard}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={{ paddingBottom: 32 }}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
                 />
             )}
         </SafeAreaView>
@@ -356,14 +362,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     header: {
-        paddingTop: 20,
+        paddingTop: 10,
         paddingBottom: 20,
         paddingHorizontal: 20,
     },
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
     },
     headerLeft: {
         flexDirection: 'row',
@@ -392,13 +397,33 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: 'rgba(255, 255, 255, 0.8)',
     },
-    refreshButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        justifyContent: 'center',
+    searchContainer: {
+        backgroundColor: AppColors.white,
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: AppColors.lightGrey,
+    },
+    searchInputContainer: {
+        flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        borderWidth: 1,
+        borderColor: '#e9ecef',
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        color: '#2c3e50',
+        paddingVertical: 12,
+    },
+    clearButton: {
+        padding: 4,
     },
     emptyContainer: {
         flex: 1,
@@ -454,33 +479,5 @@ const styles = StyleSheet.create({
     categoryButtonTextSelected: {
         fontWeight: 'bold',
         color: AppColors.white,
-    },
-    searchContainer: {
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        backgroundColor: AppColors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e9ecef',
-    },
-    searchInputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        borderWidth: 1,
-        borderColor: '#e9ecef',
-    },
-    searchIcon: {
-        marginRight: 8,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 16,
-        color: '#2c3e50',
-        paddingVertical: 12,
-    },
-    clearButton: {
-        padding: 4,
     },
 }); 
