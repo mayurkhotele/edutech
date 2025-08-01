@@ -1,9 +1,10 @@
-import { AppColors } from '@/constants/Colors';
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Animated,
   Dimensions,
   StyleSheet,
   Text,
@@ -32,6 +33,11 @@ const QuestionOfTheDay = () => {
   const [isAnswered, setIsAnswered] = useState(false);
   const [showResult, setShowResult] = useState(false);
   
+  // Animation values
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const scaleAnim = useState(new Animated.Value(0.8))[0];
+  const slideAnim = useState(new Animated.Value(50))[0];
+  
   useEffect(() => {
     if (user?.token) {
       fetchQuestionOfTheDay();
@@ -41,6 +47,24 @@ const QuestionOfTheDay = () => {
   useEffect(() => {
     if (questionData) {
       setTimeLeft(questionData.timeLimit);
+      // Start animations
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   }, [questionData]);
 
@@ -114,13 +138,30 @@ const QuestionOfTheDay = () => {
     return [styles.optionButton, styles.disabledOption];
   };
 
+  const getOptionTextStyle = (index: number) => {
+    if (!isAnswered) {
+      return [
+        styles.optionText,
+        selectedOption === index && styles.selectedOptionText,
+      ];
+    }
+
+    if (index === questionData?.correct) {
+      return [styles.optionText, styles.correctOptionText];
+    } else if (selectedOption === index && index !== questionData?.correct) {
+      return [styles.optionText, styles.incorrectOptionText];
+    }
+    
+    return [styles.optionText, styles.disabledOptionText];
+  };
+
   const getOptionIcon = (index: number) => {
     if (!isAnswered) return null;
     
     if (index === questionData?.correct) {
-      return <Ionicons name="checkmark-circle" size={20} color={AppColors.success} />;
+      return <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />;
     } else if (selectedOption === index && index !== questionData?.correct) {
-      return <Ionicons name="close-circle" size={20} color={AppColors.error} />;
+      return <Ionicons name="close-circle" size={24} color="#F44336" />;
     }
     return null;
   };
@@ -131,104 +172,156 @@ const QuestionOfTheDay = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Add a simple test render to see if component is working
-  console.log('QuestionOfTheDay component rendering, loading:', loading, 'questionData:', questionData);
-
   if (loading) {
-    return <View style={{flex:1,justifyContent:'center',alignItems:'center'}}><Text>Loading...</Text></View>;
-  }
-  if (questionData) {
     return (
-      <View style={{flex:1,justifyContent:'center',alignItems:'center',padding:24,backgroundColor:'#fff'}}>
-        <Text style={{fontWeight:'bold',fontSize:20,marginBottom:16}}>{questionData.question}</Text>
-        {questionData.options.map((opt, idx) => (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#a08efe" />
+        <Text style={styles.loadingText}>Loading today's question...</Text>
+      </View>
+    );
+  }
+
+  if (!questionData) {
+    return (
+      <View style={styles.noQuestionContainer}>
+        <Ionicons name="help-circle-outline" size={64} color="#a08efe" />
+        <Text style={styles.noQuestionText}>No Question Available</Text>
+        <Text style={styles.noQuestionSubtext}>Check back tomorrow for a new question!</Text>
+      </View>
+    );
+  }
+
+  return (
+    <Animated.View 
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [
+            { scale: scaleAnim },
+            { translateY: slideAnim }
+          ]
+        }
+      ]}
+    >
+      {/* Timer Section */}
+      <View style={styles.timerSection}>
+        <View style={styles.timerCard}>
+          <Ionicons name="time" size={20} color={timeLeft < 30 ? "#F44336" : "#fff"} />
+          <Text style={[styles.timerText, timeLeft < 30 && styles.timerWarning]}>
+            {formatTime(timeLeft)}
+          </Text>
+        </View>
+        <View style={styles.timerProgressContainer}>
+          <Animated.View 
+            style={[
+              styles.timerProgress,
+              {
+                width: `${(timeLeft / questionData.timeLimit) * 100}%`,
+                backgroundColor: timeLeft < 30 ? "#F44336" : "#fff"
+              }
+            ]} 
+          />
+        </View>
+      </View>
+
+      {/* Question Container */}
+      <View style={styles.questionContainer}>
+        <Text style={styles.questionText}>{questionData.question}</Text>
+      </View>
+
+      {/* Options */}
+      <View style={styles.optionsContainer}>
+        {questionData.options.map((option, index) => (
           <TouchableOpacity
-            key={idx}
-            style={{
-              backgroundColor: selectedOption === idx
-                ? (idx === questionData.correct ? '#d4edda' : '#f8d7da')
-                : '#f1f1f1',
-              borderRadius: 8,
-              padding: 12,
-              marginBottom: 10,
-              width: 250,
-              alignItems: 'flex-start',
-              borderWidth: selectedOption === idx ? 2 : 1,
-              borderColor: selectedOption === idx
-                ? (idx === questionData.correct ? '#28a745' : '#dc3545')
-                : '#ccc'
-            }}
-            onPress={() => {
-              if (selectedOption === null) setSelectedOption(idx);
-            }}
-            disabled={selectedOption !== null}
+            key={index}
+            style={getOptionStyle(index)}
+            onPress={() => handleOptionSelect(index)}
+            disabled={isAnswered}
+            activeOpacity={0.8}
           >
-            <Text style={{fontSize:16}}>
-              {String.fromCharCode(65+idx)}. {opt}
-            </Text>
+            <View style={styles.optionContent}>
+              <View style={styles.optionNumber}>
+                <Text style={styles.optionNumberText}>{String.fromCharCode(65 + index)}</Text>
+              </View>
+              <Text style={getOptionTextStyle(index)}>
+                {option}
+              </Text>
+              {getOptionIcon(index)}
+            </View>
           </TouchableOpacity>
         ))}
-        {selectedOption !== null && (
-          <View style={{marginTop: 20, alignItems: 'center'}}>
+      </View>
+
+      {/* Result Section */}
+      {showResult && (
+        <Animated.View 
+          style={[styles.resultContainer]}
+        >
+          <View style={styles.resultContent}>
             {selectedOption === questionData.correct ? (
-              <Text style={{color: '#28a745', fontWeight: 'bold'}}>Correct!</Text>
+              <>
+                <View style={styles.resultIconContainer}>
+                  <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+                </View>
+                <Text style={[styles.resultTitle, { color: '#4CAF50' }]}>Correct!</Text>
+                <Text style={styles.resultSubtext}>Great job! You got it right.</Text>
+              </>
             ) : (
               <>
-                <Text style={{color: '#dc3545', fontWeight: 'bold'}}>Incorrect!</Text>
-                <Text style={{marginTop: 8}}>
-                  The correct answer was: <Text style={{fontWeight: 'bold'}}>{questionData.options[questionData.correct]}</Text>
+                <View style={styles.resultIconContainer}>
+                  <Ionicons name="close-circle" size={48} color="#F44336" />
+                </View>
+                <Text style={[styles.resultTitle, { color: '#F44336' }]}>Incorrect!</Text>
+                <Text style={styles.resultSubtext}>
+                  The correct answer was: <Text style={{ fontWeight: 'bold' }}>
+                    {questionData.options[questionData.correct]}
+                  </Text>
                 </Text>
               </>
             )}
           </View>
-        )}
-      </View>
-    );
-  }
-  return <View style={{flex:1,justifyContent:'center',alignItems:'center'}}><Text>No data</Text></View>;
+        </Animated.View>
+      )}
+    </Animated.View>
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'transparent',
     borderRadius: 20,
-    margin: 15,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    backdropFilter: 'blur(20px)',
+    padding: 0,
   },
   loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 40,
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: AppColors.grey,
+    marginTop: 16,
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '500',
   },
   noQuestionContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 40,
   },
   noQuestionText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: AppColors.grey,
-    marginTop: 10,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 16,
   },
   noQuestionSubtext: {
-    fontSize: 14,
-    color: AppColors.grey,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
     marginTop: 8,
+    textAlign: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -240,171 +333,171 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  iconContainer: {
+    backgroundColor: 'rgba(160, 142, 254, 0.1)',
+    borderRadius: 12,
+    padding: 10,
+    marginRight: 12,
+  },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: AppColors.darkGrey,
-    marginLeft: 10,
+    color: '#333',
   },
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+    backgroundColor: 'rgba(160, 142, 254, 0.1)',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: 'rgba(102, 126, 234, 0.2)',
+    borderColor: 'rgba(160, 142, 254, 0.2)',
   },
   timerText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    color: AppColors.primary,
-    marginLeft: 6,
+    color: '#a08efe',
+    marginLeft: 8,
   },
   timerWarning: {
-    color: AppColors.error,
+    color: '#F44336',
   },
   timerProgressContainer: {
+    flex: 1,
     height: 6,
-    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 3,
-    marginBottom: 24,
+    marginLeft: 15,
     overflow: 'hidden',
   },
   timerProgress: {
     height: '100%',
-    backgroundColor: AppColors.primary,
+    backgroundColor: '#fff',
     borderRadius: 3,
   },
   questionContainer: {
     marginBottom: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: '#fff',
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    minHeight: 80,
   },
   questionText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: AppColors.darkGrey,
-    lineHeight: 26,
+    color: '#333',
+    lineHeight: 22,
   },
   optionsContainer: {
-    gap: 16,
+    gap: 10,
   },
   optionButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 18,
+    padding: 14,
     borderWidth: 2,
-    borderColor: 'rgba(102, 126, 234, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   selectedOption: {
-    backgroundColor: AppColors.primary,
-    borderColor: AppColors.primary,
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    backgroundColor: '#fff',
+    borderColor: '#a08efe',
   },
   correctOption: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    borderColor: AppColors.success,
+    backgroundColor: '#fff',
+    borderColor: '#4CAF50',
   },
   incorrectOption: {
-    backgroundColor: 'rgba(244, 67, 54, 0.1)',
-    borderColor: AppColors.error,
+    backgroundColor: '#fff',
+    borderColor: '#F44336',
   },
   disabledOption: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: '#fff',
   },
   optionContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
-    color: AppColors.darkGrey,
+    color: '#333',
     flex: 1,
   },
   selectedOptionText: {
-    color: AppColors.white,
+    color: '#a08efe',
     fontWeight: '600',
   },
   correctOptionText: {
-    color: AppColors.success,
+    color: '#4CAF50',
     fontWeight: '600',
   },
   incorrectOptionText: {
-    color: AppColors.error,
+    color: '#F44336',
     fontWeight: '600',
+  },
+  disabledOptionText: {
+    color: '#999',
+    fontWeight: '400',
   },
   resultContainer: {
     marginTop: 24,
     padding: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   resultContent: {
     alignItems: 'center',
   },
+  resultIconContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    padding: 12,
+    marginBottom: 16,
+  },
   resultTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: AppColors.darkGrey,
-    marginTop: 12,
+    marginTop: 8,
   },
   resultSubtext: {
     fontSize: 16,
-    color: AppColors.grey,
+    color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 8,
     textAlign: 'center',
   },
-  refreshButton: {
+  timerSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  timerCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: AppColors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginTop: 20,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    gap: 6,
   },
-  refreshButtonText: {
-    color: AppColors.white,
-    fontWeight: '600',
-    fontSize: 16,
+  optionNumber: {
+    backgroundColor: 'rgba(160, 142, 254, 0.2)',
+    borderRadius: 10,
+    width: 26,
+    height: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  optionNumberText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#a08efe',
   },
 });
 

@@ -347,8 +347,8 @@ export default function QuizScreen() {
     });
   };
 
-  const getGradientColors = (categoryColor: string) => {
-    const colors: Record<string, string[]> = {
+  const getGradientColors = (categoryColor: string): [string, string] => {
+    const colors: Record<string, [string, string]> = {
       '#3B82F6': ['#3B82F6', '#1D4ED8'],
       '#10B981': ['#10B981', '#059669'],
       '#F59E0B': ['#F59E0B', '#D97706'],
@@ -359,7 +359,7 @@ export default function QuizScreen() {
     return colors[categoryColor] || ['#6366F1', '#4F46E5'];
   };
 
-  const getDifficultyColor = (questionCount: number) => {
+  const getDifficultyColor = (questionCount: number): [string, string] => {
     if (questionCount <= 5) return ['#10B981', '#059669']; // Easy - Green
     if (questionCount <= 10) return ['#F59E0B', '#D97706']; // Medium - Yellow
     return ['#EF4444', '#DC2626']; // Hard - Red

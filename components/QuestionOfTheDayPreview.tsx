@@ -3,12 +3,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import QuestionOfTheDay from './QuestionOfTheDay';
 
@@ -56,30 +56,41 @@ const QuestionOfTheDayPreview = () => {
       {/* Modal */}
       <Modal
         visible={isModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
+        animationType="fade"
+        transparent={true}
         onRequestClose={closeModal}
       >
-        <LinearGradient
-          colors={['#667eea', '#764ba2', '#f093fb']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.modalContainer}
-        >
-          {/* Modal Header */}
-          <View style={styles.modalHeader}>
-            <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-              <Ionicons name="close" size={24} color={AppColors.white} />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Question of the Day</Text>
-            <View style={styles.placeholder} />
-          </View>
+        <View style={styles.centeredOverlay}>
+          <View style={styles.centeredCard}>
+            <LinearGradient
+              colors={['#667eea', '#764ba2', '#f093fb']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cardGradient}
+            >
+              {/* Header with Close Button */}
+              <View style={styles.modalHeader}>
+                <View style={styles.headerContent}>
+                  <View style={styles.headerIcon}>
+                    <Ionicons name="bulb" size={28} color="#fff" />
+                  </View>
+                  <View style={styles.headerText}>
+                    <Text style={styles.modalTitle}>Question of the Day</Text>
+                    <Text style={styles.modalSubtitle}>Test your knowledge!</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                  <Ionicons name="close" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
 
-          {/* Modal Content */}
-          <View style={styles.modalContent}>
-            <QuestionOfTheDay />
+              {/* Content Container */}
+              <View style={styles.contentContainer}>
+                <QuestionOfTheDay />
+              </View>
+            </LinearGradient>
           </View>
-        </LinearGradient>
+        </View>
       </Modal>
     </>
   );
@@ -175,8 +186,65 @@ const styles = StyleSheet.create({
     width: 40,
   },
   modalContent: {
+    flexGrow: 1,
+    paddingTop: 10,
+    paddingBottom: 20,
+    paddingHorizontal: 0,
+    minHeight: 450,
+    maxHeight: 650,
+  },
+  centeredOverlay: {
     flex: 1,
-    paddingTop: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  centeredCard: {
+    width: '90%',
+    minHeight: 550,
+    maxHeight: 750,
+    paddingVertical: 12,
+    paddingHorizontal: 0,
+    backgroundColor: 'transparent',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  cardGradient: {
+    flex: 1,
+    borderRadius: 16,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    minHeight: 550,
+    maxHeight: 750,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIcon: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 15,
+    padding: 8,
+  },
+  headerText: {
+    marginLeft: 15,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  contentContainer: {
+    flexGrow: 1,
+    paddingTop: 10,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
   },
 });
 
