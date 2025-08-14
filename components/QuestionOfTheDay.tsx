@@ -22,6 +22,9 @@ interface QuestionData {
   timeLimit: number;
   isActive: boolean;
   hasAttempted: boolean;
+  selectedOption?: number; // User's selected option
+  isCorrect?: boolean; // Whether user's answer was correct
+  correctAnswer?: number; // Alternative field for correct answer
 }
 
 const QuestionOfTheDay = () => {
@@ -46,6 +49,7 @@ const QuestionOfTheDay = () => {
 
   useEffect(() => {
     if (questionData) {
+      console.log('Setting timer to:', questionData.timeLimit);
       setTimeLeft(questionData.timeLimit);
       // Start animations
       Animated.parallel([
@@ -69,32 +73,41 @@ const QuestionOfTheDay = () => {
   }, [questionData]);
 
   useEffect(() => {
-    if (timeLeft > 0 && !isAnswered) {
+    console.log('Timer effect - timeLeft:', timeLeft, 'isAnswered:', isAnswered, 'hasAttempted:', questionData?.hasAttempted);
+    if (timeLeft > 0 && !isAnswered && !questionData?.hasAttempted) {
       const timer = setTimeout(() => {
+        console.log('Timer tick - new timeLeft:', timeLeft - 1);
         setTimeLeft(timeLeft - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !isAnswered) {
-      handleTimeout();
     }
-  }, [timeLeft, isAnswered]);
+  }, [timeLeft, isAnswered, questionData?.hasAttempted]);
 
   const fetchQuestionOfTheDay = async () => {
     if (!user?.token) {
-      console.log('No user token available');
       setLoading(false);
       return;
     }
     
     try {
-      console.log('Fetching question of the day...');
       setLoading(true);
       const response = await apiFetchAuth('/student/question-of-the-day', user.token);
-      console.log('API Response:', response);
+      
       if (response.ok) {
         setQuestionData(response.data);
+        
+        // Simple logic: if already attempted, show result; if not, allow answering
         if (response.data.hasAttempted) {
+          // Show previous attempt result
+          setSelectedOption(response.data.selectedOption || null);
           setIsAnswered(true);
+          setShowResult(true);
+          setTimeLeft(0);
+        } else {
+          // Allow answering - reset all states
+          setSelectedOption(null);
+          setIsAnswered(false);
+          setShowResult(false);
         }
       }
     } catch (error) {
@@ -104,34 +117,66 @@ const QuestionOfTheDay = () => {
     }
   };
 
-  const handleOptionSelect = (optionIndex: number) => {
-    if (isAnswered || selectedOption !== null) return;
+  const handleOptionSelect = async (optionIndex: number) => {
+    // Only allow selection if question hasn't been attempted
+    if (questionData?.hasAttempted) {
+      return;
+    }
     
     setSelectedOption(optionIndex);
     setIsAnswered(true);
     
-    // Show result after a short delay
-    setTimeout(() => {
-      setShowResult(true);
-    }, 500);
+    // Submit answer to API
+    try {
+      const response = await apiFetchAuth('/student/question-of-the-day', user?.token || '', {
+        method: 'POST',
+        body: {
+          questionId: questionData?.id,
+          selectedOption: optionIndex,
+        },
+      });
+      
+      // After successful submission, fetch updated question data
+      if (response.ok) {
+        console.log('Answer submitted successfully, fetching updated data...');
+        await fetchQuestionOfTheDay(); // Refresh the data
+      }
+    } catch (error) {
+      console.error('Error submitting answer:', error);
+    }
+    
+    // Show result immediately
+    setShowResult(true);
   };
 
   const handleTimeout = () => {
+    console.log('Time up!');
     setIsAnswered(true);
     setShowResult(true);
   };
 
+  const handleRefresh = () => {
+    console.log('Refreshing question...');
+    setSelectedOption(null);
+    setIsAnswered(false);
+    setShowResult(false);
+    setTimeLeft(0);
+    fetchQuestionOfTheDay();
+  };
+
   const getOptionStyle = (index: number) => {
-    if (!isAnswered) {
+    // If question hasn't been attempted yet, show normal selection state
+    if (!questionData?.hasAttempted) {
       return [
         styles.optionButton,
         selectedOption === index && styles.selectedOption,
       ];
     }
 
-    if (index === questionData?.correct) {
+    // For attempted questions, show correct/incorrect indicators
+    if (index === (questionData?.correct || 0)) {
       return [styles.optionButton, styles.correctOption];
-    } else if (selectedOption === index && index !== questionData?.correct) {
+    } else if ((questionData?.selectedOption || 0) === index && index !== (questionData?.correct || 0)) {
       return [styles.optionButton, styles.incorrectOption];
     }
     
@@ -139,16 +184,18 @@ const QuestionOfTheDay = () => {
   };
 
   const getOptionTextStyle = (index: number) => {
-    if (!isAnswered) {
+    // If question hasn't been attempted yet, show normal selection state
+    if (!questionData?.hasAttempted) {
       return [
         styles.optionText,
         selectedOption === index && styles.selectedOptionText,
       ];
     }
 
-    if (index === questionData?.correct) {
+    // For attempted questions, show correct/incorrect indicators
+    if (index === (questionData?.correct || 0)) {
       return [styles.optionText, styles.correctOptionText];
-    } else if (selectedOption === index && index !== questionData?.correct) {
+    } else if ((questionData?.selectedOption || 0) === index && index !== (questionData?.correct || 0)) {
       return [styles.optionText, styles.incorrectOptionText];
     }
     
@@ -156,11 +203,12 @@ const QuestionOfTheDay = () => {
   };
 
   const getOptionIcon = (index: number) => {
-    if (!isAnswered) return null;
+    // Only show icons for attempted questions
+    if (!questionData?.hasAttempted) return null;
     
-    if (index === questionData?.correct) {
+    if (index === (questionData?.correct || 0)) {
       return <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />;
-    } else if (selectedOption === index && index !== questionData?.correct) {
+    } else if ((questionData?.selectedOption || 0) === index && index !== (questionData?.correct || 0)) {
       return <Ionicons name="close-circle" size={24} color="#F44336" />;
     }
     return null;
@@ -206,23 +254,44 @@ const QuestionOfTheDay = () => {
     >
       {/* Timer Section */}
       <View style={styles.timerSection}>
-        <View style={styles.timerCard}>
-          <Ionicons name="time" size={20} color={timeLeft < 30 ? "#F44336" : "#fff"} />
-          <Text style={[styles.timerText, timeLeft < 30 && styles.timerWarning]}>
-            {formatTime(timeLeft)}
-          </Text>
-        </View>
-        <View style={styles.timerProgressContainer}>
-          <Animated.View 
-            style={[
-              styles.timerProgress,
-              {
-                width: `${(timeLeft / questionData.timeLimit) * 100}%`,
-                backgroundColor: timeLeft < 30 ? "#F44336" : "#fff"
-              }
-            ]} 
-          />
-        </View>
+        {!questionData.hasAttempted ? (
+          <>
+            <View style={styles.timerCard}>
+              <Ionicons name="time" size={20} color={timeLeft < 30 ? "#F44336" : "#fff"} />
+              <Text style={[styles.timerText, timeLeft < 30 && styles.timerWarning]}>
+                {formatTime(timeLeft)}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleRefresh} style={styles.refreshButton}>
+              <Ionicons name="refresh" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.timerProgressContainer}>
+              <Animated.View 
+                style={[
+                  styles.timerProgress,
+                  {
+                    width: `${(timeLeft / questionData.timeLimit) * 100}%`,
+                    backgroundColor: timeLeft < 30 ? "#F44336" : "#fff"
+                  }
+                ]} 
+              />
+            </View>
+            {/* Add countdown display */}
+            <Text style={styles.countdownText}>
+              {timeLeft} seconds remaining
+            </Text>
+          </>
+        ) : (
+          <>
+            <View style={styles.completedCard}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={styles.completedText}>Question Completed</Text>
+            </View>
+            <Text style={styles.completedSubtext}>
+              You have already answered this question
+            </Text>
+          </>
+        )}
       </View>
 
       {/* Question Container */}
@@ -237,7 +306,7 @@ const QuestionOfTheDay = () => {
             key={index}
             style={getOptionStyle(index)}
             onPress={() => handleOptionSelect(index)}
-            disabled={isAnswered}
+            disabled={questionData.hasAttempted}
             activeOpacity={0.8}
           >
             <View style={styles.optionContent}>
@@ -259,26 +328,52 @@ const QuestionOfTheDay = () => {
           style={[styles.resultContainer]}
         >
           <View style={styles.resultContent}>
-            {selectedOption === questionData.correct ? (
+            {questionData?.isCorrect ? (
               <>
-                <View style={styles.resultIconContainer}>
-                  <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+                {/* Victory Celebration */}
+                <View style={styles.victoryContainer}>
+                  <View style={styles.victoryIconContainer}>
+                    <Ionicons name="trophy" size={48} color="#FFD700" />
+                  </View>
+                  <Text style={[styles.resultTitle, { color: '#4CAF50' }]}>🎉 Correct! 🎉</Text>
+                  <Text style={styles.resultSubtext}>Excellent! You got it right!</Text>
+                  <View style={styles.celebrationContainer}>
+                    <Text style={styles.celebrationText}>🏆 Great Job! 🏆</Text>
+                  </View>
                 </View>
-                <Text style={[styles.resultTitle, { color: '#4CAF50' }]}>Correct!</Text>
-                <Text style={styles.resultSubtext}>Great job! You got it right.</Text>
               </>
             ) : (
               <>
-                <View style={styles.resultIconContainer}>
-                  <Ionicons name="close-circle" size={48} color="#F44336" />
-                </View>
-                <Text style={[styles.resultTitle, { color: '#F44336' }]}>Incorrect!</Text>
-                <Text style={styles.resultSubtext}>
-                  The correct answer was: <Text style={{ fontWeight: 'bold' }}>
-                    {questionData.options[questionData.correct]}
+                {/* Wrong Answer Result */}
+                <View style={styles.wrongAnswerContainer}>
+                  <View style={styles.resultIconContainer}>
+                    <Ionicons name="close-circle" size={48} color="#F44336" />
+                  </View>
+                  <Text style={[styles.resultTitle, { color: '#F44336' }]}>Incorrect!</Text>
+                  <Text style={styles.resultSubtext}>
+                    Your answer: <Text style={styles.userAnswerText}>
+                      {questionData.options[questionData.selectedOption || 0]}
+                    </Text>
                   </Text>
-                </Text>
+                  <Text style={styles.correctAnswerText}>
+                    Correct answer: <Text style={styles.correctAnswerHighlight}>
+                      {questionData.options[questionData.correct || 0]}
+                    </Text>
+                  </Text>
+                </View>
               </>
+            )}
+            
+            {/* Show "Already Attempted" message if previously answered */}
+            {questionData?.hasAttempted && (
+              <View style={styles.attemptedMessageContainer}>
+                <Text style={styles.attemptedMessage}>
+                  You have already attempted this question today
+                </Text>
+                <Text style={styles.attemptedSubtext}>
+                  Come back tomorrow for a new question!
+                </Text>
+              </View>
             )}
           </View>
         </Animated.View>
@@ -498,6 +593,108 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#a08efe',
+  },
+  countdownText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  refreshButton: {
+    backgroundColor: 'rgba(160, 142, 254, 0.2)',
+    borderRadius: 20,
+    padding: 8,
+    marginLeft: 10,
+  },
+  victoryContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  victoryIconContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    padding: 12,
+    marginBottom: 16,
+  },
+  celebrationContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 10,
+  },
+  celebrationText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    textAlign: 'center',
+  },
+  wrongAnswerContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  userAnswerText: {
+    fontWeight: 'bold',
+    color: '#F44336',
+  },
+  correctAnswerText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  correctAnswerHighlight: {
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  attemptedMessageContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  attemptedMessage: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#F44336',
+    textAlign: 'center',
+  },
+  attemptedSubtext: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  completedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+  },
+  completedText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4CAF50',
+  },
+  completedSubtext: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  debugContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  debugText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '500',
   },
 });
 

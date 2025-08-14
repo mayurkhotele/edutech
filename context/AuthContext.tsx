@@ -56,11 +56,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const login = async (email: string, password: string) => {
+        console.log('AuthContext login called with email:', email);
+        console.log('API URL:', '/auth/login');
+        
         try {
+            console.log('Making API call to login...');
             const response = await apiFetch('/auth/login', {
                 method: 'POST',
                 body: { email, password },
             });
+
+            console.log('API response received:', response);
 
             if (response.ok) {
                 const { token, user: userData } = response.data;
@@ -70,10 +76,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 await storeAuthData(token, userData);
                 return userWithToken;
             } else {
+                console.log('Login failed - response not ok:', response);
+                // Throw the entire response data so it can be properly handled
                 throw response.data;
             }
         } catch (error) {
-            console.error('Login failed:', error);
+            console.error('Login failed with error:', error);
+            // Re-throw the error so it can be caught by the login screen
             throw error;
         }
     };

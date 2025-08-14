@@ -1,13 +1,13 @@
 import { AppColors } from '@/constants/Colors';
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -37,6 +37,7 @@ interface CategoryStats {
 const PracticeExamScreen = () => {
   const router = useRouter();
   const { user } = useAuth();
+  const { showError, showSuccess } = useToast();
   const [exams, setExams] = useState<PracticeExam[]>([]);
   const [categoryStats, setCategoryStats] = useState<{ [key: string]: CategoryStats }>({});
   const [loading, setLoading] = useState(true);
@@ -46,8 +47,30 @@ const PracticeExamScreen = () => {
     fetchPracticeExams();
   }, []);
 
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Practice Exam screen focused - refreshing data');
+      fetchPracticeExams();
+    }, [])
+  );
+
+  // Auto-refresh every 30 seconds when screen is active
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (user?.token) {
+        console.log('🔄 Auto-refreshing Practice Exam data');
+        fetchPracticeExams();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user?.token]);
+
+  // Calculate category stats when exams change
   useEffect(() => {
     if (exams.length > 0) {
+      console.log('🔄 Calculating category stats...');
       calculateCategoryStats();
     }
   }, [exams]);
@@ -60,13 +83,19 @@ const PracticeExamScreen = () => {
 
     try {
       setLoading(true);
+      console.log('🔄 Fetching practice exams...');
       const response = await apiFetchAuth('/student/practice-exams', user.token);
       if (response.ok) {
+        console.log('✅ Practice exams fetched successfully:', response.data.length, 'exams');
+        console.log('📊 Sample exam data:', response.data[0]);
         setExams(response.data);
+      } else {
+        console.error('❌ Failed to fetch practice exams:', response.data);
+        showError('Failed to load practice exams. Please try again.');
       }
     } catch (error) {
-      console.error('Error fetching practice exams:', error);
-      Alert.alert('Error', 'Failed to load practice exams. Please try again.');
+      console.error('❌ Error fetching practice exams:', error);
+      showError('Failed to load practice exams. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -81,7 +110,10 @@ const PracticeExamScreen = () => {
   const calculateCategoryStats = () => {
     const stats: { [key: string]: CategoryStats } = {};
     
+    console.log('📊 Calculating category stats for exams:', exams.length);
+    
     exams.forEach(exam => {
+      console.log('📝 Exam:', exam.title, 'Category:', exam.category);
       if (!stats[exam.category]) {
         stats[exam.category] = {
           totalExams: 0,
@@ -100,6 +132,7 @@ const PracticeExamScreen = () => {
       }
     });
     
+    console.log('📊 Final category stats:', stats);
     setCategoryStats(stats);
   };
 
@@ -118,26 +151,24 @@ const PracticeExamScreen = () => {
   const getGradientColors = (category: string) => {
     const categoryLower = category.toLowerCase();
     
-    if (categoryLower.includes('math') || categoryLower.includes('mathematics')) {
-      return ['#bbdefb', '#90caf9'] as const;
-    } else if (categoryLower.includes('science') || categoryLower.includes('physics') || categoryLower.includes('chemistry')) {
-      return ['#e1bee7', '#ce93d8'] as const;
-    } else if (categoryLower.includes('english') || categoryLower.includes('language')) {
-      return ['#c8e6c9', '#a5d6a7'] as const;
-    } else if (categoryLower.includes('history') || categoryLower.includes('social')) {
-      return ['#ffcc80', '#ffb74d'] as const;
-    } else if (categoryLower.includes('computer') || categoryLower.includes('programming') || categoryLower.includes('coding')) {
-      return ['#f8bbd9', '#f48fb1'] as const;
-    } else if (categoryLower.includes('geography') || categoryLower.includes('environment')) {
-      return ['#b2dfdb', '#80cbc4'] as const;
-    } else if (categoryLower.includes('economics') || categoryLower.includes('business')) {
-      return ['#dcedc8', '#c5e1a5'] as const;
-    } else if (categoryLower.includes('literature') || categoryLower.includes('poetry')) {
-      return ['#eeeeee', '#e0e0e0'] as const;
-    } else {
-      // Default gradient for other categories
-      return ['#e9ecef', '#dee2e6'] as const;
-    }
+    // Create 6 different faint/soft color combinations
+    const colorSchemes = [
+      ['#FFB3B3', '#FFC8A2'], // Soft Red to Peach
+      ['#B8E6E6', '#A8D8D8'], // Soft Turquoise to Light Teal
+      ['#D4F0D4', '#C8E8C8'], // Soft Light Green to Mint
+      ['#FFF2CC', '#FFE6B3'], // Soft Yellow to Light Orange
+      ['#F0D4F0', '#E8C8E8'], // Soft Plum to Light Lavender
+      ['#D4E6F0', '#C8D8E8'], // Soft Sky Blue to Light Steel Blue
+    ];
+    
+    // Use category name to consistently assign colors
+    const hash = categoryLower.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    
+    const colorIndex = Math.abs(hash) % colorSchemes.length;
+    return colorSchemes[colorIndex] as [string, string];
   };
 
   const handleCategoryClick = (category: string) => {
@@ -174,6 +205,11 @@ const PracticeExamScreen = () => {
   const categories = Object.keys(categoryStats);
   const totalExams = exams.length;
   const totalAttempted = exams.filter(exam => exam.attempted).length;
+
+  console.log('🎯 Categories to display:', categories);
+  console.log('📊 Category stats:', categoryStats);
+  console.log('📊 Total exams:', totalExams);
+  console.log('📊 Total attempted:', totalAttempted);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -237,54 +273,64 @@ const PracticeExamScreen = () => {
         {/* Categories Grid */}
         <View style={styles.categoriesContainer}>
           <Text style={styles.categoriesTitle}>Categories</Text>
-          <View style={styles.categoriesGrid}>
-            {categories.map((category, index) => {
-              const stats = categoryStats[category];
-              const progress = stats ? (stats.attemptedExams / stats.totalExams) * 100 : 0;
-              
-              return (
-                <TouchableOpacity
-                  key={category}
-                  style={[
-                    styles.categoryCard,
-                    index % 2 === 0 ? styles.leftCard : styles.rightCard
-                  ]}
-                  onPress={() => handleCategoryClick(category)}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={getGradientColors(category)}
-                    style={styles.categoryGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+          {categories.length === 0 ? (
+            <View style={styles.emptyCategoriesContainer}>
+              <Ionicons name="folder-outline" size={48} color={AppColors.grey} />
+              <Text style={styles.emptyCategoriesTitle}>No Categories Available</Text>
+              <Text style={styles.emptyCategoriesSubtext}>
+                Practice exams will be organized into categories once they are available.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.categoriesGrid}>
+              {categories.map((category, index) => {
+                const stats = categoryStats[category];
+                const progress = stats ? (stats.attemptedExams / stats.totalExams) * 100 : 0;
+                
+                return (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.categoryCard,
+                      index % 2 === 0 ? styles.leftCard : styles.rightCard
+                    ]}
+                    onPress={() => handleCategoryClick(category)}
+                    activeOpacity={0.8}
                   >
-                    <View style={styles.categoryContent}>
-                      <View style={styles.categoryIconContainer}>
-                        <Ionicons name={getCategoryIcon(category)} size={28} color={AppColors.primary} />
-                      </View>
-                      <View style={styles.categoryInfo}>
-                        <Text style={styles.categoryTitle}>{category}</Text>
-                        <Text style={styles.categoryStats}>
-                          {stats?.attemptedExams || 0} of {stats?.totalExams || 0} completed
-                        </Text>
-                      </View>
-                      <View style={styles.categoryProgress}>
-                        <View style={styles.categoryProgressBar}>
-                          <View 
-                            style={[
-                              styles.categoryProgressFill,
-                              { width: `${progress}%` }
-                            ]} 
-                          />
+                    <LinearGradient
+                      colors={getGradientColors(category)}
+                      style={styles.categoryGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      <View style={styles.categoryContent}>
+                        <View style={styles.categoryIconContainer}>
+                          <Ionicons name={getCategoryIcon(category)} size={28} color={AppColors.primary} />
                         </View>
-                        <Text style={styles.categoryProgressText}>{Math.round(progress)}%</Text>
+                        <View style={styles.categoryInfo}>
+                          <Text style={styles.categoryTitle}>{category}</Text>
+                          <Text style={styles.categoryStats}>
+                            {stats?.attemptedExams || 0} of {stats?.totalExams || 0} completed
+                          </Text>
+                        </View>
+                        <View style={styles.categoryProgress}>
+                          <View style={styles.categoryProgressBar}>
+                            <View 
+                              style={[
+                                styles.categoryProgressFill,
+                                { width: `${progress}%` }
+                              ]} 
+                            />
+                          </View>
+                          <Text style={styles.categoryProgressText}>{Math.round(progress)}%</Text>
+                        </View>
                       </View>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
       </RefreshableScrollView>
     </SafeAreaView>
@@ -551,6 +597,27 @@ const styles = StyleSheet.create({
     color: '#4a4a4a',
     marginTop: 1,
     fontWeight: '600',
+  },
+  emptyCategoriesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    marginTop: 20,
+  },
+  emptyCategoriesTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: AppColors.darkGrey,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyCategoriesSubtext: {
+    fontSize: 14,
+    color: AppColors.grey,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
   },
 });
 

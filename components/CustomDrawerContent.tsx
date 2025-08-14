@@ -1,8 +1,6 @@
-import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,11 +8,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const CustomDrawerContent = (props: any) => {
     const { user, logout } = useAuth();
     const { navigation } = props;
-
-    const navigateToWallet = () => {
-        navigation.navigate('(tabs)', { screen: 'wallet' });
-        navigation.closeDrawer();
-    };
 
     const navigateToTimetable = () => {
         navigation.navigate('(tabs)', { screen: 'timetable' });
@@ -41,6 +34,11 @@ const CustomDrawerContent = (props: any) => {
         navigation.closeDrawer();
     };
 
+    const navigateToBattleQuiz = () => {
+        navigation.navigate('(tabs)', { screen: 'battle-room' });
+        navigation.closeDrawer();
+    };
+
     const navigateToPrivacyPolicy = () => {
         navigation.navigate('privacy-policy');
         navigation.closeDrawer();
@@ -50,13 +48,27 @@ const CustomDrawerContent = (props: any) => {
         <View style={styles.container}>
             <SafeAreaView style={{ flex: 1 }}>
                 <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
-                    {/* Profile Section with Gradient */}
-                    <LinearGradient
-                        colors={['#667eea', '#764ba2']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.profileGradient}
-                    >
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <Text style={styles.headerTitle}>Yottascore</Text>
+                    </View>
+
+                    {/* Main Menu Items */}
+                    <View style={styles.menuContainer}>
+                        <DrawerItem icon="person-outline" label="My Profile" onPress={navigateToProfile} />
+                        <DrawerItem icon="document-text-outline" label="My Exams" onPress={navigateToMyExams} />
+                        <DrawerItem icon="school-outline" label="Practice Exam" onPress={navigateToPracticeExam} />
+                        <DrawerItem icon="game-controller-outline" label="Battle Quiz" onPress={navigateToBattleQuiz} />
+                        <DrawerItem icon="stats-chart-outline" label="Leaderboard" />
+                        <DrawerItem icon="calendar-outline" label="My Timetable" onPress={navigateToTimetable} />
+                        <DrawerItem icon="person-add-outline" label="Refer & Earn" onPress={navigateToRefer} />
+                        <DrawerItem icon="headset-outline" label="24/7 Support" onPress={() => navigation.navigate('(tabs)', { screen: 'support-tickets' })} />
+                        <DrawerItem icon="shield-checkmark-outline" label="Privacy Policy" onPress={navigateToPrivacyPolicy} />
+                        <DrawerItem icon="log-out-outline" label="Logout" onPress={logout} />
+                    </View>
+
+                    {/* User Profile Section */}
+                    <View style={styles.profileSection}>
                         <View style={styles.profileContainer}>
                             {user?.profilePhoto ? (
                                 <Image
@@ -70,53 +82,12 @@ const CustomDrawerContent = (props: any) => {
                                     </Text>
                                 </View>
                             )}
-                            <Text style={styles.profileName}>{user?.name || 'MAYUR KJ'}</Text>
-                            <Text style={styles.profileHandle}>{user?.handle || '@BB11A01833224'}</Text>
-                        </View>
-                    </LinearGradient>
-
-                    {/* Menu Items */}
-                    <View style={styles.menuContainer}>
-                        <DrawerItem icon="person-outline" label="My Profile" onPress={navigateToProfile} />
-                        <DrawerItem icon="document-text-outline" label="My Exams" onPress={navigateToMyExams} />
-                        <DrawerItem icon="school-outline" label="Practice Exam" onPress={navigateToPracticeExam} />
-                        <DrawerItem icon="stats-chart-outline" label="Leaderboard" />
-                        <DrawerItem icon="calendar-outline" label="My Timetable" onPress={navigateToTimetable} />
-                        <DrawerItem icon="wallet-outline" label="My Balance" value="₹0.00" onPress={navigateToWallet} />
-                        <DrawerItem icon="person-add-outline" label="Refer & Earn" onPress={navigateToRefer} />
-                        <DrawerItem icon="information-circle-outline" label="Settings" />
-                        <DrawerItem icon="headset-outline" label="24/7 Support" onPress={() => navigation.navigate('(tabs)', { screen: 'support-tickets' })} />
-                        <DrawerItem icon="shield-checkmark-outline" label="Privacy Policy" onPress={navigateToPrivacyPolicy} />
-                        <DrawerItem icon="star-outline" label="Rate Us" onPress={() => {}} />
-                        <DrawerItem icon="log-out-outline" label="Logout" onPress={logout} />
-                    </View>
-
-                    {/* Follow Us Section with Gradient */}
-                    <LinearGradient
-                        colors={['#667eea', '#764ba2']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.followGradient}
-                    >
-                        <View style={styles.followContainer}>
-                            <Text style={styles.followTitle}>Follow Us</Text>
-                            <View style={styles.socialIconsContainer}>
-                                <TouchableOpacity style={styles.socialIcon}>
-                                    <Ionicons name="logo-instagram" size={24} color="#E4405F" />
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.socialIcon}>
-                                    <Ionicons name="logo-facebook" size={24} color="#1877F2" />
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.socialIcon}>
-                                    <Ionicons name="logo-youtube" size={24} color="#FF0000" />
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.socialIcon}>
-                                    <Ionicons name="logo-twitter" size={24} color="#1DA1F2" />
-                                </TouchableOpacity>
+                            <View style={styles.profileInfo}>
+                                <Text style={styles.profileName}>{user?.name || 'MAYUR KJ'}</Text>
+                                <Text style={styles.profileEmail}>{user?.email || 'mayur@example.com'}</Text>
                             </View>
-                            <Text style={styles.versionText}>v7.2</Text>
                         </View>
-                    </LinearGradient>
+                    </View>
                 </DrawerContentScrollView>
             </SafeAreaView>
         </View>
@@ -125,83 +96,50 @@ const CustomDrawerContent = (props: any) => {
 
 const DrawerItem = ({ icon, label, value, onPress }: { icon: any; label: string; value?: string; onPress?: () => void }) => (
     <TouchableOpacity style={styles.drawerItem} onPress={onPress}>
-        <Ionicons name={icon} size={24} color={AppColors.white} />
-        <Text style={styles.drawerLabel}>{label}</Text>
-        {value && <Text style={styles.drawerValue}>{value}</Text>}
+        <View style={styles.drawerItemContent}>
+            <Ionicons name={icon} size={24} color="#666" />
+            <Text style={styles.drawerLabel}>{label}</Text>
+            {value && <Text style={styles.drawerValue}>{value}</Text>}
+        </View>
     </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: AppColors.white,
+        backgroundColor: '#fff',
     },
-    profileGradient: {
-        padding: 15,
-        borderRadius: 15,
-        marginHorizontal: 10,
-        marginBottom: 15,
-        marginTop: 10,
-    },
-    profileContainer: {
+    header: {
+        paddingVertical: 15,
+        paddingHorizontal: 10,
         alignItems: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
     },
-    profileImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        borderWidth: 3,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-        marginBottom: 10,
-    },
-    profileImagePlaceholder: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        borderWidth: 3,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-        marginBottom: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    profileImageInitials: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: AppColors.white,
-    },
-    profileName: {
+    headerTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: AppColors.white,
-        marginBottom: 5,
+        color: '#333',
     },
-    profileHandle: {
-        color: 'rgba(255, 255, 255, 0.8)',
-        marginBottom: 15,
-        fontSize: 14,
+    searchContainer: {
+        paddingHorizontal: 10,
+        paddingBottom: 10,
     },
-    statsContainer: {
+    searchBar: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        width: '100%',
-    },
-    statBox: {
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: '#2a2a2a',
+        borderRadius: 8,
+        paddingHorizontal: 10,
         paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 10,
-        minWidth: 60,
     },
-    statNumber: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: AppColors.white,
+    searchIcon: {
+        marginRight: 8,
     },
-    statLabel: {
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontSize: 11,
-        marginTop: 2,
+    searchInput: {
+        flex: 1,
+        color: '#fff',
+        fontSize: 14,
     },
     menuContainer: {
         paddingVertical: 5,
@@ -209,59 +147,80 @@ const styles = StyleSheet.create({
     drawerItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 16,
         paddingHorizontal: 20,
         marginHorizontal: 10,
-        marginVertical: 1,
-        borderRadius: 10,
-        backgroundColor: AppColors.lightGrey,
+        marginVertical: 2,
+        borderRadius: 12,
+        backgroundColor: '#f8f9fa',
+    },
+    drawerItemContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
     },
     drawerLabel: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '500',
-        color: AppColors.darkGrey,
+        color: '#333',
         marginLeft: 15,
         flex: 1,
     },
     drawerValue: {
-        fontSize: 15,
-        color: AppColors.primary,
-        fontWeight: 'bold',
-    },
-    followGradient: {
-        padding: 15,
-        borderRadius: 15,
-        marginHorizontal: 10,
-        marginBottom: 20,
-    },
-    followContainer: {
-        alignItems: 'center',
-    },
-    followTitle: {
         fontSize: 16,
+        color: '#007bff',
         fontWeight: 'bold',
-        color: AppColors.white,
-        marginBottom: 10,
     },
-    socialIconsContainer: {
+    profileSection: {
+        marginHorizontal: 10,
+        marginBottom: 15,
+        marginTop: 15,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+        paddingTop: 15,
+    },
+    profileContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        width: '100%',
-        marginBottom: 10,
+        alignItems: 'center',
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
+        padding: 15,
     },
-    socialIcon: {
-        padding: 8,
-        borderRadius: 15,
-        backgroundColor: AppColors.white,
-        width: 40,
-        height: 40,
+    profileImage: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        marginRight: 15,
+    },
+    profileImagePlaceholder: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: '#007bff',
         justifyContent: 'center',
         alignItems: 'center',
+        marginRight: 15,
     },
-    versionText: {
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontSize: 11,
-    }
+    profileImageInitials: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    profileInfo: {
+        flex: 1,
+    },
+    profileName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    profileEmail: {
+        fontSize: 14,
+        color: '#666',
+    },
+    profileSettings: {
+        padding: 5,
+    },
 });
 
 export default CustomDrawerContent; 

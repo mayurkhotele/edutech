@@ -13,6 +13,13 @@ interface WebSocketContextType {
   markMessageAsRead: (readerId: string, otherUserId: string) => void;
   on: (event: string, handler: any) => void;
   off: (event: string) => void;
+  
+  // Battle methods
+  createBattleRoom: (name: string) => void;
+  joinBattleRoom: (roomId: string) => void;
+  leaveBattleRoom: (roomId: string) => void;
+  playerReady: (roomId: string) => void;
+  submitAnswer: (roomId: string, questionIndex: number, answerIndex: number, timeRemaining: number) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -109,6 +116,27 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     webSocketService.registerUser(userId);
   };
 
+  // Battle methods
+  const createBattleRoom = (name: string) => {
+    webSocketService.createBattleRoom(name);
+  };
+
+  const joinBattleRoom = (roomId: string) => {
+    webSocketService.joinBattleRoom(roomId);
+  };
+
+  const leaveBattleRoom = (roomId: string) => {
+    webSocketService.leaveBattleRoom(roomId);
+  };
+
+  const playerReady = (roomId: string) => {
+    webSocketService.playerReady(roomId);
+  };
+
+  const submitAnswer = (roomId: string, questionIndex: number, answerIndex: number, timeRemaining: number) => {
+    webSocketService.submitAnswer(roomId, questionIndex, answerIndex, timeRemaining);
+  };
+
   const value: WebSocketContextType = {
     isConnected,
     connect,
@@ -120,6 +148,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     markMessageAsRead,
     on,
     off,
+    createBattleRoom,
+    joinBattleRoom,
+    leaveBattleRoom,
+    playerReady,
+    submitAnswer,
   };
 
   return (

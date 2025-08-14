@@ -1,28 +1,65 @@
 import { AppColors } from '@/constants/Colors'
 import { useAuth } from '@/context/AuthContext'
+import { useToast } from '@/context/ToastContext'
 import { AntDesign, FontAwesome, Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 const login = () => {
-    const { login } = useAuth();
+    const auth = useAuth();
+    const { showError, showSuccess } = useToast();
+    console.log('Auth context received:', auth);
+    console.log('Login function from auth:', auth.login);
+    
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [secureTextEntry, setSecureTextEntry] = useState(true);
 
     const handleLogin = async () => {
+        console.log('Login attempt started');
+        console.log('Email:', email);
+        console.log('Password length:', password.length);
+        
         if (!email || !password) {
-            Alert.alert('Error', 'Please enter both email and password.');
+            showError('Please enter both email and password.');
             return;
         }
+        
+        console.log('Calling login function...');
         try {
-            await login(email, password);
+            const result = await auth.login(email, password);
+            console.log('Login successful:', result);
+            showSuccess('Login successful! Welcome back.');
         } catch (error: any) {
-            const errorMessage = error?.data?.message || error?.message || 'An unknown error occurred.';
-            Alert.alert('Login Failed', errorMessage);
+            console.error('Login error details:', error);
+            let errorMessage = 'An unknown error occurred.';
+            
+            // Handle different types of errors
+            if (error?.error) {
+                // Direct error object from API
+                errorMessage = error.error;
+            } else if (error?.data?.error) {
+                // Nested error in data
+                errorMessage = error.data.error;
+            } else if (error?.data?.message) {
+                errorMessage = error.data.message;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            }
+            
+            console.log('Processed error message:', errorMessage);
+            
+            // Show specific error messages for common cases
+            if (errorMessage.toLowerCase().includes('invalid credentials')) {
+                showError('Incorrect email or password. Please check your credentials and try again.');
+            } else {
+                showError(errorMessage);
+            }
         }
     };
 
@@ -124,36 +161,35 @@ const styles = StyleSheet.create({
     },
     centeredContent: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-end',
         alignItems: 'center',
+        paddingBottom: 0,
+        marginBottom: 0,
     },
     glassCard: {
         width: '100%',
-        maxWidth: 380,
-        backgroundColor: 'rgba(255,255,255,0.18)',
-        borderRadius: 28,
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
         padding: 28,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
+        shadowOffset: { width: 0, height: -8 },
         shadowOpacity: 0.18,
         shadowRadius: 24,
         elevation: 8,
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.25)',
-        marginHorizontal: 16,
-        marginTop: Platform.OS === 'ios' ? 60 : 0,
+        minHeight: '70%',
     },
     title: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: '#fff',
+        color: '#333',
         marginBottom: 8,
         textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
-        color: '#f3eaff',
+        color: '#555',
         marginBottom: 32,
         textAlign: 'center',
     },
@@ -194,11 +230,12 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     rememberMe: {
-        color: '#f3eaff',
+        color: '#333',
         fontSize: 13,
+        fontWeight: '500',
     },
     forgotPassword: {
-        color: '#FFD452',
+        color: '#6C63FF',
         fontWeight: 'bold',
         fontSize: 13,
     },
@@ -223,9 +260,10 @@ const styles = StyleSheet.create({
     },
     signInWith: {
         textAlign: 'center',
-        color: '#f3eaff',
+        color: '#333',
         marginVertical: 18,
         fontSize: 14,
+        fontWeight: '500',
     },
     socialIconsContainer: {
         flexDirection: 'row',
@@ -236,7 +274,6 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: '#fff',
         justifyContent: 'center',
         alignItems: 'center',
         marginHorizontal: 10,
@@ -252,31 +289,14 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     accountText: {
-        color: '#f3eaff',
+        color: '#333',
         fontSize: 14,
+        fontWeight: '500',
     },
     signUpText: {
-        color: '#FFD452',
+        color: '#6C63FF',
         fontWeight: 'bold',
         fontSize: 15,
-    },
-    cornerBook: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: 90,
-        height: 90,
-        opacity: 0.18,
-        zIndex: 0,
-    },
-    cornerCap: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 110,
-        height: 110,
-        opacity: 0.15,
-        zIndex: 0,
     },
 })
 

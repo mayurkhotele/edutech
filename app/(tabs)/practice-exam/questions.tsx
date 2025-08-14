@@ -250,9 +250,6 @@ const PracticeExamQuestionsScreen = () => {
               <Text style={styles.markBtnText}>{statuses[current]?.marked ? 'Unmark' : 'Mark for Review'}</Text>
             </TouchableOpacity>
             <View style={styles.navigationButtons}>
-              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                <Text style={styles.submitBtnText}>Submit Test</Text>
-              </TouchableOpacity>
               {!isLastQuestion && (
                 <>
                   <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
@@ -264,6 +261,14 @@ const PracticeExamQuestionsScreen = () => {
                 </>
               )}
             </View>
+          </View>
+          
+          {/* Submit Test Button - Moved to bottom center */}
+          <View style={styles.submitButtonContainer}>
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Text style={styles.submitBtnText}>Submit Test</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -543,46 +548,100 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    marginTop: 10 
+    marginTop: 15,
+    marginBottom: 10,
+    paddingHorizontal: 5
   },
   markBtn: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     backgroundColor: '#F3F4F6', 
-    borderRadius: 8, 
-    paddingVertical: 8, 
-    paddingHorizontal: 14 
+    borderRadius: 10, 
+    paddingVertical: 10, 
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flex: 1,
+    marginRight: 8
   },
   markBtnText: { 
     color: AppColors.primary, 
     fontWeight: 'bold', 
-    marginLeft: 6 
+    marginLeft: 6,
+    fontSize: 13
   },
   navigationButtons: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: 6,
+    flex: 2
   },
   skipBtn: {
     backgroundColor: '#E0F7FA',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginRight: 4
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flex: 1
   },
   skipBtnText: {
     color: AppColors.primary,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    fontSize: 13,
+    textAlign: 'center'
   },
   nextBtn: { 
     backgroundColor: AppColors.primary, 
-    borderRadius: 8, 
+    borderRadius: 10, 
     paddingVertical: 10, 
-    paddingHorizontal: 18 
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    flex: 1
   },
   nextBtnText: { 
     color: '#fff', 
     fontWeight: 'bold', 
-    fontSize: 15 
+    fontSize: 13,
+    textAlign: 'center'
+  },
+  submitButtonContainer: {
+    alignItems: 'center',
+    marginTop: 15,
+    marginBottom: 15,
+    paddingHorizontal: 10
+  },
+  submitBtn: { 
+    backgroundColor: '#FF6B6B', 
+    borderRadius: 16, 
+    paddingVertical: 16, 
+    paddingHorizontal: 40, 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    width: '100%',
+    maxWidth: 300
+  },
+  submitBtnText: { 
+    color: '#fff', 
+    fontWeight: 'bold', 
+    fontSize: 16, 
+    marginLeft: 8 
   },
   bottomRow: { 
     flexDirection: 'row', 
@@ -603,18 +662,6 @@ const styles = StyleSheet.create({
   bottomBtnText: { 
     color: AppColors.primary, 
     fontWeight: 'bold' 
-  },
-  submitBtn: { 
-    backgroundColor: AppColors.primary, 
-    borderRadius: 8, 
-    paddingVertical: 10, 
-    paddingHorizontal: 18, 
-    marginLeft: 4 
-  },
-  submitBtnText: { 
-    color: '#fff', 
-    fontWeight: 'bold', 
-    fontSize: 15 
   },
   // Side Panel Styles
   sidePanel: {

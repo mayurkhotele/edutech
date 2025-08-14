@@ -55,16 +55,22 @@ const ExamCategoryPage = () => {
 
     try {
       setLoading(true);
+      console.log('🔍 Fetching exams for category:', category);
       const response = await apiFetchAuth('/student/practice-exams', user.token);
       if (response.ok) {
         // Filter exams by the selected category
         const categoryExams = response.data.filter((exam: PracticeExam) => 
           exam.category.toLowerCase() === category.toLowerCase()
         );
+        console.log('📊 Total exams received:', response.data.length);
+        console.log('📊 Filtered exams for category:', categoryExams.length);
+        console.log('📊 Category exams:', categoryExams);
         setExams(categoryExams);
+      } else {
+        console.error('❌ Failed to fetch exams:', response.data);
       }
     } catch (error) {
-      console.error('Error fetching exams:', error);
+      console.error('❌ Error fetching exams:', error);
       Alert.alert('Error', 'Failed to load exams. Please try again.');
     } finally {
       setLoading(false);
@@ -125,17 +131,25 @@ const ExamCategoryPage = () => {
 
   const getGradientColors = (category: string) => {
     const categoryLower = category.toLowerCase();
-    if (categoryLower.includes('railway')) return ['#FFB3BA', '#FF8A95'] as const;
-    if (categoryLower.includes('ssc')) return ['#A8E6CF', '#88D8C0'] as const;
-    if (categoryLower.includes('math')) return ['#B8E6B8', '#9DD6A8'] as const;
-    if (categoryLower.includes('science')) return ['#FFE5B4', '#FFD280'] as const;
-    if (categoryLower.includes('english')) return ['#B8D4E3', '#A5C7D7'] as const;
-    if (categoryLower.includes('computer')) return ['#E6B3D9', '#D19BC8'] as const;
-    if (categoryLower.includes('general')) return ['#FFD4B3', '#FFC085'] as const;
-    if (categoryLower.includes('reasoning')) return ['#D4B3FF', '#C19BED'] as const;
-    if (categoryLower.includes('banking')) return ['#B3E6CC', '#9DD6B8'] as const;
-    if (categoryLower.includes('upsc')) return ['#E6B3D9', '#D19BC8'] as const;
-    return ['#B8D4E3', '#A5C7D7'] as const;
+    
+    // Create 6 different faint/soft color combinations (same as practice-exam.tsx)
+    const colorSchemes = [
+      ['#FFB3B3', '#FFC8A2'], // Soft Red to Peach
+      ['#B8E6E6', '#A8D8D8'], // Soft Turquoise to Light Teal
+      ['#D4F0D4', '#C8E8C8'], // Soft Light Green to Mint
+      ['#FFF2CC', '#FFE6B3'], // Soft Yellow to Light Orange
+      ['#F0D4F0', '#E8C8E8'], // Soft Plum to Light Lavender
+      ['#D4E6F0', '#C8D8E8'], // Soft Sky Blue to Light Steel Blue
+    ];
+    
+    // Use category name to consistently assign colors
+    const hash = categoryLower.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    
+    const colorIndex = Math.abs(hash) % colorSchemes.length;
+    return colorSchemes[colorIndex] as [string, string];
   };
 
   const handleStartExam = (exam: PracticeExam) => {

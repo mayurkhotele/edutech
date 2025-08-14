@@ -36,6 +36,26 @@ export const WEBSOCKET_CONFIG = {
     STOP_TYPING: 'stop_typing',
     NOTIFY_MESSAGES_READ: 'notify_messages_read',
     
+    // Battle Events - Client to Server
+    CREATE_BATTLE_ROOM: 'create_battle_room',
+    JOIN_BATTLE_ROOM: 'join_battle_room',
+    LEAVE_BATTLE_ROOM: 'leave_battle_room',
+    PLAYER_READY: 'player_ready',
+    SUBMIT_ANSWER: 'submit_answer',
+    
+    // Battle Events - Server to Client
+    BATTLE_ROOM_CREATED: 'battle_room_created',
+    BATTLE_ROOM_JOINED: 'battle_room_joined',
+    BATTLE_ROOM_LEFT: 'battle_room_left',
+    PLAYER_JOINED: 'player_joined',
+    PLAYER_LEFT: 'player_left',
+    PLAYER_READY_UPDATE: 'player_ready',
+    BATTLE_STARTED: 'battle_started',
+    QUESTION_STARTED: 'question_started',
+    QUESTION_ENDED: 'question_ended',
+    BATTLE_ENDED: 'battle_ended',
+    TIME_UPDATE: 'time_update',
+    
     // Server to Client
     NEW_MESSAGE: 'new_message',
     USER_TYPING: 'user_typing',

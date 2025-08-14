@@ -154,296 +154,172 @@ export default function PracticeExamResultScreen() {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#667eea" />
+        <Text style={styles.loadingText}>Loading your results...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f6f8fb' }} contentContainerStyle={{ paddingBottom: 32 }}>
-      <LinearGradient colors={['#667eea', '#764ba2']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
-        <Ionicons name="trophy" size={40} color="#FFD700" style={{ marginBottom: 8 }} />
-        <Text style={styles.headerTitle}>Detailed Analysis</Text>
-        <Text style={styles.scoreText}>Score: <Text style={{ color: '#FFD700' }}>{score}</Text> / {totalMarks}</Text>
-        
-        <View style={styles.performanceContainer}>
-          {renderCircularProgress(percentage, 100)}
-          <View style={styles.performanceInfo}>
-            <Text style={[styles.performanceText, { color: performance.color }]}>
-              <Ionicons name={performance.icon as any} size={20} /> {performance.text}
-            </Text>
-            <Text style={styles.accuracyText}>Accuracy: {accuracy.toFixed(1)}%</Text>
-            <Text style={styles.timeText}>Avg Time: {avgTime.toFixed(1)}s</Text>
-          </View>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header Section */}
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Exam Results</Text>
+          <View style={styles.headerSpacer} />
         </View>
       </LinearGradient>
 
-      <View style={{ padding: 18 }}>
-        {loading ? (
-          <ActivityIndicator size="large" color="#6C63FF" style={{ marginTop: 40 }} />
-        ) : (
-          <>
-            {/* Summary Cards */}
-            <View style={styles.summaryGrid}>
-              <View style={[styles.summaryCard, { backgroundColor: '#d4edda' }]}>
-                <Ionicons name="checkmark-circle" size={24} color="#28a745" />
-                <Text style={[styles.summaryCardValue, { color: '#28a745' }]}>{correct}</Text>
-                <Text style={styles.summaryCardLabel}>Correct</Text>
-              </View>
-              <View style={[styles.summaryCard, { backgroundColor: '#f8d7da' }]}>
-                <Ionicons name="close-circle" size={24} color="#dc3545" />
-                <Text style={[styles.summaryCardValue, { color: '#dc3545' }]}>{incorrect}</Text>
-                <Text style={styles.summaryCardLabel}>Incorrect</Text>
-              </View>
-              <View style={[styles.summaryCard, { backgroundColor: '#e2e3e5' }]}>
-                <Ionicons name="remove-circle" size={24} color="#6c757d" />
-                <Text style={[styles.summaryCardValue, { color: '#6c757d' }]}>{unattempted}</Text>
-                <Text style={styles.summaryCardLabel}>Unattempted</Text>
-              </View>
-            </View>
+      {/* Performance Overview Card */}
+      <View style={styles.overviewCard}>
+        <View style={styles.performanceHeader}>
+          <View style={styles.trophyContainer}>
+            <Ionicons 
+              name={performance.icon as any} 
+              size={48} 
+              color={performance.color} 
+            />
+          </View>
+          <View style={styles.performanceInfo}>
+            <Text style={styles.performanceTitle}>{performance.text}</Text>
+            <Text style={styles.performanceScore}>{percentage.toFixed(1)}%</Text>
+            <Text style={styles.performanceSubtext}>
+              {score} out of {totalMarks} marks
+            </Text>
+          </View>
+        </View>
+        
+        {/* Accuracy Circle */}
+        <View style={styles.accuracySection}>
+          {renderCircularProgress(accuracy, 120)}
+          <Text style={styles.accuracyLabel}>Accuracy</Text>
+        </View>
+      </View>
 
-            {/* Charts */}
-            {renderBarChart(accuracyData, 'Answer Distribution', total)}
-            {renderBarChart(difficultyData, 'Difficulty Breakdown', total)}
+      {/* Quick Stats Grid */}
+      <View style={styles.statsGrid}>
+        <View style={[styles.statCard, { backgroundColor: '#e8f5e8' }]}>
+          <Ionicons name="checkmark-circle" size={32} color="#28a745" />
+          <Text style={[styles.statValue, { color: '#28a745' }]}>{correct}</Text>
+          <Text style={styles.statLabel}>Correct</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: '#ffeaea' }]}>
+          <Ionicons name="close-circle" size={32} color="#dc3545" />
+          <Text style={[styles.statValue, { color: '#dc3545' }]}>{incorrect}</Text>
+          <Text style={styles.statLabel}>Incorrect</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: '#f0f0f0' }]}>
+          <Ionicons name="remove-circle" size={32} color="#6c757d" />
+          <Text style={[styles.statValue, { color: '#6c757d' }]}>{unattempted}</Text>
+          <Text style={styles.statLabel}>Unattempted</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: '#e3f2fd' }]}>
+          <Ionicons name="time" size={32} color="#2196f3" />
+          <Text style={[styles.statValue, { color: '#2196f3' }]}>
+            {Math.floor(avgTime / 60)}m {Math.floor(avgTime % 60)}s
+          </Text>
+          <Text style={styles.statLabel}>Avg Time</Text>
+        </View>
+      </View>
 
-            {/* Topic Performance */}
-            {Object.keys(topicStats).length > 0 && (
-              <View style={styles.chartContainer}>
-                <Text style={styles.chartTitle}>Topic Performance</Text>
-                {Object.entries(topicStats).map(([topic, stats]) => {
-                  const topicAccuracy = (stats.correct / stats.total) * 100;
-                  return (
-                    <View key={topic} style={styles.topicRow}>
-                      <Text style={styles.topicName}>{topic}</Text>
-                      <View style={styles.topicStats}>
-                        <Text style={styles.topicAccuracy}>{topicAccuracy.toFixed(1)}%</Text>
-                        <Text style={styles.topicCount}>({stats.correct}/{stats.total})</Text>
-                      </View>
-                      <View style={styles.topicBar}>
-                        <View 
-                          style={[
-                            styles.topicBarFill,
-                            { 
-                              width: `${topicAccuracy}%`,
-                              backgroundColor: topicAccuracy >= 70 ? '#28a745' : topicAccuracy >= 50 ? '#ffc107' : '#dc3545'
-                            }
-                          ]} 
-                        />
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
+      {/* Detailed Analysis */}
+      <View style={styles.analysisSection}>
+        <Text style={styles.sectionTitle}>Detailed Analysis</Text>
+        
+        {/* Accuracy Chart */}
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Answer Distribution</Text>
+          {renderBarChart(accuracyData, 'Accuracy', total)}
+        </View>
 
-            {/* Time Analysis */}
-            <View style={styles.chartContainer}>
-              <Text style={styles.chartTitle}>Time Analysis</Text>
-              <View style={styles.timeStats}>
-                <View style={styles.timeStat}>
-                  <Text style={styles.timeStatLabel}>Total Time</Text>
-                  <Text style={styles.timeStatValue}>{Math.floor(totalTime / 60)}m {Math.round(totalTime % 60)}s</Text>
-                </View>
-                <View style={styles.timeStat}>
-                  <Text style={styles.timeStatLabel}>Average per Question</Text>
-                  <Text style={styles.timeStatValue}>{avgTime.toFixed(1)}s</Text>
-                </View>
-                <View style={styles.timeStat}>
-                  <Text style={styles.timeStatLabel}>Fastest Answer</Text>
-                  <Text style={styles.timeStatValue}>{Math.min(...Object.values(timeData))}s</Text>
-                </View>
-                <View style={styles.timeStat}>
-                  <Text style={styles.timeStatLabel}>Slowest Answer</Text>
-                  <Text style={styles.timeStatValue}>{Math.max(...Object.values(timeData))}s</Text>
-                </View>
-              </View>
-            </View>
+        {/* Difficulty Analysis */}
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Difficulty Breakdown</Text>
+          {renderBarChart(difficultyData, 'Difficulty', Math.max(...Object.values(difficultyStats)))}
+        </View>
 
-            {/* Performance Trends */}
-            <View style={styles.chartContainer}>
-              <Text style={styles.chartTitle}>Performance Trends</Text>
-              <View style={styles.trendsContainer}>
-                <View style={styles.trendItem}>
-                  <Text style={styles.trendLabel}>Time vs Accuracy</Text>
-                  <View style={styles.trendBar}>
-                    <View style={[styles.trendFill, { width: `${Math.min(accuracy, 100)}%`, backgroundColor: accuracy >= 70 ? '#28a745' : accuracy >= 50 ? '#ffc107' : '#dc3545' }]} />
-                  </View>
-                  <Text style={styles.trendValue}>{accuracy.toFixed(1)}% accuracy in {avgTime.toFixed(1)}s avg</Text>
-                </View>
-                <View style={styles.trendItem}>
-                  <Text style={styles.trendLabel}>Efficiency Score</Text>
-                  <View style={styles.trendBar}>
-                    <View style={[styles.trendFill, { width: `${Math.min((accuracy / avgTime) * 10, 100)}%`, backgroundColor: '#6C63FF' }]} />
-                  </View>
-                  <Text style={styles.trendValue}>{(accuracy / avgTime * 10).toFixed(1)} points per second</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Strength & Weakness Analysis */}
-            <View style={styles.chartContainer}>
-              <Text style={styles.chartTitle}>Strength & Weakness Analysis</Text>
-              <View style={styles.analysisGrid}>
-                <View style={styles.analysisCard}>
-                  <Ionicons name="trending-up" size={24} color="#28a745" />
-                  <Text style={styles.analysisTitle}>Strengths</Text>
-                  <Text style={styles.analysisText}>
-                    {difficultyStats.easy > 0 && `Easy questions: ${((difficultyStats.easy / total) * 100).toFixed(1)}%`}
-                    {difficultyStats.medium > 0 && `\nMedium questions: ${((difficultyStats.medium / total) * 100).toFixed(1)}%`}
+        {/* Topic Performance */}
+        {Object.keys(topicStats).length > 0 && (
+          <View style={styles.topicSection}>
+            <Text style={styles.topicTitle}>Topic-wise Performance</Text>
+            {Object.entries(topicStats).map(([topic, stats]) => (
+              <View key={topic} style={styles.topicCard}>
+                <View style={styles.topicHeader}>
+                  <Text style={styles.topicName}>{topic}</Text>
+                  <Text style={styles.topicScore}>
+                    {stats.correct}/{stats.total}
                   </Text>
                 </View>
-                <View style={styles.analysisCard}>
-                  <Ionicons name="trending-down" size={24} color="#dc3545" />
-                  <Text style={styles.analysisTitle}>Areas to Improve</Text>
-                  <Text style={styles.analysisText}>
-                    {difficultyStats.hard > 0 && `Hard questions: ${((difficultyStats.hard / total) * 100).toFixed(1)}%`}
-                    {unattempted > 0 && `\nUnattempted: ${((unattempted / total) * 100).toFixed(1)}%`}
-                  </Text>
+                <View style={styles.topicProgress}>
+                  <View 
+                    style={[
+                      styles.topicProgressBar, 
+                      { width: `${(stats.correct / stats.total) * 100}%` }
+                    ]} 
+                  />
                 </View>
+                <Text style={styles.topicPercentage}>
+                  {((stats.correct / stats.total) * 100).toFixed(1)}%
+                </Text>
               </View>
-            </View>
-
-            {/* Comparative Performance */}
-            <View style={styles.chartContainer}>
-              <Text style={styles.chartTitle}>Comparative Performance</Text>
-              <View style={styles.comparisonGrid}>
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Your Score</Text>
-                  <Text style={[styles.comparisonValue, { color: performance.color }]}>{percentage.toFixed(1)}%</Text>
-                </View>
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Class Average</Text>
-                  <Text style={[styles.comparisonValue, { color: '#6c757d' }]}>75.2%</Text>
-                </View>
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Top 10%</Text>
-                  <Text style={[styles.comparisonValue, { color: '#28a745' }]}>92.8%</Text>
-                </View>
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Your Rank</Text>
-                  <Text style={[styles.comparisonValue, { color: percentage >= 80 ? '#28a745' : percentage >= 60 ? '#ffc107' : '#dc3545' }]}>
-                    {percentage >= 90 ? 'Top 5%' : percentage >= 80 ? 'Top 15%' : percentage >= 70 ? 'Top 30%' : percentage >= 60 ? 'Top 50%' : 'Below 50%'}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity 
-                style={styles.rankButton}
-                onPress={() => router.push('/(tabs)/exam')}
-              >
-                <LinearGradient colors={['#667eea', '#764ba2']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.rankButtonGradient}>
-                  <Ionicons name="trophy" size={16} color="#fff" />
-                  <Text style={styles.rankButtonText}>View your Rank</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
-            {/* Study Recommendations */}
-            <View style={styles.chartContainer}>
-              <Text style={styles.chartTitle}>Study Recommendations</Text>
-              <View style={styles.recommendationsList}>
-                {percentage < 70 && (
-                  <View style={styles.recommendationItem}>
-                    <Ionicons name="book" size={20} color="#6C63FF" />
-                    <Text style={styles.recommendationText}>Review fundamental concepts and practice more basic questions</Text>
-                  </View>
-                )}
-                {difficultyStats.hard > 0 && (
-                  <View style={styles.recommendationItem}>
-                    <Ionicons name="school" size={20} color="#ffc107" />
-                    <Text style={styles.recommendationText}>Focus on advanced topics and complex problem-solving</Text>
-                  </View>
-                )}
-                {unattempted > 0 && (
-                  <View style={styles.recommendationItem}>
-                    <Ionicons name="time" size={20} color="#dc3545" />
-                    <Text style={styles.recommendationText}>Improve time management and speed up problem-solving</Text>
-                  </View>
-                )}
-                {Object.entries(topicStats).some(([_, stats]) => (stats.correct / stats.total) < 0.6) && (
-                  <View style={styles.recommendationItem}>
-                    <Ionicons name="analytics" size={20} color="#17a2b8" />
-                    <Text style={styles.recommendationText}>Focus on weak topics identified in the analysis</Text>
-                  </View>
-                )}
-                <View style={styles.recommendationItem}>
-                  <Ionicons name="refresh" size={20} color="#28a745" />
-                  <Text style={styles.recommendationText}>Take more practice tests to improve overall performance</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Export & Share */}
-            <View style={styles.chartContainer}>
-              <Text style={styles.chartTitle}>Share Your Results</Text>
-              <View style={styles.shareButtons}>
-                <TouchableOpacity style={[styles.shareButton, { backgroundColor: '#25D366' }]}>
-                  <Ionicons name="logo-whatsapp" size={20} color="#fff" />
-                  <Text style={styles.shareButtonText}>WhatsApp</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.shareButton, { backgroundColor: '#1DA1F2' }]}>
-                  <Ionicons name="logo-twitter" size={20} color="#fff" />
-                  <Text style={styles.shareButtonText}>Twitter</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.shareButton, { backgroundColor: '#4267B2' }]}>
-                  <Ionicons name="logo-facebook" size={20} color="#fff" />
-                  <Text style={styles.shareButtonText}>Facebook</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.shareButton, { backgroundColor: '#6C63FF' }]}>
-                  <Ionicons name="download" size={20} color="#fff" />
-                  <Text style={styles.shareButtonText}>Download PDF</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Detailed Question Analysis */}
-            <Text style={styles.sectionTitle}>Question Analysis</Text>
-            {questions.map((q, idx) => {
-              const userAns = userAnswers[q.id];
-              const timeSpent = timeData[q.id] || 0;
-              return (
-                <View key={q.id} style={styles.qCard}>
-                  <View style={styles.qHeader}>
-                    <Text style={styles.qNumber}>Q{idx + 1}.</Text>
-                    <View style={styles.qMeta}>
-                      <Text style={[styles.qDifficulty, { 
-                        color: q.difficulty === 'easy' ? '#28a745' : q.difficulty === 'medium' ? '#ffc107' : '#dc3545' 
-                      }]}>{q.difficulty?.toUpperCase()}</Text>
-                      <Text style={styles.qTime}>{timeSpent}s</Text>
-                      <Text style={styles.qMarks}>{q.marks || 1} mark{q.marks !== 1 ? 's' : ''}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.qText}>{q.text}</Text>
-                  <View style={{ marginTop: 10 }}>
-                    {q.options.map((opt: string, i: number) => {
-                      let bg = '#f1f1f1', color = '#222', border = '#eee';
-                      if (i === q.correct) { bg = '#d4edda'; color = '#28a745'; border = '#28a745'; }
-                      if (userAns === i && i !== q.correct) { bg = '#f8d7da'; color = '#dc3545'; border = '#dc3545'; }
-                      return (
-                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: bg, borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: border }}>
-                          <Text style={{ fontWeight: 'bold', color, marginRight: 10 }}>{String.fromCharCode(65 + i)}.</Text>
-                          <Text style={{ color, flex: 1 }}>{opt}</Text>
-                          {i === q.correct && <Ionicons name="checkmark-circle" size={18} color="#28a745" style={{ marginLeft: 8 }} />}
-                          {userAns === i && i !== q.correct && <Ionicons name="close-circle" size={18} color="#dc3545" style={{ marginLeft: 8 }} />}
-                        </View>
-                      );
-                    })}
-                  </View>
-                  <View style={styles.qFooter}>
-                    <Text style={{ color: userAns === q.correct ? '#28a745' : userAns === undefined ? '#888' : '#dc3545', fontWeight: 'bold' }}>
-                      {userAns === q.correct ? 'Correct' : userAns === undefined ? 'Unattempted' : 'Incorrect'}
-                    </Text>
-                    {userAns !== undefined && (
-                      <Text style={{ marginLeft: 16, color: '#888' }}>Your answer: <Text style={{ fontWeight: 'bold', color: userAns === q.correct ? '#28a745' : '#dc3545' }}>{String.fromCharCode(65 + userAns)}</Text></Text>
-                    )}
-                    <Text style={{ marginLeft: 16, color: '#28a745' }}>Correct: <Text style={{ fontWeight: 'bold' }}>{String.fromCharCode(65 + q.correct)}</Text></Text>
-                  </View>
-                </View>
-              );
-            })}
-          </>
+            ))}
+          </View>
         )}
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity 
+          style={styles.primaryButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="home" size={20} color="#fff" />
+          <Text style={styles.primaryButtonText}>Back to Exams</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.secondaryButton}
+          onPress={() => {
+            // Share results functionality
+          }}
+        >
+          <Ionicons name="share-outline" size={20} color="#667eea" />
+          <Text style={styles.secondaryButtonText}>Share Results</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f6f8fb',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#f6f8fb',
+  },
+  headerGradient: {
     paddingTop: 48,
     paddingBottom: 32,
     alignItems: 'center',
@@ -451,41 +327,223 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 32,
     marginBottom: 18,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    padding: 8,
+  },
   headerTitle: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 26,
-    marginBottom: 6,
+    textAlign: 'center',
   },
-  scoreText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
+  headerSpacer: {
+    width: 50,
   },
-  performanceContainer: {
+  overviewCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    marginHorizontal: 18,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  performanceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
+    marginBottom: 20,
+  },
+  trophyContainer: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    padding: 10,
+    marginRight: 15,
   },
   performanceInfo: {
-    marginLeft: 20,
-    alignItems: 'flex-start',
+    flex: 1,
   },
-  performanceText: {
-    fontSize: 18,
+  performanceTitle: {
+    color: '#fff',
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  accuracyText: {
+  performanceScore: {
     color: '#fff',
-    fontSize: 14,
-    marginBottom: 2,
+    fontSize: 36,
+    fontWeight: 'bold',
   },
-  timeText: {
-    color: '#fff',
+  performanceSubtext: {
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
+  },
+  accuracySection: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  accuracyLabel: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    marginBottom: 24,
+  },
+  statCard: {
+    width: '45%',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 15,
+    marginVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  analysisSection: {
+    marginHorizontal: 18,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  chartCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+  },
+  topicSection: {
+    marginTop: 16,
+  },
+  topicTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  topicCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  topicHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  topicName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+  },
+  topicScore: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#28a745',
+  },
+  topicProgress: {
+    height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  topicProgressBar: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#28a745',
+  },
+  topicPercentage: {
+    fontSize: 12,
+    color: '#666',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginHorizontal: 18,
+    marginBottom: 32,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: '#667eea',
+    width: '45%',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#667eea',
+    width: '45%',
+  },
+  secondaryButtonText: {
+    color: '#667eea',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
   circularContainer: {
     position: 'relative',
@@ -507,45 +565,6 @@ const styles = StyleSheet.create({
   circularPercentage: {
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  summaryCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginHorizontal: 4,
-  },
-  summaryCardValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
-  summaryCardLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  chartContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  chartTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
   },
   barRow: {
     flexDirection: 'row',
@@ -634,64 +653,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  qCard: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  qHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  qNumber: {
-    fontWeight: 'bold',
-    color: '#6C63FF',
-    fontSize: 15,
-  },
-  qMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  qDifficulty: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    marginRight: 8,
-  },
-  qTime: {
-    fontSize: 12,
-    color: '#666',
-    marginRight: 8,
-  },
-  qMarks: {
-    fontSize: 12,
-    color: '#666',
-  },
-  qText: {
-    color: '#222',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  qFooter: {
-    flexDirection: 'row',
-    marginTop: 6,
-    flexWrap: 'wrap',
   },
   trendsContainer: {
     marginTop: 8,

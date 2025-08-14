@@ -1,6 +1,7 @@
 // const BASE_URL = 'https://examindia-production.up.railway.app/api';
-const BASE_URL = 'http://192.168.1.4:3000/api';
+// const BASE_URL = 'https://examindia-production.up.railway.app/api';
 
+const BASE_URL = 'http://192.168.1.4:3000/api';
 
 type ApiOptions = {
   method?: string;
@@ -10,32 +11,54 @@ type ApiOptions = {
 
 export async function apiFetch(endpoint: string, options: ApiOptions = {}) {
   const { method = 'GET', body, headers = {} } = options;
-
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
+  
+  const fullUrl = `${BASE_URL}${endpoint}`;
+  console.log('API Fetch called with:', {
+    url: fullUrl,
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
+    body: body ? 'Body present' : 'No body',
+    headers
   });
 
-  const contentType = res.headers.get('content-type');
-  let data;
+  try {
+    const res = await fetch(fullUrl, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
 
-  if (contentType && contentType.indexOf('application/json') !== -1) {
-    data = await res.json();
-  } else {
-    data = await res.text(); // Get response as text if not JSON
-  }
+    console.log('Fetch response received:', {
+      status: res.status,
+      ok: res.ok,
+      statusText: res.statusText
+    });
 
-  if (!res.ok) {
-    // If the data is the raw HTML/text, it will be thrown here
-    const errorPayload = typeof data === 'object' ? data : { message: data };
-    throw { status: res.status, data: errorPayload };
+    const contentType = res.headers.get('content-type');
+    let data;
+
+    if (contentType && contentType.indexOf('application/json') !== -1) {
+      data = await res.json();
+    } else {
+      data = await res.text(); // Get response as text if not JSON
+    }
+
+    console.log('Response data:', data);
+
+    if (!res.ok) {
+      // If the data is the raw HTML/text, it will be thrown here
+      const errorPayload = typeof data === 'object' ? data : { message: data };
+      console.log('API error payload:', errorPayload);
+      throw { status: res.status, data: errorPayload };
+    }
+    
+    return { ok: res.ok, status: res.status, data };
+  } catch (error) {
+    console.error('API Fetch error:', error);
+    throw error;
   }
-  
-  return { ok: res.ok, status: res.status, data };
 }
 
 export async function apiFetchAuth(endpoint: string, token: string, options: ApiOptions = {}) {

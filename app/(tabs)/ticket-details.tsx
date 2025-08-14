@@ -412,10 +412,12 @@ const TicketDetailsScreen = () => {
             <KeyboardAvoidingView 
                 style={styles.keyboardView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
                 <ScrollView 
                     style={styles.scrollView}
                     showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollViewContent}
                 >
                     {/* Ticket Info */}
                     <View style={styles.ticketInfo}>
@@ -460,6 +462,9 @@ const TicketDetailsScreen = () => {
                             scrollEnabled={false}
                         />
                     </View>
+                    
+                    {/* Bottom spacing for input */}
+                    <View style={styles.bottomSpacing} />
                 </ScrollView>
 
                 {/* Reply Input */}
@@ -589,6 +594,9 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
+    },
+    scrollViewContent: {
+        flexGrow: 1,
     },
     ticketInfo: {
         backgroundColor: '#fff',
@@ -786,6 +794,7 @@ const styles = StyleSheet.create({
     replyInputContainer: {
         backgroundColor: '#fff',
         padding: 20,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 30,
         borderTopWidth: 1,
         borderTopColor: '#e9ecef',
         shadowColor: '#000',
@@ -793,6 +802,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 8,
+        minHeight: 90,
     },
     attachmentsPreview: {
         marginBottom: 16,
@@ -924,6 +934,9 @@ const styles = StyleSheet.create({
         color: '#6c757d',
         textAlign: 'center',
         lineHeight: 20,
+    },
+    bottomSpacing: {
+        height: 120, // Add more space at the bottom to prevent input from being hidden
     },
 });
 

@@ -1,4 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
 
@@ -8,7 +9,7 @@ const medalColors = [
   '#CD7F32', // Bronze
 ];
 
-const podiumHeights = [120, 90, 70];
+const podiumHeights = [140, 110, 90];
 
 const defaultAvatars = [
   require('../assets/images/avatar1.jpg'),
@@ -35,59 +36,80 @@ export default function LeaderboardPodium({ data }: LeaderboardPodiumProps) {
 
   return (
     <View style={styles.container}>
-      {/* Podium */}
+      {/* Enhanced Podium */}
       <View style={styles.podiumRow}>
         {/* 2nd Place */}
         <View style={[styles.podiumItem, { height: podiumHeights[1] }]}>  
-          <View style={[styles.medalCircle, { backgroundColor: medalColors[1] }]}>  
-            <MaterialCommunityIcons name="medal" size={32} color="#fff" />
-          </View>
-          <Image source={top3[1]?.avatar || defaultAvatars[1]} style={styles.avatar} />
-          <Text style={styles.podiumName}>{top3[1]?.name || '-'}</Text>
-          <Text style={styles.podiumPoints}>{top3[1]?.points?.toLocaleString() || '-'} PTS</Text>
-          <Text style={styles.podiumRank}>2</Text>
+          <LinearGradient
+            colors={['#f8f9fa', '#e9ecef']}
+            style={styles.podiumGradient}
+          >
+            <View style={[styles.medalCircle, { backgroundColor: medalColors[1] }]}>  
+              <MaterialCommunityIcons name="medal" size={32} color="#fff" />
+            </View>
+            <Image source={top3[1]?.avatar || defaultAvatars[1]} style={styles.avatar} />
+            <Text style={styles.podiumName}>{top3[1]?.name || '-'}</Text>
+            <Text style={styles.podiumPoints}>{top3[1]?.points?.toLocaleString() || '-'} PTS</Text>
+            <Text style={styles.podiumRank}>2</Text>
+          </LinearGradient>
         </View>
         {/* 1st Place */}
         <View style={[styles.podiumItem, styles.podiumFirst, { height: podiumHeights[0] }]}>  
-          <View style={[styles.medalCircle, { backgroundColor: medalColors[0] }]}>  
-            <MaterialCommunityIcons name="medal" size={36} color="#fff" />
-          </View>
-          <Image source={top3[0]?.avatar || defaultAvatars[0]} style={styles.avatar} />
-          <Text style={styles.podiumName}>{top3[0]?.name || '-'}</Text>
-          <Text style={styles.podiumPoints}>{top3[0]?.points?.toLocaleString() || '-'} PTS</Text>
-          <Text style={styles.podiumRank}>1</Text>
+          <LinearGradient
+            colors={['#fff3cd', '#ffeaa7']}
+            style={styles.podiumGradient}
+          >
+            <View style={[styles.medalCircle, { backgroundColor: medalColors[0] }]}>  
+              <MaterialCommunityIcons name="medal" size={36} color="#fff" />
+            </View>
+            <Image source={top3[0]?.avatar || defaultAvatars[0]} style={styles.avatar} />
+            <Text style={styles.podiumName}>{top3[0]?.name || '-'}</Text>
+            <Text style={styles.podiumPoints}>{top3[0]?.points?.toLocaleString() || '-'} PTS</Text>
+            <Text style={styles.podiumRank}>1</Text>
+          </LinearGradient>
         </View>
         {/* 3rd Place */}
         <View style={[styles.podiumItem, { height: podiumHeights[2] }]}>  
-          <View style={[styles.medalCircle, { backgroundColor: medalColors[2] }]}>  
-            <MaterialCommunityIcons name="medal" size={28} color="#fff" />
-          </View>
-          <Image source={top3[2]?.avatar || defaultAvatars[2]} style={styles.avatar} />
-          <Text style={styles.podiumName}>{top3[2]?.name || '-'}</Text>
-          <Text style={styles.podiumPoints}>{top3[2]?.points?.toLocaleString() || '-'} PTS</Text>
-          <Text style={styles.podiumRank}>3</Text>
+          <LinearGradient
+            colors={['#f8f9fa', '#e9ecef']}
+            style={styles.podiumGradient}
+          >
+            <View style={[styles.medalCircle, { backgroundColor: medalColors[2] }]}>  
+              <MaterialCommunityIcons name="medal" size={28} color="#fff" />
+            </View>
+            <Image source={top3[2]?.avatar || defaultAvatars[2]} style={styles.avatar} />
+            <Text style={styles.podiumName}>{top3[2]?.name || '-'}</Text>
+            <Text style={styles.podiumPoints}>{top3[2]?.points?.toLocaleString() || '-'} PTS</Text>
+            <Text style={styles.podiumRank}>3</Text>
+          </LinearGradient>
         </View>
       </View>
-      {/* Others */}
-      <FlatList
-        data={others}
-        keyExtractor={item => item.rank?.toString() || item.name}
-        renderItem={({ item }) => (
-          <View style={styles.otherRow}>
-            <View style={styles.otherAvatarWrap}>
-              <Ionicons name="person-circle" size={36} color="#bbb" />
+      
+      {/* Enhanced Others List */}
+      <View style={styles.othersContainer}>
+        <Text style={styles.othersTitle}>Other Participants</Text>
+        <FlatList
+          data={others}
+          keyExtractor={item => item.rank?.toString() || item.name}
+          renderItem={({ item }) => (
+            <View style={styles.otherRow}>
+              <View style={styles.otherAvatarWrap}>
+                <Ionicons name="person-circle" size={40} color="#667eea" />
+              </View>
+              <View style={styles.otherInfo}>
+                <Text style={styles.otherName}>{item.name}</Text>
+                {item.subtitle ? <Text style={styles.otherSubtitle}>{item.subtitle}</Text> : null}
+              </View>
+              <View style={styles.otherStats}>
+                <Text style={styles.otherRank}>#{item.rank}</Text>
+                <Text style={styles.otherPoints}>{item.points?.toLocaleString()} Pts</Text>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.otherName}>{item.name}</Text>
-              {item.subtitle ? <Text style={styles.otherSubtitle}>{item.subtitle}</Text> : null}
-            </View>
-            <Text style={styles.otherRank}>#{item.rank}</Text>
-            <Text style={styles.otherPoints}>{item.points?.toLocaleString()} Pts</Text>
-          </View>
-        )}
-        style={styles.othersList}
-        ListEmptyComponent={<Text style={styles.emptyText}>No more participants</Text>}
-      />
+          )}
+          style={styles.othersList}
+          ListEmptyComponent={<Text style={styles.emptyText}>No more participants</Text>}
+        />
+      </View>
     </View>
   );
 }
@@ -96,113 +118,169 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 24,
     alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   podiumRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    marginBottom: 32,
+    marginBottom: 30,
+    paddingHorizontal: 10,
   },
   podiumItem: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    width: 100,
     marginHorizontal: 8,
-    backgroundColor: '#fff',
     borderRadius: 16,
-    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    paddingBottom: 12,
-    position: 'relative',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   podiumFirst: {
-    zIndex: 2,
-    elevation: 8,
-    marginBottom: 0,
     transform: [{ translateY: -20 }],
+    zIndex: 2,
   },
-  medalCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  podiumGradient: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
-    marginTop: -20,
-    elevation: 2,
+    width: '100%',
+  },
+  medalCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginBottom: 4,
-    borderWidth: 2,
-    borderColor: '#eee',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginBottom: 8,
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   podiumName: {
+    fontSize: 14,
     fontWeight: 'bold',
-    fontSize: 16,
-    color: '#222',
+    color: '#333',
     textAlign: 'center',
+    marginBottom: 4,
   },
   podiumPoints: {
-    fontSize: 13,
-    color: '#888',
-    marginBottom: 2,
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600',
+    marginBottom: 4,
   },
   podiumRank: {
+    fontSize: 16,
     fontWeight: 'bold',
-    fontSize: 18,
-    color: '#aaa',
-    marginTop: 2,
+    color: '#333',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  othersContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  othersTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+    textAlign: 'left',
   },
   othersList: {
-    width: '100%',
-    marginTop: 8,
+    maxHeight: 300,
   },
   otherRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#f8f9fa',
     borderRadius: 12,
-    marginVertical: 4,
-    padding: 10,
-    elevation: 1,
+    marginBottom: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   otherAvatarWrap: {
-    marginRight: 10,
+    marginRight: 12,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  otherInfo: {
+    flex: 1,
   },
   otherName: {
     fontWeight: 'bold',
-    fontSize: 15,
-    color: '#222',
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 2,
   },
   otherSubtitle: {
     fontSize: 12,
-    color: '#888',
+    color: '#666',
+  },
+  otherStats: {
+    alignItems: 'flex-end',
   },
   otherRank: {
     fontWeight: 'bold',
     fontSize: 14,
-    color: '#888',
-    marginHorizontal: 8,
+    color: '#667eea',
+    marginBottom: 2,
   },
   otherPoints: {
-    fontWeight: 'bold',
     fontSize: 14,
-    color: '#222',
-    marginLeft: 8,
+    color: '#333',
+    fontWeight: '600',
   },
   emptyText: {
     textAlign: 'center',
     color: '#aaa',
     marginVertical: 16,
+    fontSize: 16,
+    fontStyle: 'italic',
   },
 }); 

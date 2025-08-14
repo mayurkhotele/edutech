@@ -1,22 +1,23 @@
 import { AppColors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Ionicons } from '@expo/vector-icons';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
-import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-gesture-handler';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import CustomDrawerContent from '../components/CustomDrawerContent';
+import ErrorBoundary from '../components/ErrorBoundary';
 import SplashScreen from '../components/SplashScreen';
 import { apiFetchAuth } from '../constants/api';
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { WebSocketProvider } from '../context/WebSocketContext';
+import { RefreshProvider } from '../context/RefreshContext';
+import { ToastProvider } from '../context/ToastContext';
+import '../utils/errorHandler'; // Initialize global error handler
+// import { WebSocketProvider } from '../context/WebSocketContext';
 
 // Header Right Component
 const HeaderRight = ({ navigation }: any) => {
@@ -178,15 +179,14 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-        <AuthProvider>
-            <WebSocketProvider>
-                <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                    <RootNavigator />
-                    <StatusBar style="light" />
-                </ThemeProvider>
-            </WebSocketProvider>
-        </AuthProvider>
-    </GestureHandlerRootView>
+    <AuthProvider>
+      <RefreshProvider>
+        <ToastProvider>
+          <ErrorBoundary>
+            <RootNavigator />
+          </ErrorBoundary>
+        </ToastProvider>
+      </RefreshProvider>
+    </AuthProvider>
   );
 }

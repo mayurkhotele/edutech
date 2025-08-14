@@ -1,13 +1,15 @@
 import { AppColors } from '@/constants/Colors'
 import { useAuth } from '@/context/AuthContext'
+import { useToast } from '@/context/ToastContext'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 const Register = () => {
     const { register } = useAuth();
+    const { showError, showSuccess } = useToast();
     const router = useRouter();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -18,17 +20,47 @@ const Register = () => {
 
     const handleRegister = async () => {
         if (!name || !email || !password || !phoneNumber) {
-            Alert.alert('Error', 'Please fill all the fields.');
+            showError('Please fill all the required fields.');
             return;
         }
+        
+        // Basic validation
+        if (password.length < 6) {
+            showError('Password must be at least 6 characters long.');
+            return;
+        }
+        
+        if (!email.includes('@')) {
+            showError('Please enter a valid email address.');
+            return;
+        }
+        
         try {
             await register({ name, email, password, phoneNumber, referralCode });
-            Alert.alert('Success', 'Registration successful! Please log in.', [
-                { text: 'OK', onPress: () => router.replace('/login') },
-            ]);
+            showSuccess('Registration successful! Please log in.');
+            setTimeout(() => {
+                router.replace('/login');
+            }, 2000);
         } catch (error: any) {
             console.error('Registration failed:', error);
-            Alert.alert('Registration Failed', error.response?.data?.message || 'An error occurred.');
+            let errorMessage = 'Registration failed. Please try again.';
+            
+            if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            }
+            
+            // Show specific error messages
+            if (errorMessage.toLowerCase().includes('email already exists')) {
+                showError('This email is already registered. Please use a different email or try logging in.');
+            } else if (errorMessage.toLowerCase().includes('phone')) {
+                showError('Please enter a valid phone number.');
+            } else if (errorMessage.toLowerCase().includes('password')) {
+                showError('Password is too weak. Please use a stronger password.');
+            } else {
+                showError(errorMessage);
+            }
         }
     };
 
@@ -141,36 +173,35 @@ const styles = StyleSheet.create({
     },
     centeredContent: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-end',
         alignItems: 'center',
+        paddingBottom: 0,
+        marginBottom: 0,
     },
     glassCard: {
         width: '100%',
-        maxWidth: 380,
-        backgroundColor: 'rgba(255,255,255,0.18)',
-        borderRadius: 28,
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
         padding: 28,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
+        shadowOffset: { width: 0, height: -8 },
         shadowOpacity: 0.18,
         shadowRadius: 24,
         elevation: 8,
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.25)',
-        marginHorizontal: 16,
-        marginTop: Platform.OS === 'ios' ? 60 : 0,
+        minHeight: '70%',
     },
     title: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: '#fff',
+        color: '#333',
         marginBottom: 8,
         textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
-        color: '#f3eaff',
+        color: '#555',
         marginBottom: 32,
         textAlign: 'center',
     },
@@ -228,11 +259,12 @@ const styles = StyleSheet.create({
         marginTop: 18,
     },
     accountText: {
-        color: '#f3eaff',
+        color: '#333',
         fontSize: 14,
+        fontWeight: '500',
     },
     signInText: {
-        color: '#FFD452',
+        color: '#6C63FF',
         fontWeight: 'bold',
         fontSize: 15,
     },

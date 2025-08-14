@@ -31,6 +31,19 @@ interface WebSocketEvents {
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: any) => void;
+  
+  // Battle Events
+  onBattleRoomCreated?: (data: any) => void;
+  onBattleRoomJoined?: (data: any) => void;
+  onBattleRoomLeft?: (data: any) => void;
+  onPlayerJoined?: (data: any) => void;
+  onPlayerLeft?: (data: any) => void;
+  onPlayerReady?: (data: any) => void;
+  onBattleStarted?: (data: any) => void;
+  onQuestionStarted?: (data: any) => void;
+  onQuestionEnded?: (data: any) => void;
+  onBattleEnded?: (data: any) => void;
+  onTimeUpdate?: (data: any) => void;
 }
 
 class WebSocketService {
@@ -136,6 +149,62 @@ class WebSocketService {
       console.log('✅ Messages were read by:', data.readerId);
       // You can add a callback for this if needed
     });
+
+    // Battle Events
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.BATTLE_ROOM_CREATED, (data: any) => {
+      console.log('⚔️ Battle room created:', data);
+      this.events.onBattleRoomCreated?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.BATTLE_ROOM_JOINED, (data: any) => {
+      console.log('⚔️ Battle room joined:', data);
+      this.events.onBattleRoomJoined?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.BATTLE_ROOM_LEFT, (data: any) => {
+      console.log('⚔️ Battle room left:', data);
+      this.events.onBattleRoomLeft?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.PLAYER_JOINED, (data: any) => {
+      console.log('👤 Player joined battle:', data);
+      this.events.onPlayerJoined?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.PLAYER_LEFT, (data: any) => {
+      console.log('👤 Player left battle:', data);
+      this.events.onPlayerLeft?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.PLAYER_READY_UPDATE, (data: any) => {
+      console.log('✅ Player ready update:', data);
+      this.events.onPlayerReady?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.BATTLE_STARTED, (data: any) => {
+      console.log('⚔️ Battle started:', data);
+      this.events.onBattleStarted?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.QUESTION_STARTED, (data: any) => {
+      console.log('📝 Question started:', data);
+      this.events.onQuestionStarted?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.QUESTION_ENDED, (data: any) => {
+      console.log('✅ Question ended:', data);
+      this.events.onQuestionEnded?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.BATTLE_ENDED, (data: any) => {
+      console.log('🏆 Battle ended:', data);
+      this.events.onBattleEnded?.(data);
+    });
+
+    this.socket.on(WEBSOCKET_CONFIG.EVENTS.TIME_UPDATE, (data: any) => {
+      console.log('⏰ Time update:', data);
+      this.events.onTimeUpdate?.(data);
+    });
   }
 
   // Register user with the WebSocket server
@@ -205,6 +274,57 @@ class WebSocketService {
       readerId,
       otherUserId
     });
+  }
+
+  // Battle Events
+  createBattleRoom(name: string) {
+    if (!this.socket?.connected) {
+      console.error('WebSocket not connected');
+      return;
+    }
+    this.socket.emit(WEBSOCKET_CONFIG.EVENTS.CREATE_BATTLE_ROOM, { name });
+    console.log('⚔️ Creating battle room:', name);
+  }
+
+  joinBattleRoom(roomId: string) {
+    if (!this.socket?.connected) {
+      console.error('WebSocket not connected');
+      return;
+    }
+    this.socket.emit(WEBSOCKET_CONFIG.EVENTS.JOIN_BATTLE_ROOM, { roomId });
+    console.log('⚔️ Joining battle room:', roomId);
+  }
+
+  leaveBattleRoom(roomId: string) {
+    if (!this.socket?.connected) {
+      console.error('WebSocket not connected');
+      return;
+    }
+    this.socket.emit(WEBSOCKET_CONFIG.EVENTS.LEAVE_BATTLE_ROOM, { roomId });
+    console.log('⚔️ Leaving battle room:', roomId);
+  }
+
+  playerReady(roomId: string) {
+    if (!this.socket?.connected) {
+      console.error('WebSocket not connected');
+      return;
+    }
+    this.socket.emit(WEBSOCKET_CONFIG.EVENTS.PLAYER_READY, { roomId });
+    console.log('✅ Player ready in room:', roomId);
+  }
+
+  submitAnswer(roomId: string, questionIndex: number, answerIndex: number, timeRemaining: number) {
+    if (!this.socket?.connected) {
+      console.error('WebSocket not connected');
+      return;
+    }
+    this.socket.emit(WEBSOCKET_CONFIG.EVENTS.SUBMIT_ANSWER, {
+      roomId,
+      questionIndex,
+      answerIndex,
+      timeRemaining
+    });
+    console.log('📝 Submitted answer:', { roomId, questionIndex, answerIndex, timeRemaining });
   }
 
   // Set event handlers

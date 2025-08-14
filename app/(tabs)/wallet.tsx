@@ -2,6 +2,7 @@ import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 // import client from '../../api/client';
@@ -9,6 +10,7 @@ import { apiFetchAuth } from '@/constants/api';
 
 const WalletScreen = () => {
     const { user, logout } = useAuth();
+    const router = useRouter();
     const [walletData, setWalletData] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
     const [refreshing, setRefreshing] = React.useState(false);
@@ -161,7 +163,11 @@ const WalletScreen = () => {
 
                 {/* Options List */}
                 <View style={styles.card}>
-                    <OptionRow icon="list-outline" title="My Transactions" />
+                    <OptionRow 
+                        icon="list-outline" 
+                        title="My Transactions" 
+                        onPress={() => router.push('/(tabs)/transactions')}
+                    />
                     <OptionRow icon="card-outline" title="My KYC Details" />
                     <OptionRow icon="newspaper-outline" title="Withdraw History" />
                     <OptionRow icon="cloud-download-outline" title="Statement Download" />
@@ -232,8 +238,8 @@ const MoneyDetailRow = ({ icon, title, amount, action, onAction, isWithdraw = fa
     </View>
 );
 
-const OptionRow = ({ icon, title }: any) => (
-    <TouchableOpacity style={styles.optionRow}>
+const OptionRow = ({ icon, title, onPress }: any) => (
+    <TouchableOpacity style={styles.optionRow} onPress={onPress}>
         <Ionicons name={icon} size={24} color={AppColors.primary} style={styles.optionIcon} />
         <Text style={styles.optionTitle}>{title}</Text>
         <Ionicons name="chevron-forward-outline" size={24} color={AppColors.grey} />

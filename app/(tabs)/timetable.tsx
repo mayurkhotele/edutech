@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, LayoutAnimation, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, LayoutAnimation, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -326,34 +327,37 @@ export default function TimetableScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Simple Month Selector */}
-      <View style={styles.simpleHeader}>
-        <TouchableOpacity 
-          style={styles.monthNavButton}
-          onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-        >
-          <Ionicons name="chevron-back" size={20} color="#a08efe" />
-        </TouchableOpacity>
-        
-        <Text style={styles.currentMonthText}>
-          {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-        </Text>
-        
-        <TouchableOpacity 
-          style={styles.monthNavButton}
-          onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-        >
-          <Ionicons name="chevron-forward" size={20} color="#a08efe" />
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      {/* Fixed Header */}
+      <View style={styles.fixedHeader}>
+        {/* Compact Month Selector */}
+        <View style={styles.compactMonthSelector}>
+          <TouchableOpacity 
+            style={styles.monthNavButton}
+            onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+          >
+            <Ionicons name="chevron-back" size={20} color="#6C63FF" />
+          </TouchableOpacity>
+          
+          <Text style={styles.currentMonthText}>
+            {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </Text>
+          
+          <TouchableOpacity 
+            style={styles.monthNavButton}
+            onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+          >
+            <Ionicons name="chevron-forward" size={20} color="#6C63FF" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchTimetable} />}>
         {viewMode === 'calendar' ? (
           <Animated.View style={[styles.calendarContent, { opacity: fadeAnim }]}>
-            {/* Calendar Grid */}
-            <View style={styles.calendarContainer}>
+            {/* Compact Calendar Grid */}
+            <View style={styles.compactCalendarContainer}>
               {/* Day Headers */}
               <View style={styles.dayHeaders}>
                 {shortDayNames.map((day, index) => (
@@ -363,7 +367,7 @@ export default function TimetableScreen() {
                 ))}
               </View>
 
-              {/* Calendar Days */}
+              {/* Compact Calendar Days */}
               <View style={styles.calendarGrid}>
                 {calendarDays.map((date, index) => {
                   const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
@@ -375,7 +379,7 @@ export default function TimetableScreen() {
                     <TouchableOpacity
                       key={index}
                       style={[
-                        styles.calendarDay,
+                        styles.compactCalendarDay,
                         isTodayDate && styles.calendarDayToday,
                         isSelectedDateValue && styles.calendarDaySelected,
                         !isCurrentMonth && styles.calendarDayOtherMonth
@@ -383,7 +387,7 @@ export default function TimetableScreen() {
                       onPress={() => setSelectedDate(date)}
                     >
                       <Text style={[
-                        styles.calendarDayText,
+                        styles.compactCalendarDayText,
                         isTodayDate && styles.calendarDayTextToday,
                         isSelectedDateValue && styles.calendarDayTextSelected,
                         !isCurrentMonth && styles.calendarDayTextOtherMonth
@@ -397,91 +401,225 @@ export default function TimetableScreen() {
               </View>
             </View>
 
-            {/* Today's Plan Section */}
-            <View style={styles.section}>
+            {/* Enhanced Today's Schedule Section */}
+            <View style={styles.enhancedSection}>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleContainer}>
-                  <Ionicons name="today" size={20} color="#a08efe" />
-                  <Text style={styles.sectionTitle}>Today's Schedule</Text>
+                  <LinearGradient
+                    colors={['#6C63FF', '#FF6CAB']}
+                    style={styles.sectionIconContainer}
+                  >
+                    <Ionicons name="calendar" size={20} color="#fff" />
+                  </LinearGradient>
+                  <View>
+                    <Text style={styles.enhancedSectionTitle}>Today's Schedule</Text>
+                    <Text style={styles.sectionSubtitle}>
+                      {selectedDate.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </Text>
+                  </View>
                 </View>
                 <TouchableOpacity 
                   style={styles.viewModeButton}
                   onPress={() => setViewMode('timeline')}
                 >
-                  <Ionicons name="time" size={18} color="#a08efe" />
+                  <Ionicons name="time" size={16} color="#6C63FF" />
                   <Text style={styles.viewModeText}>Timeline</Text>
                 </TouchableOpacity>
               </View>
               
               {selectedDateSlots.length === 0 ? (
-                <View style={styles.emptyPlan}>
+                <View style={styles.enhancedEmptyPlan}>
+                  <LinearGradient
+                    colors={['rgba(108, 99, 255, 0.05)', 'rgba(255, 108, 171, 0.05)']}
+                    style={styles.emptyPlanGradient}
+                  >
                   <View style={styles.emptyIconContainer}>
-                    <Ionicons name="calendar-outline" size={48} color="#a08efe" />
+                      <Ionicons name="calendar-outline" size={48} color="#6C63FF" />
                   </View>
                   <Text style={styles.emptyPlanText}>No plans for today</Text>
                   <Text style={styles.emptyPlanSubtext}>Tap the + button to add a schedule</Text>
+                    <TouchableOpacity 
+                      style={styles.addFirstPlanButton}
+                      onPress={() => setModalVisible(true)}
+                    >
+                      <LinearGradient
+                        colors={['#6C63FF', '#FF6CAB']}
+                        style={styles.addFirstPlanGradient}
+                      >
+                        <Ionicons name="add" size={18} color="#fff" />
+                        <Text style={styles.addFirstPlanText}>Add Your First Plan</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </LinearGradient>
                 </View>
               ) : (
-                <View style={styles.planCardsContainer}>
-                  {selectedDateSlots.map((slot, index) => (
-                    <View 
-                      key={index} 
-                      style={[
-                        styles.planCard,
-                        { backgroundColor: scheduleBackgroundColors[index % scheduleBackgroundColors.length] }
-                      ]}
-                    >
-                      <View style={styles.planTimeContainer}>
-                        <Ionicons name="time" size={16} color="#a08efe" />
-                        <Text style={styles.planTimeText}>{formatTime(slot.startTime)}</Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.eventsSlider}
+                  contentContainerStyle={styles.eventsSliderContent}
+                >
+                  {selectedDateSlots.map((slot, index) => {
+                    // Different background colors for variety
+                    const backgroundColors: [string, string][] = [
+                      ['rgba(108, 99, 255, 0.08)', 'rgba(255, 108, 171, 0.08)'],
+                      ['rgba(255, 108, 171, 0.08)', 'rgba(255, 212, 82, 0.08)'],
+                      ['rgba(255, 212, 82, 0.08)', 'rgba(108, 99, 255, 0.08)'],
+                      ['rgba(76, 175, 80, 0.08)', 'rgba(33, 150, 243, 0.08)'],
+                      ['rgba(156, 39, 176, 0.08)', 'rgba(255, 87, 34, 0.08)'],
+                    ];
+                    const cardColors = backgroundColors[index % backgroundColors.length];
+                    
+                    return (
+                      <View 
+                        key={index} 
+                        style={styles.sliderEventCard}
+                      >
+                        <LinearGradient
+                          colors={cardColors}
+                          style={styles.sliderCardGradient}
+                        >
+                          <View style={styles.sliderEventHeader}>
+                            <LinearGradient
+                              colors={['#6C63FF', '#FF6CAB']}
+                              style={styles.sliderTimeBadge}
+                            >
+                              <Ionicons name="time" size={14} color="#fff" />
+                              <Text style={styles.sliderTimeText}>{formatTime(slot.startTime)}</Text>
+                            </LinearGradient>
+                            <View style={styles.sliderStatus}>
+                              <View style={styles.sliderStatusDot} />
+                              <Text style={styles.sliderStatusText}>Today</Text>
+                            </View>
+                          </View>
+                          <View style={styles.sliderEventContent}>
+                            {/* Schedule Name */}
+                            {name && (
+                              <Text style={styles.sliderScheduleName}>{name}</Text>
+                            )}
+                            {/* Subject */}
+                            <Text style={styles.sliderEventTitle}>{slot.subject}</Text>
+                            {/* Topic */}
+                            {slot.topic && (
+                              <Text style={styles.sliderEventSubtitle}>{slot.topic}</Text>
+                            )}
+                            {/* Description */}
+                            {description && (
+                              <View style={styles.sliderEventDescription}>
+                                <Ionicons name="document" size={12} color="#6C63FF" />
+                                <Text style={styles.sliderDescriptionText} numberOfLines={2}>
+                                  {description}
+                                </Text>
+                              </View>
+                            )}
+                            {/* Location */}
+                            <View style={styles.sliderEventLocation}>
+                              <Ionicons name="location" size={12} color="#6C63FF" />
+                              <Text style={styles.sliderLocationText}>Study Session</Text>
+                            </View>
+                            {/* Notes */}
+                            {slot.notes && (
+                              <View style={styles.sliderEventNotes}>
+                                <Ionicons name="document-text" size={12} color="#6C63FF" />
+                                <Text style={styles.sliderNotesText} numberOfLines={2}>
+                                  {slot.notes}
+                                </Text>
+                              </View>
+                            )}
+                            {/* Event Details */}
+                            <View style={styles.sliderEventDetails}>
+                              <View style={styles.sliderDetailItem}>
+                                <Ionicons name="calendar" size={10} color="#666" />
+                                <Text style={styles.sliderDetailText}>
+                                  {dayNames[slot.day]}
+                                </Text>
+                              </View>
+                              {slot.reminder && (
+                                <View style={styles.sliderDetailItem}>
+                                  <Ionicons name="notifications" size={10} color="#666" />
+                                  <Text style={styles.sliderDetailText}>Reminder</Text>
+                                </View>
+                              )}
+                              {isWeekly && (
+                                <View style={styles.sliderDetailItem}>
+                                  <Ionicons name="repeat" size={10} color="#666" />
+                                  <Text style={styles.sliderDetailText}>Weekly</Text>
+                                </View>
+                              )}
+                            </View>
+                            <View style={styles.sliderEventActions}>
+                              <TouchableOpacity style={styles.sliderActionButton}>
+                                <Ionicons name="notifications-outline" size={14} color="#6C63FF" />
+                              </TouchableOpacity>
+                              <TouchableOpacity style={styles.sliderActionButton}>
+                                <Ionicons name="share-outline" size={14} color="#6C63FF" />
+                              </TouchableOpacity>
+                              <TouchableOpacity style={styles.sliderActionButton}>
+                                <Ionicons name="ellipsis-horizontal" size={14} color="#6C63FF" />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        </LinearGradient>
                       </View>
-                      <View style={styles.planContent}>
-                        <Text style={styles.planTitle}>{slot.subject}</Text>
-                        {slot.topic && (
-                          <Text style={styles.planSubtitle}>{slot.topic}</Text>
-                        )}
-                        <View style={styles.planLocation}>
-                          <Ionicons name="location" size={14} color="#666" />
-                          <Text style={styles.planLocationText}>Study Session</Text>
-                        </View>
-                        <Text style={styles.planNote}>30 minutes ahead of time</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
+                    );
+                  })}
+                </ScrollView>
               )}
             </View>
 
-            {/* Upcoming Plans Section */}
+            {/* Enhanced Upcoming Plans Section */}
             {upcomingPlans.length > 0 && (
-              <View style={styles.section}>
+              <View style={styles.enhancedSection}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionTitleContainer}>
-                    <Ionicons name="calendar" size={20} color="#a08efe" />
-                    <Text style={styles.sectionTitle}>Upcoming ({upcomingPlans.length})</Text>
+                    <LinearGradient
+                      colors={['#FF6CAB', '#FFD452']}
+                      style={styles.sectionIconContainer}
+                    >
+                      <Ionicons name="calendar" size={20} color="#fff" />
+                    </LinearGradient>
+                    <View>
+                      <Text style={styles.enhancedSectionTitle}>Upcoming Plans</Text>
+                      <Text style={styles.sectionSubtitle}>{upcomingPlans.length} events this week</Text>
+                    </View>
                   </View>
                 </View>
-                <View style={styles.upcomingContainer}>
+                <View style={styles.enhancedUpcomingContainer}>
                   {upcomingPlans.map((plan, index) => (
                     <View 
                       key={index} 
-                      style={[
-                        styles.upcomingCard,
-                        { backgroundColor: scheduleBackgroundColors[index % scheduleBackgroundColors.length] }
-                      ]}
+                      style={styles.enhancedUpcomingCard}
                     >
-                      <View style={styles.upcomingIcon}>
-                        <Ionicons name="calendar" size={20} color="#a08efe" />
-                      </View>
-                      <View style={styles.upcomingContent}>
-                        <Text style={styles.upcomingTitle}>{plan.subject}</Text>
-                        <Text style={styles.upcomingDate}>
-                          {new Date(plan.startTime).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </Text>
-                      </View>
+                      <LinearGradient
+                        colors={['rgba(255, 108, 171, 0.1)', 'rgba(255, 212, 82, 0.1)']}
+                        style={styles.upcomingCardGradient}
+                      >
+                        <View style={styles.upcomingIcon}>
+                          <LinearGradient
+                            colors={['#FF6CAB', '#FFD452']}
+                            style={styles.upcomingIconGradient}
+                          >
+                            <Ionicons name="calendar" size={20} color="#fff" />
+                          </LinearGradient>
+                        </View>
+                        <View style={styles.upcomingContent}>
+                          <Text style={styles.upcomingTitle}>{plan.subject}</Text>
+                          <Text style={styles.upcomingDate}>
+                            {new Date(plan.startTime).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              weekday: 'short'
+                            })} • {formatTimeShort(plan.startTime)}
+                          </Text>
+                        </View>
+                        <TouchableOpacity style={styles.upcomingArrow}>
+                          <Ionicons name="chevron-forward" size={20} color="#FF6CAB" />
+                        </TouchableOpacity>
+                      </LinearGradient>
                     </View>
                   ))}
                 </View>
@@ -490,65 +628,87 @@ export default function TimetableScreen() {
           </Animated.View>
         ) : (
           <Animated.View style={[styles.timelineContent, { opacity: fadeAnim }]}>
-            {/* Timeline Header */}
-            <View style={styles.timelineHeader}>
+            {/* Enhanced Timeline Header */}
+            <View style={styles.enhancedTimelineHeader}>
               <TouchableOpacity onPress={() => setViewMode('calendar')} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#333" />
+                <Ionicons name="arrow-back" size={24} color="#6C63FF" />
               </TouchableOpacity>
               <View style={styles.timelineHeaderCenter}>
-                <Text style={styles.timelineDate}>
+                <Text style={styles.enhancedTimelineDate}>
                   {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                 </Text>
-                <Text style={styles.timelineGreeting}>
-                  HELLO Today is {dayNames[selectedDate.getDay()]}
+                <Text style={styles.enhancedTimelineGreeting}>
+                  {dayNames[selectedDate.getDay()]} • {getGreeting()}
                 </Text>
               </View>
             </View>
 
-            {/* Timeline */}
-            <View style={styles.timelineContainer}>
+            {/* Enhanced Timeline */}
+            <View style={styles.enhancedTimelineContainer}>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleContainer}>
-                  <Ionicons name="time" size={20} color="#a08efe" />
-                  <Text style={styles.timelineSectionTitle}>Today's Timeline</Text>
+                  <LinearGradient
+                    colors={['#6C63FF', '#FF6CAB']}
+                    style={styles.sectionIconContainer}
+                  >
+                    <Ionicons name="time" size={20} color="#fff" />
+                  </LinearGradient>
+                  <Text style={styles.enhancedTimelineSectionTitle}>Today's Timeline</Text>
                 </View>
               </View>
               
               {selectedDateSlots.length === 0 ? (
-                <View style={styles.emptyTimeline}>
-                  <View style={styles.emptyIconContainer}>
-                    <Ionicons name="time-outline" size={48} color="#a08efe" />
-                  </View>
-                  <Text style={styles.emptyTimelineText}>No plans scheduled</Text>
-                  <Text style={styles.emptyTimelineSubtext}>Add a schedule to get started</Text>
+                <View style={styles.enhancedEmptyTimeline}>
+                  <LinearGradient
+                    colors={['rgba(108, 99, 255, 0.1)', 'rgba(255, 108, 171, 0.1)']}
+                    style={styles.emptyTimelineGradient}
+                  >
+                    <View style={styles.emptyIconContainer}>
+                      <Ionicons name="time-outline" size={48} color="#6C63FF" />
+                    </View>
+                    <Text style={styles.emptyTimelineText}>No plans scheduled</Text>
+                    <Text style={styles.emptyTimelineSubtext}>Add a schedule to get started</Text>
+                  </LinearGradient>
                 </View>
               ) : (
-                                <View style={styles.timelineItemsContainer}>
+                <View style={styles.enhancedTimelineItemsContainer}>
                   {selectedDateSlots.map((slot, index) => (
-                    <View key={index} style={styles.timelineItem}>
-                      <View style={styles.timelineMarker}>
-                        <View style={styles.timelineDot} />
-                        {index < selectedDateSlots.length - 1 && <View style={styles.timelineLine} />}
+                    <View key={index} style={styles.enhancedTimelineItem}>
+                      <View style={styles.enhancedTimelineMarker}>
+                        <LinearGradient
+                          colors={['#6C63FF', '#FF6CAB']}
+                          style={styles.enhancedTimelineDot}
+                        />
+                        {index < selectedDateSlots.length - 1 && <View style={styles.enhancedTimelineLine} />}
                       </View>
-                      <View style={styles.timelineContent}>
-                        <View style={styles.timelineTime}>
-                          <Text style={styles.timelineTimeText}>{formatTime(slot.startTime)}</Text>
+                      <View style={styles.enhancedTimelineContent}>
+                        <View style={styles.enhancedTimelineTime}>
+                          <Text style={styles.enhancedTimelineTimeText}>{formatTime(slot.startTime)}</Text>
                         </View>
-                        <View 
-                          style={[
-                            styles.timelineCard,
-                            { backgroundColor: scheduleBackgroundColors[index % scheduleBackgroundColors.length] }
-                          ]}
-                        >
-                          <Text style={styles.timelineTitle}>{slot.subject}</Text>
-                          {slot.topic && (
-                            <Text style={styles.timelineSubtitle}>{slot.topic}</Text>
-                          )}
-                          <View style={styles.timelineLocation}>
-                            <Ionicons name="location" size={14} color="#666" />
-                            <Text style={styles.timelineLocationText}>Study Session</Text>
-                          </View>
-                          <Text style={styles.timelineNote}>30 minutes ahead of time</Text>
+                        <View style={styles.enhancedTimelineCard}>
+                          <LinearGradient
+                            colors={['rgba(108, 99, 255, 0.1)', 'rgba(255, 108, 171, 0.1)']}
+                            style={styles.timelineCardGradient}
+                          >
+                            <Text style={styles.enhancedTimelineTitle}>{slot.subject}</Text>
+                            {slot.topic && (
+                              <Text style={styles.enhancedTimelineSubtitle}>{slot.topic}</Text>
+                            )}
+                            <View style={styles.enhancedTimelineLocation}>
+                              <Ionicons name="location" size={14} color="#6C63FF" />
+                              <Text style={styles.enhancedTimelineLocationText}>Study Session</Text>
+                            </View>
+                            <View style={styles.enhancedTimelineActions}>
+                              <TouchableOpacity style={styles.timelineActionButton}>
+                                <Ionicons name="notifications-outline" size={16} color="#6C63FF" />
+                                <Text style={styles.timelineActionText}>Remind</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity style={styles.timelineActionButton}>
+                                <Ionicons name="share-outline" size={16} color="#6C63FF" />
+                                <Text style={styles.timelineActionText}>Share</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </LinearGradient>
                         </View>
                       </View>
                     </View>
@@ -560,11 +720,11 @@ export default function TimetableScreen() {
         )}
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+      {/* Enhanced Floating Action Button */}
+      <TouchableOpacity style={styles.enhancedFab} onPress={() => setModalVisible(true)}>
         <LinearGradient
-          colors={['#a08efe', '#7c3aed']}
-          style={styles.fabGradient}
+          colors={['#6C63FF', '#FF6CAB']}
+          style={styles.enhancedFabGradient}
         >
           <Ionicons name="add" size={28} color="#fff" />
         </LinearGradient>
@@ -817,354 +977,541 @@ export default function TimetableScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F8FB',
+    backgroundColor: '#F8F9FF',
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 15,
-    paddingHorizontal: 20,
-  },
-  headerContent: {
+  fixedHeader: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    paddingTop: 50,
-    paddingBottom: 20,
+    zIndex: 100,
+  },
+  compactMonthSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Platform.OS === 'ios' ? -5 : 0,
+    marginBottom: 15,
     paddingHorizontal: 20,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  menuButton: {
-    padding: 10,
-  },
-  headerCenter: {
-    alignItems: 'center',
-  },
-  headerDate: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#e0e0e0',
-  },
-  settingsButton: {
-    padding: 10,
-  },
-  monthSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    marginBottom: 10,
   },
   monthNavButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  simpleHeader: {
-    flexDirection: 'row',
+    backgroundColor: 'rgba(108, 99, 255, 0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 40,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    backgroundColor: '#F6F8FB',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.3,
+    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
+    elevation: Platform.OS === 'android' ? 3 : 0,
   },
   currentMonthText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#333',
     textAlign: 'center',
     flex: 1,
-  },
-  monthItem: {
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  monthText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#e0e0e0',
-  },
-  monthTextActive: {
-    color: '#fff',
-  },
-  monthItemActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#fff',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
   calendarContent: {
-    paddingBottom: 80,
+    paddingBottom: Platform.OS === 'ios' ? 120 : 140,
   },
-  calendarContainer: {
+  compactCalendarContainer: {
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    marginBottom: 20,
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
+    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
+    elevation: Platform.OS === 'android' ? 5 : 0,
+    marginBottom: 25,
   },
   dayHeaders: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   dayHeader: {
     alignItems: 'center',
   },
   dayHeaderText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '600',
+    fontSize: 13,
+    color: '#6C63FF',
+    fontWeight: 'bold',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  calendarDay: {
-    width: '14.28%', // 7 days in a week
+  compactCalendarDay: {
+    width: '14.28%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 8,
+    borderRadius: 15,
   },
-  calendarDayText: {
-    fontSize: 14,
+  compactCalendarDayText: {
+    fontSize: 15,
     color: '#333',
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
+  },
+  calendarDayToday: {
+    backgroundColor: 'rgba(108, 99, 255, 0.15)',
+  },
+  calendarDaySelected: {
+    backgroundColor: 'rgba(255, 108, 171, 0.2)',
   },
   calendarDayTextToday: {
-    color: '#fff',
+    color: '#6C63FF',
     fontWeight: 'bold',
   },
   calendarDayTextSelected: {
-    color: '#fff',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 15,
-    padding: 5,
+    color: '#FF6CAB',
+    fontWeight: 'bold',
   },
   calendarDayTextOtherMonth: {
     color: '#ccc',
   },
-  calendarDayToday: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 15,
-    padding: 5,
-  },
-  calendarDaySelected: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  calendarDayOtherMonth: {
+    opacity: 0.3,
   },
   eventDot: {
-    width: 8,
-    height: 8,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 4,
-    marginTop: 5,
+    width: 6,
+    height: 6,
+    backgroundColor: '#FF6CAB',
+    borderRadius: 3,
+    marginTop: 3,
   },
-  eventIndicator: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 10,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  eventCount: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  section: {
+  enhancedSection: {
     marginBottom: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
     paddingHorizontal: 5,
   },
   sectionTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  sectionTitle: {
+  sectionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 3 : 4 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.25 : 0.3,
+    shadowRadius: Platform.OS === 'ios' ? 6 : 8,
+    elevation: Platform.OS === 'android' ? 4 : 0,
+  },
+  enhancedSectionTitle: {
     fontWeight: 'bold',
     color: '#333',
-    fontSize: 16,
-    marginBottom: 10,
-    marginLeft: 10,
+    fontSize: 18,
+    marginBottom: 2,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  sectionSubtitle: {
+    color: '#666',
+    fontSize: 13,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
   },
   viewModeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(108, 99, 255, 0.1)',
     borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.3,
+    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
+    elevation: Platform.OS === 'android' ? 3 : 0,
   },
   viewModeText: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#6C63FF',
+    fontSize: 13,
     fontWeight: 'bold',
-    marginLeft: 5,
+    marginLeft: 6,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  emptyPlan: {
+  enhancedEmptyPlan: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 40,
   },
   emptyPlanGradient: {
-    backgroundColor: '#f8f9ff',
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     alignItems: 'center',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 6 : 8 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.08 : 0.12,
+    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
+    elevation: Platform.OS === 'android' ? 4 : 0,
+  },
+  emptyIconContainer: {
+    backgroundColor: 'rgba(108, 99, 255, 0.08)',
+    borderRadius: 25,
+    padding: 12,
+    marginBottom: 12,
   },
   emptyPlanText: {
     fontSize: 18,
-    color: '#fff',
-    marginTop: 10,
+    color: '#333',
+    marginTop: 8,
+    fontWeight: 'bold',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
   emptyPlanSubtext: {
-    fontSize: 12,
-    color: '#e0e0e0',
-    marginTop: 5,
+    fontSize: 13,
+    color: '#666',
+    marginTop: 6,
+    textAlign: 'center',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
   },
-  planCardsContainer: {
-    backgroundColor: 'transparent',
-  },
-  planCard: {
-    borderRadius: 12,
+  addFirstPlanButton: {
+    marginTop: 20,
+    borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
-    marginBottom: 10,
-    backgroundColor: '#fff',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 3 : 4 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.25,
+    shadowRadius: Platform.OS === 'ios' ? 6 : 8,
+    elevation: Platform.OS === 'android' ? 4 : 0,
   },
-  planCardGradient: {
-    borderRadius: 12,
-    padding: 12,
-  },
-  planTimeContainer: {
-    width: 60,
-    alignItems: 'center',
-    position: 'absolute',
-    left: -30,
+  addFirstPlanGradient: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 18,
+  },
+  addFirstPlanText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 15,
+    marginLeft: 8,
+    letterSpacing: 0.5,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  enhancedPlanCardsContainer: {
+    backgroundColor: 'transparent',
+  },
+  enhancedPlanCard: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 6 : 8 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
+    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
+    elevation: Platform.OS === 'android' ? 8 : 0,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.06)',
+  },
+  planCardGradient: {
+    borderRadius: 18,
+    padding: 16,
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  planTimeContainer: {
+    alignItems: 'center',
+  },
+  timeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.25,
+    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
+    elevation: Platform.OS === 'android' ? 3 : 0,
   },
   planTimeText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#fff',
-    marginTop: 5,
+    marginLeft: 4,
+    fontWeight: 'bold',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  planStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 99, 255, 0.06)',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.12)',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF6CAB',
+    marginRight: 6,
+  },
+  statusText: {
+    color: '#6C63FF',
+    fontSize: 11,
+    fontWeight: '600',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
   planContent: {
     flex: 1,
-    marginLeft: 60,
-    padding: 12,
   },
   planTitle: {
     fontWeight: 'bold',
     color: '#333',
-    fontSize: 15,
+    fontSize: 16,
     marginBottom: 4,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
   planSubtitle: {
     color: '#666',
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 13,
+    marginBottom: 10,
+    lineHeight: 18,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
   },
   planLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(108, 99, 255, 0.06)',
+    borderRadius: 14,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginBottom: 8,
+    paddingVertical: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.1)',
   },
   planLocationText: {
-    color: '#666',
+    color: '#6C63FF',
     fontSize: 12,
-    marginLeft: 8,
+    marginLeft: 6,
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  planNote: {
-    fontSize: 12,
-    color: '#888',
+  planActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
   },
-  reminderBadge: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 10,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
+  planActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 99, 255, 0.06)',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.1)',
+    flex: 1,
+    marginHorizontal: 3,
+    justifyContent: 'center',
   },
-  upcomingContainer: {
+  planActionText: {
+    color: '#6C63FF',
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 4,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  sectionTitle: {
+    fontWeight: 'bold',
+    color: '#333',
+    fontSize: 18,
+    marginBottom: 10,
+    marginLeft: 10,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  enhancedUpcomingContainer: {
     backgroundColor: 'transparent',
   },
-  upcomingCard: {
+  enhancedUpcomingCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: 20,
+    padding: 15,
+    marginBottom: 12,
+    shadowColor: '#FF6CAB',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.15 : 0.2,
+    shadowRadius: Platform.OS === 'ios' ? 8 : 10,
+    elevation: Platform.OS === 'android' ? 5 : 0,
+  },
+  upcomingCardGradient: {
+    borderRadius: 20,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   upcomingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(160, 142, 254, 0.1)',
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 15,
   },
   upcomingIconGradient: {
-    borderRadius: 20,
-    padding: 10,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF6CAB',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.3 : 0.4,
+    shadowRadius: Platform.OS === 'ios' ? 8 : 10,
+    elevation: Platform.OS === 'android' ? 5 : 0,
   },
   upcomingContent: {
     flex: 1,
@@ -1172,356 +1519,418 @@ const styles = StyleSheet.create({
   upcomingTitle: {
     fontWeight: 'bold',
     color: '#333',
-    fontSize: 15,
-    marginBottom: 2,
+    fontSize: 16,
+    marginBottom: 4,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
   upcomingDate: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#666',
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
   },
   upcomingArrow: {
     marginLeft: 'auto',
-    padding: 5,
+    padding: 8,
+    backgroundColor: 'rgba(255, 108, 171, 0.1)',
+    borderRadius: 15,
+  },
+  enhancedFab: {
+    position: 'absolute',
+    right: 25,
+    bottom: Platform.OS === 'ios' ? 80 : 90,
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 8 : 10 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.3 : 0.4,
+    shadowRadius: Platform.OS === 'ios' ? 15 : 18,
+    elevation: Platform.OS === 'android' ? 10 : 0,
+  },
+  enhancedFabGradient: {
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   timelineContent: {
-    paddingBottom: 80,
+    paddingBottom: Platform.OS === 'ios' ? 120 : 140,
   },
-  timelineHeader: {
+  enhancedTimelineHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
     paddingHorizontal: 10,
   },
   backButton: {
     padding: 10,
+    backgroundColor: 'rgba(108, 99, 255, 0.1)',
+    borderRadius: 20,
   },
   timelineHeaderCenter: {
     alignItems: 'center',
   },
-  timelineDate: {
-    fontSize: 20,
+  enhancedTimelineDate: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  timelineGreeting: {
-    fontSize: 14,
+  enhancedTimelineGreeting: {
+    fontSize: 15,
     color: '#666',
-    marginTop: 2,
+    marginTop: 4,
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
   },
-  timelineSectionTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    fontSize: 16,
-    marginBottom: 10,
-    marginLeft: 10,
+  enhancedTimelineContainer: {
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    padding: 15,
   },
-  timelineContainer: {
-    backgroundColor: 'transparent', // Make it transparent
-    borderRadius: 15,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  timelineItemsContainer: {
+  enhancedTimelineItemsContainer: {
     backgroundColor: 'transparent',
   },
-  timelineItem: {
+  enhancedTimelineItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
     paddingHorizontal: 10,
   },
-  timelineMarker: {
+  enhancedTimelineMarker: {
     width: 60,
     alignItems: 'center',
     position: 'absolute',
     left: -30,
   },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginBottom: 5,
+  enhancedTimelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.3 : 0.4,
+    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
+    elevation: Platform.OS === 'android' ? 3 : 0,
   },
-  timelineLine: {
-    width: 1,
+  enhancedTimelineLine: {
+    width: 2,
     height: '100%',
-    backgroundColor: '#eee',
+    backgroundColor: 'rgba(108, 99, 255, 0.2)',
     position: 'absolute',
     left: 29,
   },
-  timelineContent: {
+  enhancedTimelineContent: {
     flex: 1,
     marginLeft: 60,
   },
-  timelineTime: {
+  enhancedTimelineTime: {
     width: 60,
     alignItems: 'center',
     position: 'absolute',
     left: -30,
   },
-  timelineTimeText: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 5,
+  enhancedTimelineTimeText: {
+    fontSize: 13,
+    color: '#6C63FF',
+    marginTop: 8,
+    fontWeight: 'bold',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  timelineCard: {
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
+  enhancedTimelineCard: {
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 6 : 8 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.15 : 0.2,
+    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
+    elevation: Platform.OS === 'android' ? 8 : 0,
   },
-  timelineTitle: {
+  enhancedTimelineTitle: {
     fontWeight: 'bold',
     color: '#333',
-    fontSize: 15,
-    marginBottom: 4,
+    fontSize: 18,
+    marginBottom: 6,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  timelineSubtitle: {
+  enhancedTimelineSubtitle: {
     color: '#666',
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 14,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
   },
-  timelineLocation: {
+  enhancedTimelineLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginBottom: 8,
+    backgroundColor: 'rgba(108, 99, 255, 0.1)',
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 15,
   },
-  timelineLocationText: {
-    color: '#666',
-    fontSize: 12,
+  enhancedTimelineLocationText: {
+    color: '#6C63FF',
+    fontSize: 13,
     marginLeft: 8,
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  timelineNote: {
-    fontSize: 12,
-    color: '#ccc',
+  enhancedTimelineActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 15,
   },
-  emptyTimeline: {
+  timelineActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 99, 255, 0.1)',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+  },
+  timelineActionText: {
+    color: '#6C63FF',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginLeft: 6,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  enhancedEmptyTimeline: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
   },
   emptyTimelineGradient: {
-    backgroundColor: '#f8f9ff',
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: 25,
+    padding: 30,
     alignItems: 'center',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 8 : 10 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
+    shadowRadius: Platform.OS === 'ios' ? 15 : 18,
+    elevation: Platform.OS === 'android' ? 5 : 0,
   },
   emptyTimelineText: {
-    fontSize: 18,
-    color: '#fff',
-    marginTop: 10,
-  },
-  emptyTimelineSubtext: {
-    fontSize: 12,
-    color: '#e0e0e0',
-    marginTop: 5,
-  },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 36,
-    backgroundColor: '#6C63FF',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: 'rgba(255,255,255,0.97)',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.10,
-    shadowRadius: 12,
-    elevation: 12,
-    marginHorizontal: 2,
-  },
-  modalTitle: {
-    fontWeight: 'bold',
     fontSize: 20,
     color: '#333',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  modalInput: {
-    backgroundColor: '#f7f7fa',
-    borderRadius: 14,
-    padding: 14,
-    color: '#222',
-    fontSize: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  modalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  modalLabel: {
-    color: '#6C63FF',
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginRight: 8,
-  },
-  modalSectionTitle: {
-    fontWeight: 'bold',
-    color: '#7366FF',
-    fontSize: 16,
     marginTop: 10,
-    marginBottom: 6,
-  },
-  slotFormCard: {
-    backgroundColor: '#F9F9FF',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  inputLabel: {
-    color: '#222',
     fontWeight: 'bold',
-    fontSize: 15,
-    marginBottom: 4,
-    marginTop: 10,
-    marginLeft: 2,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  dayPillRow: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    marginTop: 2,
-  },
-  dayPill: {
-    backgroundColor: '#f3eaff',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  dayPillActive: {
-    backgroundColor: '#6C63FF',
-    borderColor: '#6C63FF',
-  },
-  dayPillText: {
-    color: '#7366FF',
-    fontWeight: 'bold',
+  emptyTimelineSubtext: {
     fontSize: 14,
-  },
-  dayPillTextActive: {
-    color: '#fff',
-  },
-  addSlotBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginBottom: 10,
-  },
-  addSlotText: {
-    color: '#6C63FF',
-    fontWeight: 'bold',
-    marginLeft: 4,
-    fontSize: 15,
-  },
-  removeSlotBtn: {
-    marginLeft: 'auto',
-    padding: 4,
-  },
-  createBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  createBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 17,
-    textAlign: 'center',
-    paddingVertical: 14,
-    letterSpacing: 1,
-  },
-  cancelBtn: {
-    alignItems: 'center',
+    color: '#666',
     marginTop: 8,
+    textAlign: 'center',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
   },
-  cancelBtnText: {
-    color: '#888',
+  enhancedTimelineSectionTitle: {
     fontWeight: 'bold',
-    fontSize: 15,
+    color: '#333',
+    fontSize: 20,
+    marginBottom: 15,
+    marginLeft: 10,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  timelineCardGradient: {
+    borderRadius: 20,
+    padding: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F6F8FB',
-  },
-  loadingGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F6F8FB',
+    backgroundColor: '#F8F9FF',
   },
   loadingText: {
-    color: '#fff',
+    color: '#6C63FF',
     fontSize: 18,
-    marginTop: 10,
+    marginTop: 15,
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  input: {
-    backgroundColor: '#f7f7fa',
-    borderRadius: 14,
-    padding: 14,
-    color: '#222',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    padding: 25,
+    maxHeight: '75%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? -4 : -6 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.15 : 0.2,
+    shadowRadius: Platform.OS === 'ios' ? 15 : 18,
+    elevation: Platform.OS === 'android' ? 15 : 0,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontWeight: 'bold',
+    fontSize: 22,
+    color: '#333',
+    textAlign: 'center',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  modalContent: {
+    paddingBottom: 40,
   },
   inputGroup: {
-    marginBottom: 14,
+    marginBottom: 20,
+  },
+  inputLabel: {
+    color: '#333',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 8,
+    marginLeft: 2,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  input: {
+    backgroundColor: '#f8f9ff',
+    borderRadius: 15,
+    padding: 16,
+    color: '#333',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.2)',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
+    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
+    elevation: Platform.OS === 'android' ? 2 : 0,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
   },
   switchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 20,
   },
   switchLabelContainer: {
     flexDirection: 'row',
@@ -1530,290 +1939,210 @@ const styles = StyleSheet.create({
   switchLabel: {
     color: '#6C63FF',
     fontWeight: 'bold',
-    fontSize: 14,
-    marginLeft: 8,
+    fontSize: 15,
+    marginLeft: 10,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
   modalActions: {
-    marginTop: 16,
+    marginTop: 15,
+  },
+  createBtn: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 15,
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.3 : 0.4,
+    shadowRadius: Platform.OS === 'ios' ? 8 : 10,
+    elevation: Platform.OS === 'android' ? 5 : 0,
   },
   createBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 16,
+    paddingVertical: 16,
+    borderRadius: 20,
   },
-  enhancedCreateBtnText: {
+  createBtnText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 17,
-    marginLeft: 8,
-    letterSpacing: 1,
+    marginLeft: 10,
+    letterSpacing: 0.5,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  fabGradient: {
-    position: 'absolute',
-    right: 24,
-    bottom: 36,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  cancelBtn: {
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingVertical: 15,
   },
-  enhancedFab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 36,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  enhancedDayPill: {
-    backgroundColor: '#f3eaff',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  enhancedDayPillActive: {
-    backgroundColor: '#6C63FF',
-    borderColor: '#6C63FF',
-  },
-  enhancedDayPillText: {
-    color: '#7366FF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  enhancedDayPillTextActive: {
-    color: '#fff',
-  },
-  dateItemActive: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 15,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  weeklyContent: {
-    paddingBottom: 80,
-  },
-  daysRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 8,
-    marginBottom: 16,
-  },
-  slotTimeText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  calendarDayOtherMonth: {
-    opacity: 0.3,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalContent: {
-    paddingBottom: 20,
-  },
-  modalCard: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '90%',
-  },
-  slotFormCard: {
-    backgroundColor: '#f8f9ff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  slotFormHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  slotFormTitle: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    color: '#333',
-  },
-  removeSlotBtn: {
-    padding: 5,
-  },
-  dayPillRow: {
-    flexDirection: 'row',
-    marginTop: 5,
-  },
-  dayPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    backgroundColor: '#f0f0f0',
-    marginRight: 8,
-  },
-  dayPillActive: {
-    backgroundColor: '#a08efe',
-  },
-  dayPillText: {
-    fontSize: 12,
+  cancelBtnText: {
     color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  dayPillTextActive: {
-    color: '#fff',
+  timeInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8f9ff',
+    borderRadius: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.2)',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
+    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
+    elevation: Platform.OS === 'android' ? 2 : 0,
+  },
+  timeText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: 'bold',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  timePlaceholder: {
+    color: '#999',
+    fontSize: 16,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
   },
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 20,
   },
   timeInputGroup: {
     flex: 1,
+    marginRight: 15,
+  },
+  dayPillRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    marginBottom: 15,
+  },
+  dayPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    backgroundColor: 'rgba(108, 99, 255, 0.1)',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.2)',
+  },
+  dayPillActive: {
+    backgroundColor: '#6C63FF',
+    borderColor: '#6C63FF',
+  },
+  dayPillText: {
+    fontSize: 13,
+    color: '#6C63FF',
+    fontWeight: 'bold',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  dayPillTextActive: {
+    color: '#fff',
   },
   addSlotBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    marginVertical: 10,
+    marginVertical: 8,
   },
   addSlotText: {
-    color: '#a08efe',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  createBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  createBtnText: {
-    color: '#fff',
+    color: '#6C63FF',
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginLeft: 10,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  cancelBtn: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  cancelBtnText: {
-    color: '#666',
-    fontSize: 16,
-  },
-  emptyIconContainer: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 24,
-    padding: 10,
-    marginBottom: 10,
-  },
-  timeInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#f7f7fa',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  timeText: {
-    color: '#222',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  timePlaceholder: {
-    color: '#999',
-    fontSize: 16,
-  },
-  timePickerModal: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  timePickerContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
+  slotFormCard: {
+    backgroundColor: '#f8f9ff',
+    borderRadius: 20,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-    minWidth: 300,
-    maxWidth: 350,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.1)',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
+    shadowRadius: Platform.OS === 'ios' ? 6 : 8,
+    elevation: Platform.OS === 'android' ? 3 : 0,
   },
-  timePickerHeader: {
+  slotFormHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 15,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
-  timePickerCancel: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  timePickerTitle: {
+  slotFormTitle: {
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 16,
     color: '#333',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
-  timePickerDone: {
-    color: '#a08efe',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  timePickerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000, // Ensure it's above other content
-  },
-  timePickerBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  removeSlotBtn: {
+    padding: 8,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: 15,
   },
   modalTimePickerOverlay: {
     position: 'absolute',
@@ -1824,23 +2153,327 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000, // Ensure it's above other content
+    zIndex: 1000,
   },
   modalTimePickerContainer: {
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: 20,
+    padding: 25,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-    minWidth: 300,
-    maxWidth: 350,
-    minHeight: 200,
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 8 : 10 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.3 : 0.4,
+    shadowRadius: Platform.OS === 'ios' ? 15 : 18,
+    elevation: Platform.OS === 'android' ? 15 : 0,
+    minWidth: 320,
+    maxWidth: 380,
+    minHeight: 250,
+  },
+  timePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(108, 99, 255, 0.2)',
+  },
+  timePickerCancel: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  timePickerTitle: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    color: '#333',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  timePickerDone: {
+    color: '#6C63FF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
   timePickerComponent: {
     width: '100%',
     height: '100%',
+  },
+  eventsSlider: {
+    height: 160,
+    marginBottom: 20,
+  },
+  eventsSliderContent: {
+    paddingHorizontal: 10,
+  },
+  sliderEventCard: {
+    width: 320,
+    marginRight: 15,
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
+    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
+    elevation: Platform.OS === 'android' ? 5 : 0,
+    backgroundColor: '#fff',
+  },
+  sliderCardGradient: {
+    borderRadius: 18,
+    padding: 18,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+  sliderEventHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sliderTimeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: '#6C63FF',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.25,
+    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
+    elevation: Platform.OS === 'android' ? 3 : 0,
+  },
+  sliderTimeText: {
+    fontSize: 13,
+    color: '#fff',
+    marginLeft: 4,
+    fontWeight: 'bold',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  sliderStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 99, 255, 0.06)',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.12)',
+  },
+  sliderStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF6CAB',
+    marginRight: 6,
+  },
+  sliderStatusText: {
+    color: '#6C63FF',
+    fontSize: 11,
+    fontWeight: '600',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  sliderEventContent: {
+    flex: 1,
+  },
+  sliderEventTitle: {
+    fontWeight: 'bold',
+    color: '#333',
+    fontSize: 18,
+    marginBottom: 6,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  sliderEventSubtitle: {
+    color: '#666',
+    fontSize: 14,
+    marginBottom: 10,
+    lineHeight: 18,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif',
+      },
+    }),
+  },
+  sliderEventLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 99, 255, 0.06)',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.1)',
+  },
+  sliderLocationText: {
+    color: '#6C63FF',
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  sliderEventActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  sliderActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 99, 255, 0.06)',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.1)',
+    flex: 1,
+    marginHorizontal: 3,
+    justifyContent: 'center',
+  },
+  sliderEventNotes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 99, 255, 0.06)',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.1)',
+  },
+  sliderNotesText: {
+    color: '#6C63FF',
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: '500',
+    flex: 1,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  sliderEventDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  sliderDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 99, 255, 0.06)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.1)',
+  },
+  sliderDetailText: {
+    color: '#6C63FF',
+    fontSize: 11,
+    marginLeft: 4,
+    fontWeight: '500',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  sliderScheduleName: {
+    fontWeight: 'bold',
+    color: '#333',
+    fontSize: 16,
+    marginBottom: 4,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
+  },
+  sliderEventDescription: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 99, 255, 0.06)',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 99, 255, 0.1)',
+  },
+  sliderDescriptionText: {
+    color: '#6C63FF',
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: '500',
+    flex: 1,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'sans-serif-medium',
+      },
+    }),
   },
 });

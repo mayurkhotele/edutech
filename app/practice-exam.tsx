@@ -3,18 +3,19 @@ import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -46,26 +47,48 @@ const PracticeExamScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchPracticeExams();
-  }, []);
+    if (user?.token) {
+      console.log('Initial load - fetching practice exams...');
+      fetchPracticeExams();
+    }
+  }, [user?.token]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.token) {
+        console.log('Screen focused, refreshing practice exams...');
+        // Force a fresh fetch when screen comes into focus
+        setLoading(true);
+        fetchPracticeExams();
+      }
+    }, [user?.token])
+  );
 
   useEffect(() => {
-    if (exams.length > 0) {
-      calculateCategoryStats();
-    }
+    console.log('Exams changed, calculating stats. Exams count:', exams.length);
+    calculateCategoryStats();
   }, [exams]);
 
   const fetchPracticeExams = async () => {
     if (!user?.token) {
+      console.log('No user token, skipping fetch');
       setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
+      console.log('Starting to fetch practice exams...');
       const response = await apiFetchAuth('/student/practice-exams', user.token);
-      if (response.ok) {
+      console.log('API response received:', response.ok, 'Data length:', response.data?.length);
+      
+      if (response.ok && response.data) {
+        console.log('Practice exams fetched successfully:', response.data.length, 'exams');
+        console.log('Sample exam data:', response.data[0]);
         setExams(response.data);
+      } else {
+        console.error('Failed to fetch practice exams:', response.data);
+        Alert.alert('Error', 'Failed to load practice exams. Please try again.');
       }
     } catch (error) {
       console.error('Error fetching practice exams:', error);
@@ -82,9 +105,15 @@ const PracticeExamScreen = () => {
   };
 
   const calculateCategoryStats = () => {
+    console.log('Calculating category stats for', exams.length, 'exams');
     const stats: { [key: string]: CategoryStats } = {};
     
     exams.forEach(exam => {
+      if (!exam.category) {
+        console.warn('Exam without category:', exam);
+        return;
+      }
+      
       if (!stats[exam.category]) {
         stats[exam.category] = {
           totalExams: 0,
@@ -98,11 +127,12 @@ const PracticeExamScreen = () => {
         stats[exam.category].attemptedExams++;
       }
       
-      if (!stats[exam.category].subcategories.includes(exam.subcategory)) {
+      if (exam.subcategory && !stats[exam.category].subcategories.includes(exam.subcategory)) {
         stats[exam.category].subcategories.push(exam.subcategory);
       }
     });
     
+    console.log('Category stats calculated:', Object.keys(stats).length, 'categories');
     setCategoryStats(stats);
   };
 
@@ -168,6 +198,16 @@ const PracticeExamScreen = () => {
   const totalExams = exams.length;
   const totalAttempted = exams.filter(exam => exam.attempted).length;
 
+  console.log('Render state:', {
+    loading,
+    refreshing,
+    examsCount: exams.length,
+    categoriesCount: categories.length,
+    categoryStats: Object.keys(categoryStats),
+    totalExams,
+    totalAttempted
+  });
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -207,6 +247,14 @@ const PracticeExamScreen = () => {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#667eea', '#764ba2']}
+            tintColor="#fff"
+          />
+        }
       >
         {/* Progress Overview */}
         <View style={styles.progressOverview}>

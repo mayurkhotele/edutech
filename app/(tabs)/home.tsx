@@ -1,6 +1,7 @@
 import { apiFetchAuth } from '@/constants/api';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -20,6 +21,7 @@ const bannerImages = [
 export default function HomeScreen() {
     const { user } = useAuth();
     const router = useRouter();
+    const navigation = useNavigation();
     const [exams, setExams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -68,16 +70,17 @@ export default function HomeScreen() {
         fetchExams();
     }, [user]);
 
-    // Exam Auto-scrolling Effect
+    // Auto-refresh every 30 seconds when screen is active
     useEffect(() => {
-        if (featuredExams.length > 0) {
-            const timer = setInterval(() => {
-                const nextIndex = Math.floor(Math.random() * featuredExams.length);
-                examSliderRef.current?.scrollToIndex({ index: nextIndex, animated: true });
-            }, 5000);
-            return () => clearInterval(timer);
-        }
-    }, [featuredExams.length]);
+        const interval = setInterval(() => {
+            if (user?.token) {
+                console.log('🔄 Auto-refreshing Home data');
+                fetchExams();
+            }
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [user?.token]);
     
     // Banner Auto-scrolling Effect
     useEffect(() => {
@@ -100,19 +103,20 @@ export default function HomeScreen() {
     );
 
     return (
-        <ScrollView 
-            style={styles.container}
-            refreshControl={
-                <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    colors={[AppColors.primary]}
-                    tintColor={AppColors.primary}
-                    title="Pull to refresh"
-                    titleColor={AppColors.primary}
-                />
-            }
-        >
+        <>
+            <ScrollView 
+                style={styles.container}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[AppColors.primary]}
+                        tintColor={AppColors.primary}
+                        title="Pull to refresh"
+                        titleColor={AppColors.primary}
+                    />
+                }
+            >
 
 
             {/* Featured Exams Section */}
@@ -169,6 +173,7 @@ export default function HomeScreen() {
             {/* Exam Notifications Section */}
             <ExamNotificationsSection />
         </ScrollView>
+        </>
     );
 }
 
