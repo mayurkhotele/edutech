@@ -484,6 +484,132 @@ const PracticeExamDetailsScreen = () => {
                 </View>
             </Modal>
 
+            {/* Enhanced Header Section - Like Live Exam */}
+            <LinearGradient
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.enhancedMainHeader}
+            >
+                {/* Background Pattern */}
+                <View style={styles.headerPattern}>
+                    <View style={styles.patternCircle1} />
+                    <View style={styles.patternCircle2} />
+                    <View style={styles.patternCircle3} />
+                </View>
+                
+                <View style={styles.enhancedHeaderContent}>
+                    <View style={styles.headerTitleSection}>
+                        <View style={styles.headerIconWrapper}>
+                            <LinearGradient
+                                colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.1)']}
+                                style={styles.headerIconGradient}
+                            >
+                                <Ionicons name="document-text" size={28} color="#FFFFFF" />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.headerTextWrapper}>
+                            <Text style={styles.enhancedHeaderTitle}>{exam?.title || 'Practice Exam'}</Text>
+                            <Text style={styles.enhancedHeaderSubtitle}>
+                                {exam?.category} • {exam?.duration} minutes • {exam?.spotsLeft} spots left
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Info Section - Like Live Exam */}
+                    <View style={styles.headerInfoSection}>
+                        <LinearGradient
+                            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.12)']}
+                            style={styles.headerInfoGradient}
+                        >
+                            <View style={styles.headerInfoContent}>
+                                <View style={styles.infoItem}>
+                                    <View style={styles.infoIconContainer}>
+                                        <LinearGradient
+                                            colors={["#FF6CAB", "#7366FF"]}
+                                            style={styles.infoIconGradient}
+                                        >
+                                            <Ionicons name="person" size={18} color="#fff" />
+                                        </LinearGradient>
+                                    </View>
+                                    <Text style={styles.infoLabel}>Status</Text>
+                                    <Text style={styles.infoValue}>{exam?.attempted ? 'Completed' : 'Available'}</Text>
+                                </View>
+                                
+                                <View style={styles.vsContainer}>
+                                    <LinearGradient
+                                        colors={["#FFD452", "#FF6CAB"]}
+                                        style={styles.vsGradient}
+                                    >
+                                        <Text style={styles.vsText}>VS</Text>
+                                    </LinearGradient>
+                                </View>
+                                
+                                <View style={styles.infoItem}>
+                                    <View style={styles.infoIconContainer}>
+                                        <LinearGradient
+                                            colors={["#6C63FF", "#FF6CAB"]}
+                                            style={styles.infoIconGradient}
+                                        >
+                                            <Ionicons name="trophy" size={18} color="#fff" />
+                                        </LinearGradient>
+                                    </View>
+                                    <Text style={styles.infoLabel}>Best Score</Text>
+                                    <Text style={styles.infoValue}>{result?.score || '0'}</Text>
+                                </View>
+                                
+                                <View style={styles.timerContainer}>
+                                    <LinearGradient
+                                        colors={["#6C63FF", "#7366FF"]}
+                                        style={styles.timerGradient}
+                                    >
+                                        <Ionicons name="time" size={16} color="#fff" />
+                                        <Text style={styles.timerText}>
+                                            {exam?.duration}m
+                                        </Text>
+                                    </LinearGradient>
+                                </View>
+                            </View>
+                        </LinearGradient>
+                    </View>
+
+                    {/* Progress Dots - Like Live Exam */}
+                    <View style={styles.headerProgressSection}>
+                        <LinearGradient
+                            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.12)']}
+                            style={styles.progressSectionGradient}
+                        >
+                            <View style={styles.progressDotsContainer}>
+                                <View style={styles.progressDot}>
+                                    <LinearGradient
+                                        colors={exam?.attempted ? ["#10B981", "#059669"] : ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.2)']}
+                                        style={styles.progressDotGradient}
+                                    >
+                                        <Text style={styles.progressText}>1</Text>
+                                    </LinearGradient>
+                                </View>
+                                <View style={styles.progressDot}>
+                                    <LinearGradient
+                                        colors={exam?.attempted ? ["#10B981", "#059669"] : ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.2)']}
+                                        style={styles.progressDotGradient}
+                                    >
+                                        <Text style={styles.progressText}>2</Text>
+                                    </LinearGradient>
+                                </View>
+                                <View style={styles.progressDot}>
+                                    <LinearGradient
+                                        colors={exam?.attempted ? ["#10B981", "#059669"] : ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.2)']}
+                                        style={styles.progressDotGradient}
+                                    >
+                                        <Text style={styles.progressText}>3</Text>
+                                    </LinearGradient>
+                                </View>
+                            </View>
+                        </LinearGradient>
+                    </View>
+                </View>
+            </LinearGradient>
+
             <View style={styles.tabContainer}>
                 {['Info', 'Leaderboard', 'Results'].map(tabName => (
                     <TouchableOpacity 
@@ -838,6 +964,241 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: AppColors.lightGrey,
+    },
+    // Enhanced Header Styles - Like Live Exam
+    enhancedMainHeader: {
+        paddingTop: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 20,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    headerPattern: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        opacity: 0.15,
+    },
+    patternCircle1: {
+        position: 'absolute',
+        top: 15,
+        right: 25,
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    patternCircle2: {
+        position: 'absolute',
+        bottom: 30,
+        left: 15,
+        width: 35,
+        height: 35,
+        borderRadius: 17.5,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    patternCircle3: {
+        position: 'absolute',
+        top: 45,
+        left: 40,
+        width: 25,
+        height: 25,
+        borderRadius: 12.5,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    },
+    enhancedHeaderContent: {
+        position: 'relative',
+        zIndex: 1,
+    },
+    headerTitleSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    headerIconWrapper: {
+        marginRight: 12,
+    },
+    headerIconGradient: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.25)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    headerTextWrapper: {
+        flex: 1,
+    },
+    enhancedHeaderTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        marginBottom: 4,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+    },
+    enhancedHeaderSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: '500',
+    },
+    headerInfoSection: {
+        marginBottom: 16,
+    },
+    headerInfoGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderRadius: 16,
+        padding: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.18,
+        shadowRadius: 24,
+        elevation: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.25)',
+    },
+    headerInfoContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    infoItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    infoIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    infoIconGradient: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    infoLabel: {
+        fontSize: 10,
+        color: '#fff',
+        marginBottom: 2,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    infoValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#fff',
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+    },
+    vsContainer: {
+        alignItems: 'center',
+        marginHorizontal: 8,
+    },
+    vsGradient: {
+        borderRadius: 12,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    vsText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#fff',
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+    },
+    timerContainer: {
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    timerGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    timerText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginLeft: 4,
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+    },
+    headerProgressSection: {
+        marginTop: 8,
+    },
+    progressSectionGradient: {
+        borderRadius: 16,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.25)',
+    },
+    progressDotsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    progressDot: {
+        marginHorizontal: 6,
+    },
+    progressDotGradient: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    progressText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#fff',
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     loadingContainer: {
         flex: 1,

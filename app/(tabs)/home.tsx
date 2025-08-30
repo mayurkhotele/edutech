@@ -1,22 +1,22 @@
 import { apiFetchAuth } from '@/constants/api';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AdvertisementBanner from '../../components/AdvertisementBanner';
 import ExamCard from '../../components/ExamCard';
 import ExamNotificationsSection from '../../components/ExamNotificationsSection';
+import JobCompetitionBanner from '../../components/JobCompetitionBanner';
 import PracticeExamSection from '../../components/PracticeExamSection';
 import QuestionOfTheDayPreview from '../../components/QuestionOfTheDayPreview';
+import TopPerformersSection from '../../components/TopPerformersSection';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const bannerImages = [
-    require('../../assets/images/banner1.jpg'),
-    require('../../assets/images/banner2.jpg'),
-    require('../../assets/images/banner3.jpg'),
-];
+
 
 export default function HomeScreen() {
     const { user } = useAuth();
@@ -28,7 +28,6 @@ export default function HomeScreen() {
     
     // Refs for sliders and components
     const examSliderRef = useRef<FlatList<any>>(null);
-    const bannerSliderRef = useRef<FlatList<any>>(null);
     const practiceExamRef = useRef<any>(null);
 
     // Data for sliders
@@ -82,15 +81,7 @@ export default function HomeScreen() {
         return () => clearInterval(interval);
     }, [user?.token]);
     
-    // Banner Auto-scrolling Effect
-    useEffect(() => {
-        let bannerIndex = 0;
-        const timer = setInterval(() => {
-            bannerIndex = (bannerIndex + 1) % bannerImages.length;
-            bannerSliderRef.current?.scrollToIndex({ index: bannerIndex, animated: true });
-        }, 10000); // 10 seconds
-        return () => clearInterval(timer);
-    }, []);
+
 
     const renderExamCard = ({ item }: { item: any }) => (
         <View style={{ width: screenWidth - 30 }}>
@@ -98,9 +89,7 @@ export default function HomeScreen() {
         </View>
     );
     
-    const renderBanner = ({ item }: { item: any }) => (
-        <Image source={item} style={styles.bannerImage} resizeMode="cover" />
-    );
+
 
     return (
         <>
@@ -122,13 +111,21 @@ export default function HomeScreen() {
             {/* Featured Exams Section */}
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Featured Exams</Text>
-                <TouchableOpacity onPress={() => router.push('/all-exams')}>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/exam')}>
                     <Text style={styles.viewAll}>View All</Text>
                 </TouchableOpacity>
             </View>
 
             {loading ? (
                 <ActivityIndicator size="large" color={AppColors.primary} style={{ marginTop: 20 }} />
+            ) : featuredExams.length === 0 ? (
+                <View style={styles.emptyCard}>
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="library-outline" size={48} color={AppColors.grey} />
+                        <Text style={styles.emptyTitle}>No Exams Available Right Now</Text>
+                        <Text style={styles.emptySubtext}>Check back later for new featured exams.</Text>
+                    </View>
+                </View>
             ) : (
                 <FlatList
                     ref={examSliderRef}
@@ -141,35 +138,31 @@ export default function HomeScreen() {
                 />
             )}
             
-            {/* Advertisement Banner Section */}
-            <View style={styles.bannerContainer}>
-                 <FlatList
-                    ref={bannerSliderRef}
-                    data={bannerImages}
-                    renderItem={renderBanner}
-                    keyExtractor={(_, index) => index.toString()}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                />
-            </View>
-
             {/* Question of the Day Section */}
             <QuestionOfTheDayPreview />
 
+            {/* Job Competition Banner */}
+            <JobCompetitionBanner onPress={() => {
+                console.log('Navigate to job competition');
+                // router.push('/job-competition');
+            }} />
+
+            {/* Top Performers Section */}
+            <TopPerformersSection onPress={() => {
+                console.log('Navigate to leaderboard');
+                // router.push('/leaderboard'); // Example navigation
+            }} />
+
+            {/* Premium Advertisement Banner */}
+            <AdvertisementBanner onPress={() => {
+                // You can navigate to premium page or open a link
+                console.log('Navigate to premium features');
+                // router.push('/premium'); // Example navigation
+            }} />
+
             {/* Practice Exam Section */}
             <PracticeExamSection ref={practiceExamRef} />
-            <View style={styles.bannerContainer}>
-                 <FlatList
-                    ref={bannerSliderRef}
-                    data={bannerImages}
-                    renderItem={renderBanner}
-                    keyExtractor={(_, index) => index.toString()}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                />
-            </View>
+
             {/* Exam Notifications Section */}
             <ExamNotificationsSection />
         </ScrollView>
@@ -182,16 +175,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: AppColors.lightGrey,
     },
-    bannerContainer: {
-        height: 60,
-        marginTop: 20,
-    },
-    bannerImage: {
-        width: screenWidth - 40,
-        height: 60,
-        borderRadius: 12,
-        marginHorizontal: 10,
-    },
+
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -243,5 +227,36 @@ const styles = StyleSheet.create({
         color: AppColors.grey,
         fontWeight: '600',
         textAlign: 'center',
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+        paddingHorizontal: 20,
+    },
+    emptyCard: {
+        backgroundColor: '#fff',
+        marginHorizontal: 20,
+        marginTop: 10,
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: AppColors.darkGrey,
+        marginTop: 16,
+        textAlign: 'center',
+    },
+    emptySubtext: {
+        fontSize: 14,
+        color: AppColors.grey,
+        marginTop: 8,
+        textAlign: 'center',
+        lineHeight: 20,
     },
 }); 

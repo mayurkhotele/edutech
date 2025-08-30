@@ -60,6 +60,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="practice-exam"
+        options={{
+          title: 'Practice Exam',
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
         name="user-profile"
         options={{
           title: 'User Profile',
@@ -70,6 +77,13 @@ export default function TabLayout() {
         name="chat"
         options={{
           title: 'Chat',
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="chat-screen"
+        options={{
+          title: 'Chat Screen',
           href: null, // Hide from tab bar
         }}
       />

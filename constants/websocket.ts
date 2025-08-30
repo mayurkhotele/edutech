@@ -1,7 +1,7 @@
 // WebSocket Configuration
 export const WEBSOCKET_CONFIG = {
   // Use the same server as your API but on port 3001 for WebSocket
-  SERVER_URL: 'http://192.168.1.6:3001',
+  SERVER_URL: 'http://192.168.1.3:3001',
   
   // Connection options - matching your backend configuration
   CONNECTION_OPTIONS: {

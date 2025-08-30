@@ -4,9 +4,10 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    Animated,
     FlatList,
     RefreshControl,
     SafeAreaView,
@@ -31,6 +32,10 @@ export default function ExamScreen() {
     const [categories, setCategories] = useState<string[]>([]);
     const [remainingTime, setRemainingTime] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    
+    // Animation refs
+    const floatAnim = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
 
     const fetchExams = async () => {
         if (!user?.token) {
@@ -80,6 +85,44 @@ export default function ExamScreen() {
     useEffect(() => {
         fetchExams();
     }, [user]);
+
+    // Start header animations
+    useEffect(() => {
+        // Float animation
+        const floatAnimation = Animated.loop(
+            Animated.sequence([
+                Animated.timing(floatAnim, {
+                    toValue: 1,
+                    duration: 3000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(floatAnim, {
+                    toValue: 0,
+                    duration: 3000,
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+
+        // Pulse animation
+        const pulseAnimation = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1.1,
+                    duration: 1500,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 1500,
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+
+        floatAnimation.start();
+        pulseAnimation.start();
+    }, []);
 
     // Calculate remaining time for the earliest ending exam
     useEffect(() => {
@@ -171,9 +214,14 @@ export default function ExamScreen() {
                 style={[styles.categoryButton, isSelected && styles.categoryButtonSelected]}
                 onPress={() => handleCategorySelect(category)}
             >
-                <Text style={[styles.categoryButtonText, isSelected && styles.categoryButtonTextSelected]}>
-                    {displayName}
-                </Text>
+                <LinearGradient
+                    colors={isSelected ? ['#8B5CF6', '#7C3AED'] : ['#FFFFFF', '#F8FAFC']}
+                    style={styles.categoryButtonGradient}
+                >
+                    <Text style={[styles.categoryButtonText, isSelected && styles.categoryButtonTextSelected]}>
+                        {displayName}
+                    </Text>
+                </LinearGradient>
             </TouchableOpacity>
         );
     };
@@ -213,54 +261,85 @@ export default function ExamScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* Header */}
+            {/* Enhanced Header */}
             <LinearGradient
-                colors={['#667eea', '#764ba2']}
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.header}
             >
                 <View style={styles.headerContent}>
                     <View style={styles.headerLeft}>
-                        <View style={styles.headerIconContainer}>
-                            <Ionicons name="book-outline" size={28} color={AppColors.white} />
-                        </View>
-                        <View style={styles.headerTextContainer}>
+                        <Animated.View 
+                            style={[
+                                styles.headerIconContainer,
+                                {
+                                    transform: [{ scale: pulseAnim }]
+                                }
+                            ]}
+                        >
+                            <LinearGradient
+                                colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)']}
+                                style={styles.headerIconGradient}
+                            >
+                                <Ionicons name="school-outline" size={28} color={AppColors.white} />
+                            </LinearGradient>
+                        </Animated.View>
+                        <Animated.View 
+                            style={[
+                                styles.headerTextContainer,
+                                {
+                                    transform: [{ 
+                                        translateY: floatAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0, -3],
+                                        }) 
+                                    }]
+                                }
+                            ]}
+                        >
                             <Text style={styles.headerTitle}>Live Exams</Text>
                             <Text style={styles.headerSubtitle}>
                                 {filteredExams.length} exam{filteredExams.length !== 1 ? 's' : ''} available
                                 {remainingTime && ` • Ends in ${remainingTime}`}
                             </Text>
-                        </View>
+                        </Animated.View>
                     </View>
                 </View>
             </LinearGradient>
 
-            {/* Search Bar */}
+            {/* Enhanced Search Bar */}
             <View style={styles.searchContainer}>
-                <View style={styles.searchInputContainer}>
-                    <Ionicons name="search" size={20} color="#6c757d" style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search exams..."
-                        placeholderTextColor="#6c757d"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity
-                            style={styles.clearButton}
-                            onPress={() => setSearchQuery('')}
-                        >
-                            <Ionicons name="close-circle" size={20} color="#6c757d" />
-                        </TouchableOpacity>
-                    )}
-                </View>
+                <LinearGradient
+                    colors={['rgba(139, 92, 246, 0.05)', 'rgba(124, 58, 237, 0.03)']}
+                    style={styles.searchGradient}
+                >
+                    <View style={styles.searchInputContainer}>
+                        <View style={styles.searchIconContainer}>
+                            <Ionicons name="search" size={22} color="#8B5CF6" />
+                        </View>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search for exams..."
+                            placeholderTextColor="#9CA3AF"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity
+                                style={styles.clearButton}
+                                onPress={() => setSearchQuery('')}
+                            >
+                                <Ionicons name="close-circle" size={24} color="#8B5CF6" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </LinearGradient>
             </View>
 
-            {/* Category Filter */}
+            {/* Enhanced Category Filter */}
             {categories.length > 0 && (
                 <View style={styles.categoryContainer}>
                     <ScrollView 
@@ -272,19 +351,35 @@ export default function ExamScreen() {
                             style={[styles.categoryButton, selectedCategory === 'all' && styles.categoryButtonSelected]}
                             onPress={() => handleCategorySelect('all')}
                         >
-                            <Text style={[styles.categoryButtonText, selectedCategory === 'all' && styles.categoryButtonTextSelected]}>
-                                All
-                            </Text>
+                            <LinearGradient
+                                colors={selectedCategory === 'all' ? ['#8B5CF6', '#7C3AED'] : ['#FFFFFF', '#F8FAFC']}
+                                style={styles.categoryButtonGradient}
+                            >
+                                <Text style={[styles.categoryButtonText, selectedCategory === 'all' && styles.categoryButtonTextSelected]}>
+                                    All
+                                </Text>
+                            </LinearGradient>
                         </TouchableOpacity>
                         {categories.map(renderCategoryButton)}
                     </ScrollView>
                 </View>
             )}
 
-            {/* Exams List */}
+            {/* Enhanced Exams List */}
             {filteredExams.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                    <Ionicons name="library-outline" size={64} color={AppColors.grey} />
+                    <LinearGradient
+                        colors={['rgba(139, 92, 246, 0.1)', 'rgba(124, 58, 237, 0.05)']}
+                        style={styles.emptyIconContainer}
+                    >
+                        <Animated.View
+                            style={{
+                                transform: [{ scale: pulseAnim }]
+                            }}
+                        >
+                            <Ionicons name="library-outline" size={64} color="#8B5CF6" />
+                        </Animated.View>
+                    </LinearGradient>
                     <Text style={styles.emptyTitle}>
                         {searchQuery.trim() 
                             ? 'No Matching Exams' 
@@ -362,18 +457,30 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     header: {
-        paddingTop: 10,
+        paddingTop: 12,
         paddingBottom: 20,
         paddingHorizontal: 20,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        elevation: 8,
+        position: 'relative',
+        overflow: 'hidden',
     },
+
     headerContent: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        zIndex: 3,
     },
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 1,
+        zIndex: 4,
     },
     headerIconContainer: {
         width: 50,
@@ -383,6 +490,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
+    },
+    headerIconGradient: {
+        borderRadius: 25,
+        padding: 5,
     },
     headerTextContainer: {
         flex: 1,
@@ -397,51 +508,114 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: 'rgba(255, 255, 255, 0.8)',
     },
-    searchContainer: {
-        backgroundColor: AppColors.white,
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: AppColors.lightGrey,
-    },
-    searchInputContainer: {
-        flexDirection: 'row',
+    headerRight: {
         alignItems: 'center',
-        backgroundColor: '#f8f9fa',
+    },
+    statsBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 15,
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    statsNumber: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.white,
+    },
+    statsLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginTop: 2,
+    },
+    searchContainer: {
+        backgroundColor: '#FAFBFF',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderBottomWidth: 0,
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    searchGradient: {
         borderRadius: 12,
         paddingHorizontal: 12,
         borderWidth: 1,
         borderColor: '#e9ecef',
     },
-    searchIcon: {
-        marginRight: 8,
+    searchInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: AppColors.white,
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderWidth: 1.5,
+        borderColor: 'rgba(139, 92, 246, 0.15)',
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    searchIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(139, 92, 246, 0.08)',
+        marginRight: 10,
     },
     searchInput: {
         flex: 1,
-        fontSize: 16,
-        color: '#2c3e50',
-        paddingVertical: 12,
+        fontSize: 15,
+        color: '#1E293B',
+        paddingVertical: 8,
+        fontWeight: '500',
     },
     clearButton: {
-        padding: 4,
+        padding: 6,
+        marginLeft: 8,
     },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 30,
+        backgroundColor: '#FAFBFF',
+    },
+    emptyIconContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
     },
     emptyTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: AppColors.darkGrey,
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#1E293B',
         marginTop: 16,
+        textAlign: 'center',
+        letterSpacing: 0.5,
     },
     emptySubtext: {
-        fontSize: 14,
-        color: AppColors.grey,
-        marginTop: 8,
+        fontSize: 16,
+        color: '#64748B',
+        marginTop: 12,
         textAlign: 'center',
+        lineHeight: 24,
+        letterSpacing: 0.3,
     },
     listContainer: {
         padding: 15,
@@ -450,26 +624,50 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     categoryContainer: {
-        paddingVertical: 10,
+        paddingVertical: 15,
         paddingHorizontal: 15,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    categoryTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginBottom: 10,
+        paddingHorizontal: 5,
     },
     categoryScrollContainer: {
         paddingHorizontal: 10,
     },
     categoryButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderWidth: 1,
-        borderColor: AppColors.grey,
-        borderRadius: 20,
         marginRight: 10,
-        backgroundColor: AppColors.white,
-        minWidth: 80,
-        alignItems: 'center',
+        borderRadius: 20,
+        overflow: 'hidden',
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     categoryButtonSelected: {
-        borderColor: AppColors.primary,
-        backgroundColor: AppColors.primary,
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    categoryButtonGradient: {
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        minWidth: 80,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(139, 92, 246, 0.2)',
     },
     categoryButtonText: {
         fontSize: 14,

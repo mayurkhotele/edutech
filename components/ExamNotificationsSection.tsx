@@ -2,10 +2,9 @@ import { apiFetchAuth } from '@/constants/api';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Dimensions, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -59,6 +58,11 @@ const ExamNotificationsSection = () => {
     const [selectedNotification, setSelectedNotification] = useState<ExamNotification | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
 
+    // Animation refs for modal
+    const modalScale = useRef(new Animated.Value(0)).current;
+    const modalOpacity = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(50)).current;
+
     useEffect(() => {
         const fetchNotifications = async () => {
             if (!user?.token) {
@@ -96,6 +100,59 @@ const ExamNotificationsSection = () => {
         return diffDays;
     };
 
+    const openNotificationModal = (notification: ExamNotification) => {
+        setSelectedNotification(notification);
+        setModalVisible(true);
+        
+        // Start entrance animation
+        Animated.parallel([
+            Animated.timing(modalOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.spring(modalScale, {
+                toValue: 1,
+                tension: 100,
+                friction: 8,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 400,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
+
+    const closeModal = () => {
+        // Start exit animation
+        Animated.parallel([
+            Animated.timing(modalOpacity, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+            Animated.timing(modalScale, {
+                toValue: 0.8,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 50,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            setModalVisible(false);
+            setSelectedNotification(null);
+            // Reset animation values
+            modalScale.setValue(0);
+            modalOpacity.setValue(0);
+            slideAnim.setValue(50);
+        });
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -107,183 +164,322 @@ const ExamNotificationsSection = () => {
         return null;
     }
 
-    // Show only first 4 notifications
-    const displayNotifications = notifications.slice(0, 4);
-    const monthYear = getMonthYear(notifications);
-    const examCount = notifications.length;
-
-    const renderCard = ({ item }: { item: ExamNotification }) => {
-        const daysRemaining = getDaysRemaining(item.applyLastDate);
-        const isUrgent = daysRemaining <= 7 && daysRemaining >= 0;
-        const isExpired = daysRemaining < 0;
-        const status = isExpired ? 'expired' : isUrgent ? 'urgent' : 'active';
-        const color = statusColors[status];
-        return (
-            <TouchableOpacity
-                style={styles.cardTouchable}
-                onPress={() => {
-                    setSelectedNotification(item);
-                    setModalVisible(true);
-                }}
-                activeOpacity={0.92}
-            >
-                <BlurView intensity={60} tint="light" style={[styles.card, { borderLeftColor: color.border }]}> 
-                    <LinearGradient
-                        colors={color.gradient as [string, string]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.statusFloatingBadge}
-                    >
-                        <Ionicons name="checkmark-done" size={13} color="#fff" />
-                        <Text style={styles.statusFloatingText}>{status === 'active' ? 'Active' : status === 'urgent' ? 'Urgent' : 'Expired'}</Text>
-                    </LinearGradient>
-                    <View style={styles.cardContent}>
-                        <View style={styles.logoWrap}>
-                            {item.logoUrl ? (
-                                <Image source={{ uri: item.logoUrl }} style={styles.logo} />
-                            ) : (
-                                <LinearGradient colors={["#a18cd1", "#fbc2eb"] as [string, string]} style={styles.logo}>
-                                    <Ionicons name="school-outline" size={20} color="#fff" />
-                                </LinearGradient>
-                            )}
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-                            <View style={styles.cardRow}>
-                                <Ionicons name="calendar-outline" size={15} color={color.border} style={{ marginRight: 4 }} />
-                                <Text style={styles.cardDate}>{formatDate(item.applyLastDate)}</Text>
-                            </View>
-                            {!isExpired && (
-                                <Text style={[styles.daysText, isUrgent && styles.urgentDaysText]}>
-                                    {daysRemaining === 0 ? 'Last Day!' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
-                                </Text>
-                            )}
-                        </View>
-                    </View>
-                    <LinearGradient
-                        colors={["#7C3AED", "#a18cd1"] as [string, string]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.viewDetailsButton}
-                    >
-                        <Text style={styles.viewDetailsText}>View Details</Text>
-                        <Ionicons name="chevron-forward" size={14} color="#fff" />
-                    </LinearGradient>
-                </BlurView>
-            </TouchableOpacity>
-        );
+    // Add dummy notifications if we have less than 5
+    const getDummyNotifications = () => {
+        const dummyData = [
+            {
+                id: 'dummy-1',
+                title: 'SSC CGL 2024 Exam Registration',
+                description: 'Staff Selection Commission Combined Graduate Level Examination 2024',
+                year: 2024,
+                month: 12,
+                applyLastDate: '2024-12-25',
+                applyLink: '#',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+            {
+                id: 'dummy-2', 
+                title: 'Railway NTPC Recruitment 2024',
+                description: 'Indian Railways Non-Technical Popular Categories Recruitment',
+                year: 2024,
+                month: 12,
+                applyLastDate: '2024-12-20',
+                applyLink: '#',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+            {
+                id: 'dummy-3',
+                title: 'UPSC Civil Services Prelims 2025',
+                description: 'Union Public Service Commission Civil Services Preliminary Examination',
+                year: 2025,
+                month: 1,
+                applyLastDate: '2024-12-30',
+                applyLink: '#',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+            {
+                id: 'dummy-4',
+                title: 'Banking PO Recruitment 2024',
+                description: 'Probationary Officer recruitment in various public sector banks',
+                year: 2024,
+                month: 12,
+                applyLastDate: '2024-12-18',
+                applyLink: '#',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+            {
+                id: 'dummy-5',
+                title: 'Teaching Jobs - DSSSB 2024',
+                description: 'Delhi Subordinate Services Selection Board Teacher Recruitment',
+                year: 2024,
+                month: 12,
+                applyLastDate: '2024-12-22',
+                applyLink: '#',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            }
+        ];
+        
+        // Combine real notifications with dummy ones
+        const combined = [...notifications, ...dummyData];
+        return combined.slice(0, 5); // Always show 5 notifications
     };
+
+    const displayNotifications = getDummyNotifications();
+    const monthYear = getMonthYear(notifications.length > 0 ? notifications : displayNotifications);
+    const examCount = displayNotifications.length;
+
+
 
     return (
         <View style={styles.container}>
+            {/* App Theme Header */}
             <LinearGradient
-                colors={["#a18cd1", "#fbc2eb"] as [string, string]}
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.headerGradient}
             >
-                <View style={styles.headerContent}>
-                    <Ionicons name="notifications" size={22} color="#fff" style={{ marginRight: 8 }} />
-                    <Text style={styles.headerText}>{monthYear}</Text>
-                    <BlurView intensity={40} tint="light" style={styles.headerBadgeGlass}>
-                        <Text style={styles.headerBadgeText}>{examCount} EXAMS</Text>
-                    </BlurView>
+                <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                    <View style={styles.headerIconContainer}>
+                        <LinearGradient
+                            colors={['#FFD700', '#FF6B6B']}
+                            style={styles.iconGradient}
+                        >
+                            <Ionicons name="notifications" size={22} color="#FFFFFF" />
+                        </LinearGradient>
+                    </View>
+                    <View style={styles.headerTextContainer}>
+                        <Text style={styles.headerTitle}>Exam Notifications</Text>
+                    </View>
+                </View>
+                <View style={styles.monthBadge}>
+                    <LinearGradient
+                        colors={['#FFD700', '#FF6B6B']}
+                        style={styles.monthGradient}
+                    >
+                        <Text style={styles.monthText}>{monthYear}</Text>
+                    </LinearGradient>
+                </View>
                 </View>
             </LinearGradient>
-            <FlatList
-                data={displayNotifications}
-                renderItem={renderCard}
-                keyExtractor={item => item.id}
-                numColumns={2}
-                columnWrapperStyle={styles.gridRow}
-                contentContainerStyle={{ paddingBottom: 10 }}
-                scrollEnabled={false}
-            />
+
+            {/* Dynamic Notifications (Max 5) */}
+            <View style={styles.notificationsList}>
+                {displayNotifications.slice(0, Math.min(5, notifications.length)).map((item, index) => {
+                    const daysRemaining = getDaysRemaining(item.applyLastDate);
+                    const isUrgent = daysRemaining <= 7 && daysRemaining >= 0;
+                    const isExpired = daysRemaining < 0;
+                    
+                    return (
             <TouchableOpacity
-                style={styles.viewAllButtonWrap}
-                activeOpacity={0.92}
-            >
-                <LinearGradient
-                    colors={["#7C3AED", "#a18cd1"] as [string, string]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.viewAllButton}
-                >
-                    <Text style={styles.viewAllButtonText}>View All</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 4 }} />
-                </LinearGradient>
-            </TouchableOpacity>
+                            key={item.id}
+                            style={[
+                                styles.notificationItem,
+                                {
+                                    backgroundColor: isUrgent ? 'rgba(245, 158, 11, 0.05)' : 
+                                                   isExpired ? 'rgba(239, 68, 68, 0.05)' : 
+                                                   'rgba(16, 185, 129, 0.05)',
+                                    borderLeftWidth: 4,
+                                    borderLeftColor: isExpired ? '#EF4444' : isUrgent ? '#F59E0B' : '#10B981'
+                                }
+                            ]}
+                            onPress={() => openNotificationModal(item)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.notificationContent}>
+                                <View style={styles.notificationHeader}>
+                                    <Text style={styles.notificationTitle} numberOfLines={1}>
+                                        {item.title}
+                                    </Text>
+                                    <View style={[
+                                        styles.statusBadge,
+                                        {
+                                            backgroundColor: isExpired ? '#EF4444' : isUrgent ? '#F59E0B' : '#10B981'
+                                        }
+                                    ]}>
+                                        <Text style={styles.statusText}>
+                                            {isExpired ? 'Expired' : isUrgent ? 'Urgent' : 'Active'}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View style={styles.notificationInfo}>
+                                    <Ionicons name="calendar-outline" size={14} color={AppColors.grey} />
+                                    <Text style={styles.dateText}>
+                                        Last Date: {formatDate(item.applyLastDate)}
+                                    </Text>
+                                </View>
+                                {!isExpired && (
+                                    <Text style={[styles.daysLeft, { color: isUrgent ? '#F59E0B' : AppColors.grey }]}>
+                                        {daysRemaining === 0 ? 'Last Day!' : `${daysRemaining} days left`}
+                                    </Text>
+                                )}
+                            </View>
+                            <Ionicons name="chevron-forward" size={16} color={AppColors.grey} />
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
+
+            {/* Enhanced View All Button (Only if 5+ notifications) */}
+            {notifications.length > 5 && (
+                <TouchableOpacity style={styles.viewAllButton} activeOpacity={0.8}>
+                    <LinearGradient
+                        colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.viewAllGradient}
+                    >
+                        <View style={styles.buttonContent}>
+                            <View style={styles.buttonLeft}>
+                                <Ionicons name="notifications" size={18} color="#FFFFFF" />
+                                <View style={styles.buttonTextContainer}>
+                                    <Text style={styles.viewAllMainText}>View All Notifications</Text>
+                                    <Text style={styles.viewAllSubText}>{notifications.length} total notifications</Text>
+                                </View>
+                            </View>
+                            <View style={styles.arrowContainer}>
+                                <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+                            </View>
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
+            )}
+            {/* Enhanced Modal with Animations */}
             <Modal
-                animationType="slide"
+                animationType="none"
                 transparent={true}
                 visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
+                onRequestClose={closeModal}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalCardWrap}>
+                <Animated.View 
+                    style={[
+                        styles.modalOverlay,
+                        {
+                            opacity: modalOpacity,
+                        }
+                    ]}
+                >
+                    <TouchableOpacity 
+                        style={styles.modalBackdrop} 
+                        activeOpacity={1} 
+                        onPress={closeModal}
+                    />
+                    <Animated.View 
+                        style={[
+                            styles.modalCardWrap,
+                            {
+                                transform: [
+                                    { scale: modalScale },
+                                    { translateY: slideAnim }
+                                ],
+                                opacity: modalOpacity,
+                            }
+                        ]}
+                    >
+                        {/* Enhanced Header */}
                         <LinearGradient
-                            colors={["#a18cd1", "#fbc2eb"] as [string, string]}
+                            colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.modalHeaderGradient}
                         >
                             <View style={styles.modalHeaderRow}>
-                                <Text style={styles.modalHeaderTitle}>Exam Details</Text>
-                                <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalCloseBtn}>
-                                    <Ionicons name="close" size={22} color="#fff" />
+                                <View style={styles.headerTitleContainer}>
+                                    <View style={styles.modalIconContainer}>
+                                        <Ionicons name="document-text" size={24} color="#FFFFFF" />
+                                    </View>
+                                    <Text style={styles.modalHeaderTitle}>Exam Details</Text>
+                                </View>
+                                <TouchableOpacity onPress={closeModal} style={styles.modalCloseBtn}>
+                                    <Ionicons name="close-circle" size={28} color="rgba(255, 255, 255, 0.9)" />
                                 </TouchableOpacity>
                             </View>
                         </LinearGradient>
-                        <BlurView intensity={80} tint="light" style={styles.modalContentGlass}>
+                        
+                        {/* Enhanced Content */}
+                        <View style={styles.modalContentEnhanced}>
                             {selectedNotification && (
                                 <>
-                                    <Text style={styles.modalExamTitle}>{selectedNotification.title}</Text>
+                                    {/* Title Section */}
+                                    <View style={styles.titleSection}>
+                                        <Text style={styles.modalExamTitle}>{selectedNotification.title}</Text>
+                                    </View>
+                                    
+                                    {/* Status and Date Row */}
                                     <View style={styles.modalStatusRow}>
                                         <LinearGradient
                                             colors={statusColors[getDaysRemaining(selectedNotification.applyLastDate) < 0 ? 'expired' : getDaysRemaining(selectedNotification.applyLastDate) <= 7 ? 'urgent' : 'active'].gradient as [string, string]}
-                                            style={styles.modalStatusBadge}
+                                            style={styles.modalStatusBadgeEnhanced}
                                         >
+                                            <Ionicons 
+                                                name={getDaysRemaining(selectedNotification.applyLastDate) < 0 ? 'close-circle' : 
+                                                     getDaysRemaining(selectedNotification.applyLastDate) <= 7 ? 'warning' : 'checkmark-circle'} 
+                                                size={16} 
+                                                color="#FFFFFF" 
+                                                style={{ marginRight: 6 }} 
+                                            />
                                             <Text style={styles.modalStatusText}>
                                                 {getDaysRemaining(selectedNotification.applyLastDate) < 0 ? 'Expired' :
                                                 getDaysRemaining(selectedNotification.applyLastDate) <= 7 ? 'Urgent' : 'Active'}
                                             </Text>
                                         </LinearGradient>
-                                        <View style={styles.modalDateBox}>
-                                            <Ionicons name="calendar-outline" size={16} color="#7C3AED" style={{ marginRight: 4 }} />
-                                            <Text style={styles.modalDateText}>
-                                                Last Date: {formatDate(selectedNotification.applyLastDate)}
-                                            </Text>
+                                        
+                                        <View style={styles.modalDateBoxEnhanced}>
+                                            <LinearGradient
+                                                colors={['rgba(139, 92, 246, 0.1)', 'rgba(124, 58, 237, 0.05)']}
+                                                style={styles.dateGradient}
+                                            >
+                                                <Ionicons name="calendar" size={18} color="#8B5CF6" />
+                                                <Text style={styles.modalDateText}>
+                                                    {formatDate(selectedNotification.applyLastDate)}
+                                                </Text>
+                                            </LinearGradient>
                                         </View>
                                     </View>
-                                    <View style={styles.modalDivider} />
-                                    <View style={styles.modalDescriptionBox}>
-                                        <ScrollView style={{ maxHeight: 120 }}>
+                                    
+                                    {/* Description Section */}
+                                    <View style={styles.descriptionSection}>
+                                        <View style={styles.descriptionHeader}>
+                                            <Ionicons name="information-circle" size={20} color="#8B5CF6" />
+                                            <Text style={styles.descriptionLabel}>Description</Text>
+                                        </View>
+                                        <ScrollView style={styles.descriptionScroll} showsVerticalScrollIndicator={false}>
                                             <Text style={styles.modalDescription}>{selectedNotification.description}</Text>
                                         </ScrollView>
                                     </View>
+                                    
+                                    {/* Apply Button */}
                                     {getDaysRemaining(selectedNotification.applyLastDate) >= 0 && (
-                                        <LinearGradient
-                                            colors={["#7C3AED", "#a18cd1"] as [string, string]}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 1 }}
-                                            style={styles.modalApplyButton}
+                                        <TouchableOpacity
+                                            style={styles.applyButtonContainer}
+                                            onPress={() => selectedNotification.applyLink && Linking.openURL(selectedNotification.applyLink)}
+                                            activeOpacity={0.8}
                                         >
-                                            <TouchableOpacity
-                                                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%' }}
-                                                onPress={() => selectedNotification.applyLink && Linking.openURL(selectedNotification.applyLink)}
+                                            <LinearGradient
+                                                colors={['#10B981', '#059669', '#047857']}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 1 }}
+                                                style={styles.modalApplyButtonEnhanced}
                                             >
-                                                <Ionicons name="open-outline" size={20} color={AppColors.white} />
+                                                <Ionicons name="rocket" size={22} color="#FFFFFF" />
                                                 <Text style={styles.modalApplyButtonText}>
-                                                    {getDaysRemaining(selectedNotification.applyLastDate) <= 7 ? 'Apply Now!' : 'Apply'}
+                                                    {getDaysRemaining(selectedNotification.applyLastDate) <= 7 ? 'Apply Now!' : 'Apply Online'}
                                                 </Text>
-                                            </TouchableOpacity>
-                                        </LinearGradient>
+                                                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                                            </LinearGradient>
+                                        </TouchableOpacity>
                                     )}
                                 </>
                             )}
-                        </BlurView>
-                    </View>
-                </View>
+                        </View>
+                    </Animated.View>
+                </Animated.View>
             </Modal>
         </View>
     );
@@ -291,191 +487,202 @@ const ExamNotificationsSection = () => {
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: 18,
-        backgroundColor: 'rgba(255,255,255,0.7)',
-        borderRadius: 18,
-        marginHorizontal: 8,
-        elevation: 3,
-        shadowColor: '#a18cd1',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        paddingBottom: 10,
+        backgroundColor: AppColors.white,
+        borderRadius: 20,
+        margin: 15,
+        overflow: 'hidden',
+        shadowColor: '#4F46E5',
+        shadowOffset: {
+            width: 0,
+            height: 6,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(79, 70, 229, 0.1)',
     },
     headerGradient: {
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        padding: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    headerContent: {
         flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
     },
-    headerText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#fff',
-        letterSpacing: 0.5,
-    },
-    headerBadgeGlass: {
-        backgroundColor: 'rgba(255,255,255,0.25)',
+    headerIconContainer: {
         borderRadius: 14,
-        paddingHorizontal: 12,
-        paddingVertical: 4,
+        marginRight: 15,
         overflow: 'hidden',
-    },
-    headerBadgeText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 13,
-        letterSpacing: 0.5,
-    },
-    gridRow: {
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        paddingHorizontal: 6,
-    },
-    cardTouchable: {
-        flex: 1,
-        marginHorizontal: 6,
-        marginBottom: 8,
-        minHeight: 140,
-    },
-    card: {
-        flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.85)',
-        borderRadius: 16,
-        padding: 16,
-        borderLeftWidth: 5,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
         elevation: 4,
-        shadowColor: '#a18cd1',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.10,
-        shadowRadius: 8,
-        overflow: 'visible',
     },
-    statusFloatingBadge: {
-        position: 'absolute',
-        top: -14,
-        right: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        borderRadius: 12,
-        zIndex: 2,
-        shadowColor: '#a18cd1',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.10,
-        shadowRadius: 6,
-    },
-    statusFloatingText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 11,
-        marginLeft: 5,
-        letterSpacing: 0.5,
-    },
-    cardContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-        marginTop: 6,
-    },
-    logoWrap: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        marginRight: 12,
-        overflow: 'hidden',
-        backgroundColor: '#ede9fe',
-        alignItems: 'center',
+    iconGradient: {
+        padding: 10,
+        borderRadius: 14,
         justifyContent: 'center',
-    },
-    logo: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
         alignItems: 'center',
-        justifyContent: 'center',
     },
-    cardTitle: {
-        fontWeight: 'bold',
-        fontSize: 16,
-        color: '#3b0764',
-        marginBottom: 2,
-        letterSpacing: 0.2,
+    headerTextContainer: {
+        flex: 1,
     },
-    cardRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 2,
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+        letterSpacing: 0.3,
     },
-    cardDate: {
-        marginLeft: 4,
-        color: '#7C3AED',
-        fontSize: 13,
+    headerSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.9)',
+        marginTop: 3,
         fontWeight: '600',
     },
-    daysText: {
+    monthBadge: {
+        borderRadius: 12,
+        overflow: 'hidden',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    monthGradient: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    monthText: {
         fontSize: 12,
-        color: '#64748B',
-        fontStyle: 'italic',
-        marginTop: 2,
+        color: '#FFFFFF',
+        fontWeight: '700',
+        letterSpacing: 0.3,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 1,
     },
-    urgentDaysText: {
-        color: '#F59E0B',
-        fontWeight: 'bold',
+    notificationsList: {
+        marginBottom: 10,
+        paddingHorizontal: 20,
+        paddingTop: 15,
     },
-    viewDetailsButton: {
-        marginTop: 10,
+    notificationItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        alignSelf: 'flex-end',
-        backgroundColor: 'transparent',
-        borderRadius: 8,
-        paddingVertical: 7,
-        paddingHorizontal: 16,
-        shadowColor: '#a18cd1',
+        padding: 12,
+        backgroundColor: AppColors.white,
+        borderRadius: 10,
+        marginBottom: 6,
+        shadowColor: 'rgba(79, 70, 229, 0.2)',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.10,
-        shadowRadius: 6,
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    viewDetailsText: {
-        fontSize: 13,
-        color: '#fff',
-        fontWeight: 'bold',
-        marginRight: 5,
-        letterSpacing: 0.2,
+    notificationContent: {
+        flex: 1,
     },
-    viewAllButtonWrap: {
-        alignItems: 'flex-end',
-        marginRight: 18,
-        marginTop: 2,
-        marginBottom: 8,
+    notificationHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    notificationTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: AppColors.darkGrey,
+        flex: 1,
+        marginRight: 8,
+    },
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+    },
+    statusText: {
+        fontSize: 10,
+        color: AppColors.white,
+        fontWeight: '600',
+    },
+    notificationInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    dateText: {
+        fontSize: 12,
+        color: AppColors.grey,
+        marginLeft: 4,
+    },
+    daysLeft: {
+        fontSize: 11,
+        fontWeight: '500',
     },
     viewAllButton: {
+        marginHorizontal: 20,
+        marginBottom: 18,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    viewAllGradient: {
+        paddingHorizontal: 18,
+        paddingVertical: 16,
+    },
+    buttonContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 18,
-        paddingVertical: 8,
-        borderRadius: 22,
-        shadowColor: '#a18cd1',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.13,
-        shadowRadius: 8,
+        justifyContent: 'space-between',
     },
-    viewAllButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 15,
+    buttonLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    buttonTextContainer: {
+        marginLeft: 12,
+        flex: 1,
+    },
+    viewAllMainText: {
+        fontSize: 16,
+        color: '#FFFFFF',
+        fontWeight: '700',
+        letterSpacing: 0.3,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    viewAllSubText: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontWeight: '500',
+        marginTop: 2,
         letterSpacing: 0.2,
+    },
+    arrowContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 12,
+        padding: 8,
+        marginLeft: 12,
     },
     loadingContainer: {
         padding: 20,
@@ -483,49 +690,142 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
     },
+    modalBackdrop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
     modalCardWrap: {
-        width: '92%',
+        width: '90%',
+        maxWidth: 400,
         alignSelf: 'center',
-        borderRadius: 22,
+        borderRadius: 24,
         overflow: 'hidden',
-        backgroundColor: 'transparent',
-        shadowColor: '#a18cd1',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.18,
-        shadowRadius: 18,
-        elevation: 8,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 15 },
+        shadowOpacity: 0.3,
+        shadowRadius: 25,
+        elevation: 15,
     },
     modalHeaderGradient: {
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        padding: 18,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 20,
     },
     modalHeaderRow: {
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    modalHeaderTitle: {
-        fontSize: 19,
-        fontWeight: 'bold',
-        color: '#fff',
-        letterSpacing: 0.5,
-        textAlign: 'center',
+    headerTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
         flex: 1,
     },
-    modalCloseBtn: {
-        backgroundColor: 'rgba(124,58,237,0.18)',
+    modalIconContainer: {
+        width: 40,
+        height: 40,
         borderRadius: 20,
-        padding: 7,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    modalHeaderTitle: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: 0.6,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+    },
+    modalCloseBtn: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 20,
+        padding: 8,
         marginLeft: 10,
+    },
+    // Enhanced modal content styles
+    modalContentEnhanced: {
+        backgroundColor: '#FFFFFF',
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        padding: 24,
+    },
+    titleSection: {
+        marginBottom: 20,
+        alignItems: 'center',
+    },
+    modalStatusBadgeEnhanced: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    modalDateBoxEnhanced: {
+        flex: 1,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    dateGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    descriptionSection: {
+        marginBottom: 24,
+    },
+    descriptionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    descriptionLabel: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#374151',
+        marginLeft: 8,
+        letterSpacing: 0.3,
+    },
+    descriptionScroll: {
+        maxHeight: 120,
+        backgroundColor: 'rgba(139, 92, 246, 0.05)',
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(139, 92, 246, 0.1)',
+    },
+    applyButtonContainer: {
+        marginTop: 8,
+    },
+    modalApplyButtonEnhanced: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 16,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8,
     },
     modalContentGlass: {
         backgroundColor: 'rgba(255,255,255,0.92)',
@@ -536,12 +836,15 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
     },
     modalExamTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#3b0764',
-        marginBottom: 16,
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#1F2937',
         textAlign: 'center',
-        letterSpacing: 0.2,
+        letterSpacing: 0.5,
+        lineHeight: 28,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
     modalStatusRow: {
         flexDirection: 'row',
@@ -589,9 +892,11 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
     modalDescription: {
-        color: '#3b0764',
-        fontSize: 15,
-        lineHeight: 22,
+        color: '#374151',
+        fontSize: 16,
+        lineHeight: 24,
+        fontWeight: '500',
+        letterSpacing: 0.2,
     },
     modalApplyButton: {
         marginTop: 8,
@@ -605,11 +910,14 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
     },
     modalApplyButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontWeight: '800',
         fontSize: 16,
-        marginLeft: 10,
-        letterSpacing: 0.2,
+        marginHorizontal: 8,
+        letterSpacing: 0.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
 });
 

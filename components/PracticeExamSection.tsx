@@ -4,11 +4,13 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
+  Easing,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -51,6 +53,11 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Animated values for button animations
+  const buttonScale = useRef(new Animated.Value(1)).current;
+  const iconRotation = useRef(new Animated.Value(0)).current;
+  const pulseValue = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     fetchPracticeExams();
   }, []);
@@ -66,6 +73,41 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
       generateTopCategories();
     }
   }, [categoryStats]);
+
+  // Start button animations
+  useEffect(() => {
+    const startButtonAnimations = () => {
+      // Pulse animation for button
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseValue, {
+            toValue: 1.02,
+            duration: 2000,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseValue, {
+            toValue: 1,
+            duration: 2000,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Icon rotation animation
+      Animated.loop(
+        Animated.timing(iconRotation, {
+          toValue: 1,
+          duration: 4000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+    };
+
+    startButtonAnimations();
+  }, []);
 
   const fetchPracticeExams = async () => {
     if (!user?.token) {
@@ -138,10 +180,8 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
     return 'library';
   };
 
-  const getGradientColors = (category: string) => {
-    const categoryLower = category.toLowerCase();
-    
-    // Create 6 different faint/soft color combinations (same as other files)
+  const getGradientColors = (index: number) => {
+    // 8 different attractive gradient combinations
     const colorSchemes = [
       ['#FFB3B3', '#FFC8A2'], // Soft Red to Peach
       ['#B8E6E6', '#A8D8D8'], // Soft Turquoise to Light Teal
@@ -149,16 +189,12 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
       ['#FFF2CC', '#FFE6B3'], // Soft Yellow to Light Orange
       ['#F0D4F0', '#E8C8E8'], // Soft Plum to Light Lavender
       ['#D4E6F0', '#C8D8E8'], // Soft Sky Blue to Light Steel Blue
+      ['#FFE4CC', '#FFD4B3'], // Soft Orange to Light Peach
+      ['#E6D4F0', '#D8C8E8'], // Soft Violet to Light Purple
     ];
     
-    // Use category name to consistently assign colors
-    const hash = categoryLower.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    
-    const colorIndex = Math.abs(hash) % colorSchemes.length;
-    return colorSchemes[colorIndex] as [string, string];
+    // Use index directly to assign colors sequentially
+    return colorSchemes[index % colorSchemes.length] as [string, string];
   };
 
   const generateTopCategories = () => {
@@ -171,11 +207,11 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
       return statsB.totalExams - statsA.totalExams;
     });
 
-    // Take top 8 categories
-    const top8Categories = sortedCategories.slice(0, 8).map(category => ({
+    // Take top 8 categories with index-based colors
+    const top8Categories = sortedCategories.slice(0, 8).map((category, index) => ({
       name: category,
       icon: getCategoryIcon(category),
-      gradient: getGradientColors(category),
+      gradient: getGradientColors(index),
       stats: categoryStats[category]
     }));
 
@@ -188,6 +224,29 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
 
   const handleViewAll = () => {
     router.push('/practice-exam');
+  };
+
+  const handleButtonPress = () => {
+    // Scale down animation on press
+    Animated.sequence([
+      Animated.timing(buttonScale, {
+        toValue: 0.95,
+        duration: 100,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScale, {
+        toValue: 1,
+        duration: 100,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Navigate after animation
+    setTimeout(() => {
+      handleViewAll();
+    }, 100);
   };
 
   if (loading) {
@@ -306,17 +365,35 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
         </View>
       )}
 
-      {/* View All Button */}
-      <TouchableOpacity style={styles.viewAllButton} onPress={handleViewAll}>
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.viewAllGradient}
-        >
-          <Text style={styles.viewAllText}>View All Categories</Text>
-          <Ionicons name="arrow-forward" size={20} color={AppColors.white} />
-        </LinearGradient>
+      {/* Enhanced View All Button */}
+      <TouchableOpacity style={styles.viewAllButton} onPress={handleButtonPress}>
+        <Animated.View style={[{ transform: [{ scale: buttonScale }] }]}>
+          <LinearGradient
+            colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.viewAllGradient}
+          >
+            <View style={styles.viewAllContent}>
+              <Text style={styles.viewAllText}>View All Categories</Text>
+              <Animated.View 
+                style={[
+                  styles.viewAllIconContainer,
+                  {
+                    transform: [{
+                      rotate: iconRotation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      })
+                    }]
+                  }
+                ]}
+              >
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </Animated.View>
+            </View>
+          </LinearGradient>
+        </Animated.View>
       </TouchableOpacity>
     </View>
   );
@@ -342,15 +419,20 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    fontWeight: '600',
+    marginTop: 12,
+    fontSize: 18,
+    fontWeight: '700',
     color: AppColors.darkGrey,
+    letterSpacing: 0.4,
+    textAlign: 'center',
   },
   loadingSubtext: {
-    marginTop: 5,
-    fontSize: 14,
+    marginTop: 8,
+    fontSize: 15,
     color: AppColors.grey,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -373,14 +455,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '800',
     color: AppColors.darkGrey,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.05)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: AppColors.grey,
-    marginTop: 2,
+    marginTop: 4,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   refreshButton: {
     backgroundColor: AppColors.primary,
@@ -395,23 +483,38 @@ const styles = StyleSheet.create({
   },
   progressOverview: {
     marginBottom: 20,
+    backgroundColor: 'rgba(79, 70, 229, 0.08)',
+    borderRadius: 12,
+    padding: 12,
   },
   progressBar: {
-    height: 8,
-    backgroundColor: AppColors.lightGrey,
-    borderRadius: 4,
-    marginBottom: 8,
+    height: 10,
+    backgroundColor: 'rgba(79, 70, 229, 0.2)',
+    borderRadius: 8,
+    marginBottom: 10,
     overflow: 'hidden',
+    shadowColor: AppColors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   progressFill: {
     height: '100%',
     backgroundColor: AppColors.primary,
-    borderRadius: 4,
+    borderRadius: 8,
+    shadowColor: AppColors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 2,
   },
   progressText: {
-    fontSize: 12,
-    color: AppColors.grey,
+    fontSize: 13,
+    color: AppColors.primary,
     textAlign: 'center',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   categoriesContainer: {
     gap: 12,
@@ -454,17 +557,23 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   categoryTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#2C3E50',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(44, 62, 80, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   categoryStats: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#34495E',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   categoryProgressBar: {
     width: '100%',
@@ -490,29 +599,51 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   viewAllButton: {
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#4F46E5',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+    marginTop: 6,
   },
   viewAllGradient: {
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  viewAllContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   viewAllText: {
-    color: AppColors.white,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 8,
+    fontWeight: '800',
+    marginRight: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    letterSpacing: 0.5,
+  },
+  viewAllIconContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 10,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
 });
 

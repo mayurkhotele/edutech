@@ -1,12 +1,13 @@
-import { AppColors } from '@/constants/Colors';
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   RefreshControl,
   SafeAreaView,
@@ -16,7 +17,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import GlobalHeader from '../../components/GlobalHeader';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -39,13 +39,41 @@ const ExamCategoryPage = () => {
   const [exams, setExams] = useState<PracticeExam[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'completed' | 'pending'>('all');
+
+  // Animation values
+  const fadeAnim = new Animated.Value(0);
+  const slideAnim = new Animated.Value(50);
+  const scaleAnim = new Animated.Value(0.9);
 
   useEffect(() => {
     if (category) {
       fetchExamsByCategory();
     }
+    // Start animations
+    startAnimations();
   }, [category]);
+
+  const startAnimations = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const fetchExamsByCategory = async () => {
     if (!user?.token || !category) {
@@ -110,10 +138,6 @@ const ExamCategoryPage = () => {
     }
   };
 
-  const getSpotsPercentage = (spots: number, spotsLeft: number) => {
-    return ((spots - spotsLeft) / spots) * 100;
-  };
-
   const getCategoryIcon = (category: string) => {
     const categoryLower = category.toLowerCase();
     if (categoryLower.includes('railway')) return 'train';
@@ -123,7 +147,7 @@ const ExamCategoryPage = () => {
     if (categoryLower.includes('english')) return 'book';
     if (categoryLower.includes('computer')) return 'laptop';
     if (categoryLower.includes('general')) return 'bulb';
-    if (categoryLower.includes('reasoning')) return 'brain';
+    if (categoryLower.includes('reasoning')) return 'bulb';
     if (categoryLower.includes('banking')) return 'card';
     if (categoryLower.includes('upsc')) return 'library';
     return 'library';
@@ -132,17 +156,15 @@ const ExamCategoryPage = () => {
   const getGradientColors = (category: string) => {
     const categoryLower = category.toLowerCase();
     
-    // Create 6 different faint/soft color combinations (same as practice-exam.tsx)
     const colorSchemes = [
-      ['#FFB3B3', '#FFC8A2'], // Soft Red to Peach
-      ['#B8E6E6', '#A8D8D8'], // Soft Turquoise to Light Teal
-      ['#D4F0D4', '#C8E8C8'], // Soft Light Green to Mint
-      ['#FFF2CC', '#FFE6B3'], // Soft Yellow to Light Orange
-      ['#F0D4F0', '#E8C8E8'], // Soft Plum to Light Lavender
-      ['#D4E6F0', '#C8D8E8'], // Soft Sky Blue to Light Steel Blue
+      ['#8B5CF6', '#A855F7'], // Purple
+      ['#06B6D4', '#0891B2'], // Cyan  
+      ['#10B981', '#059669'], // Green
+      ['#F59E0B', '#D97706'], // Orange
+      ['#EF4444', '#DC2626'], // Red
+      ['#8B5CF6', '#A855F7'], // Purple again
     ];
     
-    // Use category name to consistently assign colors
     const hash = categoryLower.split('').reduce((a, b) => {
       a = ((a << 5) - a) + b.charCodeAt(0);
       return a & a;
@@ -153,7 +175,6 @@ const ExamCategoryPage = () => {
   };
 
   const handleStartExam = (exam: PracticeExam) => {
-    // Navigate to practice exam details
     router.push({
       pathname: '/(tabs)/practice-exam/[id]',
       params: { id: exam.id }
@@ -161,7 +182,6 @@ const ExamCategoryPage = () => {
   };
 
   const handleReviewExam = (exam: PracticeExam) => {
-    // Navigate to practice exam details
     router.push({
       pathname: '/(tabs)/practice-exam/[id]',
       params: { id: exam.id }
@@ -187,13 +207,36 @@ const ExamCategoryPage = () => {
     return '🎯';
   };
 
+  const getFilteredExams = () => {
+    if (selectedFilter === 'all') return exams;
+    if (selectedFilter === 'completed') return exams.filter(exam => exam.attempted);
+    if (selectedFilter === 'pending') return exams.filter(exam => !exam.attempted);
+    return exams;
+  };
+
+  const getFilteredGroupedExams = () => {
+    const filteredExams = getFilteredExams();
+    const grouped: { [key: string]: PracticeExam[] } = {};
+    filteredExams.forEach(exam => {
+      if (!grouped[exam.subcategory]) {
+        grouped[exam.subcategory] = [];
+      }
+      grouped[exam.subcategory].push(exam);
+    });
+    return grouped;
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={AppColors.primary} />
-          <Text style={styles.loadingText}>Loading {category} Exams...</Text>
-          <Text style={styles.loadingSubtext}>Please wait while we fetch your exams</Text>
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="large" color="#8B5CF6" />
+              <Text style={styles.loadingText}>Loading {category} Exams...</Text>
+              <Text style={styles.loadingSubtext}>Please wait while we fetch your exams</Text>
+            </View>
+          </Animated.View>
         </View>
       </SafeAreaView>
     );
@@ -203,33 +246,143 @@ const ExamCategoryPage = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyContainer}>
-          <Ionicons name="library-outline" size={80} color={AppColors.grey} />
-          <Text style={styles.emptyTitle}>No {category} Exams Available</Text>
-          <Text style={styles.emptySubtext}>
-            Check back later for new {category} practice exams.
-          </Text>
-          <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
-            <Ionicons name="refresh" size={20} color={AppColors.white} />
-            <Text style={styles.refreshButtonText}>Refresh</Text>
-          </TouchableOpacity>
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
+            <View style={styles.emptyCard}>
+              <Ionicons name="library-outline" size={80} color="#8B5CF6" />
+              <Text style={styles.emptyTitle}>No {category} Exams Available</Text>
+              <Text style={styles.emptySubtext}>
+                Check back later for new {category} practice exams.
+              </Text>
+              <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+                <Ionicons name="refresh" size={20} color="#FFFFFF" />
+                <Text style={styles.refreshButtonText}>Refresh</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
         </View>
       </SafeAreaView>
     );
   }
 
-  const groupedExams = groupExamsBySubcategory();
+  const groupedExams = getFilteredGroupedExams();
   const subcategories = Object.keys(groupedExams);
   const totalExams = exams.length;
   const attemptedExams = exams.filter(exam => exam.attempted).length;
   const overallProgress = totalExams > 0 ? (attemptedExams / totalExams) * 100 : 0;
+  const categoryColors = getGradientColors(category || '');
 
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeader
-        title={category || 'Category'}
-        subtitle={`${totalExams} exam${totalExams !== 1 ? 's' : ''} available`}
-        showBackButton={true}
-      />
+      {/* Enhanced Header */}
+      <LinearGradient
+        colors={categoryColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          <View style={styles.headerInfo}>
+            <View style={styles.categoryIconContainer}>
+              <Ionicons name={getCategoryIcon(category || '')} size={24} color="#FFFFFF" />
+            </View>
+            <Text style={styles.categoryTitle}>{category}</Text>
+            <Text style={styles.categorySubtitle}>
+              {totalExams} exam{totalExams !== 1 ? 's' : ''} available
+            </Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Enhanced Progress Overview */}
+      <Animated.View 
+        style={[
+          styles.progressSection,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}
+      >
+        <LinearGradient
+          colors={['#F8FAFC', '#F1F5F9']}
+          style={styles.progressCard}
+        >
+          <View style={styles.progressHeader}>
+            <View style={styles.progressLeft}>
+              <Text style={styles.progressTitle}>Your Progress</Text>
+              <Text style={styles.progressSubtitle}>
+                {attemptedExams} of {totalExams} completed
+              </Text>
+            </View>
+            <View style={styles.progressRight}>
+              <Text style={styles.progressPercentage}>
+                {Math.round(overallProgress)}%
+              </Text>
+              <Text style={styles.progressEmoji}>
+                {getCompletionEmoji(overallProgress)}
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressBar}>
+              <Animated.View 
+                style={[
+                  styles.progressFill,
+                  { width: `${overallProgress}%` }
+                ]} 
+              />
+            </View>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      {/* Filter Tabs */}
+      <Animated.View 
+        style={[
+          styles.filterSection,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}
+      >
+        <View style={styles.filterContainer}>
+          {[
+            { key: 'all', label: 'All', count: totalExams },
+            { key: 'completed', label: 'Completed', count: attemptedExams },
+            { key: 'pending', label: 'Pending', count: totalExams - attemptedExams }
+          ].map((filter) => (
+            <TouchableOpacity
+              key={filter.key}
+              style={[
+                styles.filterTab,
+                selectedFilter === filter.key && styles.activeFilterTab
+              ]}
+              onPress={() => setSelectedFilter(filter.key as any)}
+            >
+              <Text style={[
+                styles.filterText,
+                selectedFilter === filter.key && styles.activeFilterText
+              ]}>
+                {filter.label}
+              </Text>
+              <View style={[
+                styles.filterCount,
+                selectedFilter === filter.key && styles.activeFilterCount
+              ]}>
+                <Text style={[
+                  styles.filterCountText,
+                  selectedFilter === filter.key && styles.activeFilterCountText
+                ]}>
+                  {filter.count}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Animated.View>
 
       {/* Enhanced Exams List */}
       <ScrollView
@@ -240,96 +393,161 @@ const ExamCategoryPage = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[AppColors.primary]}
-            tintColor={AppColors.primary}
+            colors={['#8B5CF6']}
+            tintColor="#8B5CF6"
           />
         }
       >
-        {/* Simple Progress Overview */}
-        <View style={styles.enhancedProgressOverview}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressTitle}>Progress</Text>
-            <Text style={styles.progressPercentage}>
-              {Math.round(overallProgress)}%
-            </Text>
-          </View>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill,
-                { width: `${overallProgress}%` }
-              ]} 
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {attemptedExams} of {totalExams} exams completed
-          </Text>
-        </View>
-
-        {/* Simple Exam Cards */}
-        {Object.entries(groupedExams).map(([subcategory, subcategoryExams]) => {
+        {Object.entries(groupedExams).map(([subcategory, subcategoryExams], sectionIndex) => {
+          const subcategoryProgress = subcategoryExams.length > 0 
+            ? (subcategoryExams.filter(exam => exam.attempted).length / subcategoryExams.length) * 100 
+            : 0;
+          
           return (
-            <View key={subcategory} style={styles.subcategorySection}>
+            <Animated.View 
+              key={subcategory} 
+                              style={[
+                  styles.subcategorySection,
+                  { 
+                    opacity: fadeAnim, 
+                    transform: [{ 
+                      translateY: slideAnim
+                    }] 
+                  }
+                ]}
+            >
               <View style={styles.subcategoryHeader}>
                 <View style={styles.subcategoryInfo}>
-                  <Text style={styles.subcategoryTitle}>{subcategory}</Text>
+                  <View style={styles.subcategoryTitleRow}>
+                    <Text style={styles.subcategoryTitle}>{subcategory}</Text>
+                    <View style={styles.subcategoryBadge}>
+                      <Text style={styles.subcategoryBadgeText}>
+                        {subcategoryExams.length}
+                      </Text>
+                    </View>
+                  </View>
                   <Text style={styles.subcategoryCount}>
                     {subcategoryExams.length} exam{subcategoryExams.length !== 1 ? 's' : ''}
                   </Text>
                 </View>
                 <View style={styles.subcategoryProgress}>
-                  <Text style={styles.subcategoryProgressText}>
-                    {subcategoryExams.filter(exam => exam.attempted).length}/{subcategoryExams.length} completed
-                  </Text>
+                  <View style={styles.subcategoryProgressRing}>
+                    <Text style={styles.subcategoryProgressText}>
+                      {Math.round(subcategoryProgress)}%
+                    </Text>
+                  </View>
+                  <Text style={styles.subcategoryProgressLabel}>completed</Text>
                 </View>
               </View>
 
               {subcategoryExams.map((exam, index) => (
-                <TouchableOpacity
+                <Animated.View
                   key={exam.id}
-                  style={styles.cleanExamCard}
-                  onPress={() => exam.attempted ? handleReviewExam(exam) : handleStartExam(exam)}
-                  activeOpacity={0.8}
+                  style={[
+                    styles.examCardWrapper,
+                    { 
+                      opacity: fadeAnim, 
+                      transform: [{ 
+                        translateY: slideAnim
+                      }] 
+                    }
+                  ]}
                 >
-                  <View style={styles.cleanCardContent}>
-                    <View style={styles.cleanLeftSection}>
-                      <Text style={styles.cleanExamTitle}>{exam.title}</Text>
-                      <Text style={styles.cleanExamSubtitle}>{exam.subcategory}</Text>
-                      <Text style={styles.cleanExamDate}>
-                        Ends {formatDate(exam.endTime)}
-                      </Text>
-                    </View>
-                    
-                    <View style={styles.cleanRightSection}>
-                      <View style={[
-                        styles.cleanStatusIndicator,
-                        exam.attempted ? styles.cleanCompletedStatus : styles.cleanPendingStatus
-                      ]}>
-                        <Ionicons 
-                          name={exam.attempted ? "checkmark-circle" : "ellipse-outline"} 
-                          size={16} 
-                          color={exam.attempted ? AppColors.success : AppColors.grey} 
-                        />
+                  <TouchableOpacity
+                    style={styles.enhancedExamCard}
+                    onPress={() => exam.attempted ? handleReviewExam(exam) : handleStartExam(exam)}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={exam.attempted ? ['#10B981', '#059669'] : ['#FFFFFF', '#F8FAFC']}
+                      style={styles.examCardGradient}
+                    >
+                      <View style={styles.examCardContent}>
+                        <View style={styles.examLeftSection}>
+                          <View style={styles.examHeader}>
+                            <Text style={[
+                              styles.examTitle,
+                              exam.attempted && styles.completedExamTitle
+                            ]}>
+                              {exam.title}
+                            </Text>
+                            <View style={[
+                              styles.statusBadge,
+                              exam.attempted ? styles.completedBadge : styles.pendingBadge
+                            ]}>
+                              <Ionicons 
+                                name={exam.attempted ? "checkmark-circle" : "time"} 
+                                size={16} 
+                                color={exam.attempted ? "#10B981" : "#6B7280"} 
+                              />
+                              <Text style={[
+                                styles.statusText,
+                                exam.attempted ? styles.completedText : styles.pendingText
+                              ]}>
+                                {exam.attempted ? 'Completed' : 'Pending'}
+                              </Text>
+                            </View>
+                          </View>
+                          
+                          <View style={styles.examMeta}>
+                            <View style={styles.metaItem}>
+                              <View style={styles.metaIconContainer}>
+                                <Ionicons name="calendar" size={14} color="#6B7280" />
+                              </View>
+                              <Text style={styles.metaText}>
+                                Ends {formatDate(exam.endTime)}
+                              </Text>
+                            </View>
+                            <View style={styles.metaItem}>
+                              <View style={styles.metaIconContainer}>
+                                <Ionicons name="people" size={14} color="#6B7280" />
+                              </View>
+                              <Text style={styles.metaText}>
+                                {exam.spotsLeft}/{exam.spots} spots
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                        
+                        <View style={styles.examRightSection}>
+                          <TouchableOpacity
+                            style={[
+                              styles.actionButton,
+                              exam.attempted ? styles.reviewButton : styles.startButton
+                            ]}
+                            onPress={() => exam.attempted ? handleReviewExam(exam) : handleStartExam(exam)}
+                          >
+                            <Ionicons 
+                              name={exam.attempted ? "eye" : "play"} 
+                              size={18} 
+                              color="#FFFFFF" 
+                            />
+                            <Text style={styles.actionButtonText}>
+                              {exam.attempted ? 'Review' : 'Start'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                      <TouchableOpacity
-                        style={[
-                          styles.cleanActionButton,
-                          exam.attempted ? styles.cleanReviewButton : styles.cleanStartButton
-                        ]}
-                        onPress={() => exam.attempted ? handleReviewExam(exam) : handleStartExam(exam)}
-                      >
-                        <Text style={styles.cleanButtonText}>
-                          {exam.attempted ? 'View' : 'Start'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
               ))}
-            </View>
+            </Animated.View>
           );
         })}
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <Animated.View 
+        style={[
+          styles.fabContainer,
+          { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
+        ]}
+      >
+        <TouchableOpacity style={styles.fab} onPress={onRefresh}>
+          <Ionicons name="refresh" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -337,67 +555,181 @@ const ExamCategoryPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F8FAFC',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  // Enhanced Header
+  headerGradient: {
+    paddingTop: 20,
+    paddingBottom: 30,
     paddingHorizontal: 20,
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 18,
-    fontWeight: '600',
-    color: AppColors.darkGrey,
-  },
-  loadingSubtext: {
-    marginTop: 5,
-    fontSize: 14,
-    color: AppColors.grey,
-    textAlign: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: AppColors.darkGrey,
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 16,
-    color: AppColors.grey,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  refreshButton: {
-    backgroundColor: AppColors.primary,
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  headerInfo: {
+    flex: 1,
+  },
+  categoryIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  categoryTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  categorySubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+  },
+  // Enhanced Progress Section
+  progressSection: {
+    marginTop: -15,
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  progressCard: {
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  progressLeft: {
+    flex: 1,
+  },
+  progressTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  progressSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  progressRight: {
+    alignItems: 'center',
+  },
+  progressPercentage: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#8B5CF6',
+    marginBottom: 4,
+  },
+  progressEmoji: {
+    fontSize: 20,
+  },
+  progressBarContainer: {
+    alignItems: 'center',
+  },
+  progressBar: {
+    height: 12,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 6,
+    width: '100%',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#8B5CF6',
+    borderRadius: 6,
+  },
+  // Filter Section
+  filterSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  filterTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
-    borderRadius: 25,
-    marginTop: 20,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
   },
-  refreshButtonText: {
-    color: AppColors.white,
-    fontWeight: 'bold',
-    marginLeft: 8,
+  activeFilterTab: {
+    backgroundColor: '#8B5CF6',
   },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  activeFilterText: {
+    color: '#FFFFFF',
+  },
+  filterCount: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  activeFilterCount: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  filterCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  activeFilterCountText: {
+    color: '#FFFFFF',
+  },
+  // Enhanced Exam Cards
   examsContainer: {
     flex: 1,
   },
   examsContentContainer: {
-    paddingBottom: 20, // Add padding at the bottom for the last item
+    paddingHorizontal: 20,
+    paddingBottom: 100, // Extra space for FAB
   },
   subcategorySection: {
-    marginBottom: 25,
+    marginBottom: 30,
   },
   subcategoryHeader: {
     flexDirection: 'row',
@@ -407,45 +739,73 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   subcategoryInfo: {
+    flex: 1,
+  },
+  subcategoryTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
   subcategoryTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: AppColors.darkGrey,
-    marginLeft: 8,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginRight: 12,
+  },
+  subcategoryBadge: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  subcategoryBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   subcategoryCount: {
     fontSize: 14,
-    color: AppColors.grey,
+    color: '#6B7280',
     fontWeight: '500',
   },
-  subcategoryLabel: {
+  subcategoryProgress: {
+    alignItems: 'center',
+  },
+  subcategoryProgressRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  subcategoryProgressText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#8B5CF6',
+  },
+  subcategoryProgressLabel: {
     fontSize: 12,
-    color: AppColors.primary,
-    fontWeight: '600',
+    color: '#6B7280',
+    fontWeight: '500',
   },
-  subcategoryStats: {
-    alignItems: 'flex-end',
-  },
-  examCardContainer: {
+  examCardWrapper: {
     marginBottom: 16,
   },
-  examCard: {
-    backgroundColor: AppColors.white,
+  enhancedExamCard: {
     borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 6,
+    overflow: 'hidden',
+  },
+  examCardGradient: {
+    padding: 24,
   },
   examCardContent: {
     flexDirection: 'row',
@@ -454,62 +814,71 @@ const styles = StyleSheet.create({
   },
   examLeftSection: {
     flex: 1,
+    marginRight: 20,
   },
   examHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   examTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: AppColors.darkGrey,
+    fontWeight: '700',
+    color: '#1F2937',
     flex: 1,
-    marginRight: 10,
+    marginRight: 12,
+    lineHeight: 24,
+  },
+  completedExamTitle: {
+    color: '#FFFFFF',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
-    paddingVertical: 6,
     paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  completedBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+  },
+  pendingBadge: {
+    backgroundColor: 'rgba(107, 114, 128, 0.1)',
   },
   statusText: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: AppColors.white,
+    fontWeight: '600',
     marginLeft: 6,
   },
-  completedBadge: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.4)',
-  },
-  pendingBadge: {
-    backgroundColor: 'rgba(102, 126, 234, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(102, 126, 234, 0.4)',
-  },
   completedText: {
-    color: '#27ae60',
+    color: '#10B981',
   },
   pendingText: {
-    color: '#f39c12',
+    color: '#6B7280',
   },
-  examDetails: {
-    marginBottom: 15,
+  examMeta: {
+    flexDirection: 'row',
+    gap: 20,
   },
-  examDetailRow: {
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  examDetailText: {
-    fontSize: 14,
-    color: AppColors.grey,
-    marginLeft: 8,
+  metaIconContainer: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+  },
+  metaText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   examRightSection: {
     alignItems: 'flex-end',
@@ -520,525 +889,117 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 15,
-    backgroundColor: AppColors.primary,
+    borderRadius: 12,
+    gap: 8,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  actionButtonText: {
-    color: AppColors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginLeft: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   startButton: {
-    backgroundColor: AppColors.primary,
+    backgroundColor: '#8B5CF6',
   },
   reviewButton: {
-    backgroundColor: AppColors.success,
+    backgroundColor: '#10B981',
   },
-  simpleExamCard: {
-    backgroundColor: AppColors.white,
-    borderRadius: 15,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  // Floating Action Button
+  fabContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-
-  examTitleContainer: {
+  // Loading and Empty States
+  loadingContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
-
-  examMeta: {
-    flexDirection: 'row',
+  loadingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  loadingSubtext: {
     marginTop: 8,
-  },
-  examDate: {
-    fontSize: 13,
-    color: AppColors.grey,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  examSpots: {
-    fontSize: 13,
-    color: AppColors.primary,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  examBadges: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  attemptedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  attemptedText: {
-    fontSize: 12,
-    color: AppColors.success,
-    marginLeft: 6,
-    fontWeight: '600',
-  },
-  popularBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 193, 7, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  popularText: {
-    fontSize: 12,
-    color: AppColors.accent,
-    marginLeft: 6,
-    fontWeight: '600',
-  },
-  examStatus: {
-    padding: 4,
-  },
-
-
-  progressContainer: {
-    marginTop: 15,
-  },
-  examProgressBar: {
-    height: 8,
-    backgroundColor: '#E9ECEF',
-    borderRadius: 4,
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  examProgressFill: {
-    height: '100%',
-    backgroundColor: AppColors.primary,
-    borderRadius: 4,
-  },
-  examProgressText: {
-    fontSize: 13,
-    color: AppColors.grey,
-    textAlign: 'right',
-    fontWeight: '600',
-  },
-  examActions: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.05)',
-    paddingTop: 15,
-  },
-  enhancedActionButton: {
-    borderRadius: 15,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  actionButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    gap: 10,
-  },
-
-
-
-  simpleActionButton: {
-    borderRadius: 10,
-    backgroundColor: AppColors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-
-  statusIndicator: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pendingStatus: {
-    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(102, 126, 234, 0.3)',
-  },
-  completedStatus: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.4)',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    marginRight: 16,
-  },
-  amazingExamCard: {
-    backgroundColor: AppColors.white,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  amazingCardGradient: {
-    borderRadius: 20,
-    padding: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  amazingCardContent: {
-    flex: 1,
-  },
-  amazingLeftSection: {
-    marginBottom: 10,
-  },
-  amazingRightSection: {
-    alignItems: 'flex-end',
-  },
-  amazingTitleContainer: {
-    marginBottom: 4,
-  },
-  amazingExamTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: AppColors.white,
-  },
-  amazingBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  amazingBadgeText: {
-    fontSize: 12,
-    color: AppColors.white,
-    fontWeight: '600',
-  },
-  amazingExamDate: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 8,
-  },
-  amazingExamSpots: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  amazingStatusRing: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  amazingPendingRing: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  amazingCompletedRing: {
-    backgroundColor: AppColors.success,
-    borderWidth: 1,
-    borderColor: AppColors.success,
-  },
-  amazingActionButton: {
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  amazingButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  amazingButtonText: {
-    color: AppColors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginLeft: 10,
-  },
-  cleanExamCard: {
-    backgroundColor: AppColors.white,
-    borderRadius: 15,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  cleanCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cleanLeftSection: {
-    flex: 1,
-    marginRight: 15,
-  },
-  cleanRightSection: {
-    alignItems: 'flex-end',
-  },
-  cleanExamTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: AppColors.darkGrey,
-    marginBottom: 4,
-  },
-  cleanExamSubtitle: {
     fontSize: 14,
-    color: AppColors.grey,
-    marginBottom: 4,
-  },
-  cleanExamDate: {
-    fontSize: 13,
-    color: AppColors.grey,
-  },
-  cleanStatusIndicator: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  cleanPendingStatus: {
-    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(102, 126, 234, 0.3)',
-  },
-  cleanCompletedStatus: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.4)',
-  },
-  cleanActionButton: {
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  cleanStartButton: {
-    backgroundColor: AppColors.primary,
-  },
-  cleanReviewButton: {
-    backgroundColor: AppColors.success,
-  },
-  cleanButtonText: {
-    color: AppColors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  simpleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: AppColors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  simpleBackButton: {
-    padding: 8,
-  },
-  attractiveProgressOverview: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  progressGradient: {
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-  },
-  progressLeft: {
-    flex: 1,
-  },
-
-  progressSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  progressRight: {
-    alignItems: 'flex-end',
-  },
- 
-  progressEmoji: {
-    fontSize: 24,
-  },
-  progressBarContainer: {
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  attractiveExamCard: {
-    backgroundColor: AppColors.white,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  examCardGradient: {
-    borderRadius: 20,
-    padding: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  
-  examCardSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  examMetaRow: {
-    flexDirection: 'row',
-    gap: 15,
-  },
-  examMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  examMetaText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginLeft: 4,
-  },
-
-  attractiveActionButton: {
-    borderRadius: 15,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  enhancedProgressOverview: {
-    backgroundColor: AppColors.white,
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  progressTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: AppColors.darkGrey,
-  },
-  progressBar: {
-    height: 10,
-    backgroundColor: '#E9ECEF',
-    borderRadius: 5,
-    marginBottom: 10,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: AppColors.primary,
-    borderRadius: 5,
-  },
-  progressText: {
-    fontSize: 14,
-    color: AppColors.grey,
+    color: '#6B7280',
     textAlign: 'center',
-    fontWeight: '600',
   },
-  progressPercentage: {
-    fontSize: 18,
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  emptyTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: AppColors.primary,
+    color: '#1F2937',
+    marginTop: 16,
   },
-  subcategoryProgress: {
-    alignItems: 'flex-end',
+  emptySubtext: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 24,
   },
-  subcategoryProgressText: {
-    fontSize: 14,
-    color: AppColors.grey,
-    fontWeight: '600',
+  refreshButton: {
+    backgroundColor: '#8B5CF6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginTop: 20,
+  },
+  refreshButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
 });
 

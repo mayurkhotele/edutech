@@ -19,6 +19,7 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     login: (email: string, password: string) => Promise<any>;
+    register: (userData: { name: string; email: string; password: string; phoneNumber: string; referralCode?: string }) => Promise<any>;
     logout: () => void;
     updateUser: (userData: Partial<User>) => void;
 }
@@ -27,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     loading: true,
     login: async () => {},
+    register: async () => {},
     logout: () => {},
     updateUser: () => {},
 });
@@ -87,6 +89,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const register = async (userData: { name: string; email: string; password: string; phoneNumber: string; referralCode?: string }) => {
+        console.log('AuthContext register called with user data:', userData);
+        console.log('API URL:', '/auth/register');
+
+        try {
+            console.log('Making API call to register...');
+            const response = await apiFetch('/auth/register', {
+                method: 'POST',
+                body: userData,
+            });
+
+            console.log('API response received:', response);
+
+            if (response.ok) {
+                const { token, user: registeredUser } = response.data;
+                const userWithToken = { ...registeredUser, token };
+                console.log('Registration successful - New user data:', userWithToken);
+                setUser(userWithToken);
+                await storeAuthData(token, registeredUser);
+                return userWithToken;
+            } else {
+                console.log('Registration failed - response not ok:', response);
+                // Handle different types of errors
+                if (response.data && response.data.message) {
+                    throw new Error(response.data.message);
+                } else if (response.data && response.data.error) {
+                    throw new Error(response.data.error);
+                } else {
+                    throw new Error('Registration failed. Please try again.');
+                }
+            }
+        } catch (error) {
+            console.error('Registration failed with error:', error);
+            // Re-throw the error so it can be caught by the registration screen
+            throw error;
+        }
+    };
+
     const logout = async () => {
         console.log('Logging out - Clearing user data');
         setUser(null);
@@ -102,6 +142,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         loading,
         login,
+        register,
         logout,
         updateUser,
     };

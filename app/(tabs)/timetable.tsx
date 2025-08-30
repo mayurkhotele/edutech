@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, LayoutAnimation, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Image, LayoutAnimation, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
@@ -12,7 +12,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const shortDayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const shortDayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function formatTime(dateString: string) {
   const date = new Date(dateString);
@@ -131,7 +131,7 @@ export default function TimetableScreen() {
       slotDate.getMonth() === selectedDate.getMonth() &&
       slotDate.getDate() === selectedDate.getDate()
     );
-  })).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  })).sort((a, b) => new Date(a.startTime).getTime() - new Date(a.startTime).getTime());
 
   // Get upcoming plans (next 7 days)
   const upcomingPlans = timetables.flatMap(t => t.slots.filter((s: any) => {
@@ -140,7 +140,7 @@ export default function TimetableScreen() {
     const nextWeek = new Date();
     nextWeek.setDate(today.getDate() + 7);
     return slotDate >= today && slotDate <= nextWeek;
-  })).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()).slice(0, 3);
+  })).sort((a, b) => new Date(a.startTime).getTime() - new Date(a.startTime).getTime()).slice(0, 3);
 
   useEffect(() => {
     fetchTimetable();
@@ -320,7 +320,7 @@ export default function TimetableScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#a08efe" />
+        <ActivityIndicator size="large" color="#8B5CF6" />
         <Text style={styles.loadingText}>Loading your schedule...</Text>
       </View>
     );
@@ -328,26 +328,64 @@ export default function TimetableScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Fixed Header */}
-      <View style={styles.fixedHeader}>
-        {/* Compact Month Selector */}
-        <View style={styles.compactMonthSelector}>
+      {/* Header Section */}
+      <View style={styles.header}>
+        <LinearGradient
+          colors={['#F3E8FF', '#E9D5FF', '#D8B4FE']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          {/* Background Graphics */}
+          <View style={styles.headerBgGraphics}>
+            <View style={styles.bgCircle1} />
+            <View style={styles.bgCircle2} />
+            <View style={styles.bgCircle3} />
+            <View style={styles.bgDots} />
+            <View style={styles.bgWave} />
+          </View>
+          
+          <View style={styles.headerContent}>
+            <View style={styles.headerLeft}>
+              <View style={styles.headerTitleRow}>
+                <View style={styles.iconContainer}>
+                  <Image 
+                    source={require('../../assets/images/icons/p-cat3.png')} 
+                    style={styles.headerIcon}
+                    resizeMode="contain"
+                  />
+                  <View style={styles.iconGlow} />
+                </View>
+                <View style={styles.headerTextContainer}>
+                  <Text style={styles.headerTitle}>My Timetable</Text>
+                  <Text style={styles.headerSubtitle}>
+                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+
+      {/* Navigation Tabs */}
+      <View style={styles.tabContainer}>
+        <View style={styles.tabBackground}>
           <TouchableOpacity 
-            style={styles.monthNavButton}
-            onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+            style={[styles.tab, viewMode === 'calendar' && styles.tabActive]}
+            onPress={() => setViewMode('calendar')}
           >
-            <Ionicons name="chevron-back" size={20} color="#6C63FF" />
+            <Text style={[styles.tabText, viewMode === 'calendar' && styles.tabTextActive]}>
+              Calendar
+            </Text>
           </TouchableOpacity>
-          
-          <Text style={styles.currentMonthText}>
-            {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </Text>
-          
           <TouchableOpacity 
-            style={styles.monthNavButton}
-            onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+            style={[styles.tab, viewMode === 'timeline' && styles.tabActive]}
+            onPress={() => setViewMode('timeline')}
           >
-            <Ionicons name="chevron-forward" size={20} color="#6C63FF" />
+            <Text style={[styles.tabText, viewMode === 'timeline' && styles.tabTextActive]}>
+              Timeline
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -356,363 +394,349 @@ export default function TimetableScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchTimetable} />}>
         {viewMode === 'calendar' ? (
           <Animated.View style={[styles.calendarContent, { opacity: fadeAnim }]}>
-            {/* Compact Calendar Grid */}
-            <View style={styles.compactCalendarContainer}>
-              {/* Day Headers */}
-              <View style={styles.dayHeaders}>
-                {shortDayNames.map((day, index) => (
-                  <View key={index} style={styles.dayHeader}>
-                    <Text style={styles.dayHeaderText}>{day}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* Compact Calendar Days */}
-              <View style={styles.calendarGrid}>
-                {calendarDays.map((date, index) => {
-                  const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
-                  const isTodayDate = isToday(date);
-                  const isSelectedDateValue = isSelectedDate(date);
-                  const hasEventsOnDate = hasEvents(date);
+            {/* Calendar Section */}
+            <View style={styles.calendarSection}>
+              <View style={styles.calendarGradient}>
+                <View style={styles.calendarHeader}>
+                  <TouchableOpacity 
+                    style={styles.calendarNavButton}
+                    onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+                  >
+                    <Ionicons name="chevron-back" size={20} color="#fff" />
+                  </TouchableOpacity>
                   
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.compactCalendarDay,
-                        isTodayDate && styles.calendarDayToday,
-                        isSelectedDateValue && styles.calendarDaySelected,
-                        !isCurrentMonth && styles.calendarDayOtherMonth
-                      ]}
-                      onPress={() => setSelectedDate(date)}
-                    >
-                      <Text style={[
-                        styles.compactCalendarDayText,
-                        isTodayDate && styles.calendarDayTextToday,
-                        isSelectedDateValue && styles.calendarDayTextSelected,
-                        !isCurrentMonth && styles.calendarDayTextOtherMonth
-                      ]}>
-                        {date.getDate()}
-                      </Text>
-                      {hasEventsOnDate && <View style={styles.eventDot} />}
-                    </TouchableOpacity>
-                  );
-                })}
+                  <Text style={styles.calendarMonthText}>
+                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </Text>
+                  
+                  <TouchableOpacity 
+                    style={styles.calendarNavButton}
+                    onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+                  >
+                    <Ionicons name="chevron-forward" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Day Headers */}
+                <View style={styles.calendarDayHeaders}>
+                  {shortDayNames.map((day, index) => (
+                    <View key={index} style={styles.calendarDayHeader}>
+                      <Text style={styles.calendarDayHeaderText}>{day}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Calendar Grid */}
+                <View style={styles.calendarGrid}>
+                  {calendarDays.map((date, index) => {
+                    const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+                    const isTodayDate = isToday(date);
+                    const isSelectedDateValue = isSelectedDate(date);
+                    const hasEventsOnDate = hasEvents(date);
+                    
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.calendarDay,
+                          isTodayDate && styles.calendarDayToday,
+                          isSelectedDateValue && styles.calendarDaySelected,
+                          !isCurrentMonth && styles.calendarDayOtherMonth
+                        ]}
+                        onPress={() => setSelectedDate(date)}
+                      >
+                        <Text style={[
+                          styles.calendarDayText,
+                          isTodayDate && styles.calendarDayTextToday,
+                          isSelectedDateValue && styles.calendarDayTextSelected,
+                          !isCurrentMonth && styles.calendarDayTextOtherMonth
+                        ]}>
+                          {date.getDate()}
+                        </Text>
+                        {hasEventsOnDate && <View style={styles.eventDot} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             </View>
 
-            {/* Enhanced Today's Schedule Section */}
-            <View style={styles.enhancedSection}>
+            {/* Today's Schedule Section */}
+            <View style={styles.scheduleSection}>
               <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleContainer}>
-                  <LinearGradient
-                    colors={['#6C63FF', '#FF6CAB']}
-                    style={styles.sectionIconContainer}
-                  >
-                    <Ionicons name="calendar" size={20} color="#fff" />
-                  </LinearGradient>
-                  <View>
-                    <Text style={styles.enhancedSectionTitle}>Today's Schedule</Text>
-                    <Text style={styles.sectionSubtitle}>
-                      {selectedDate.toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
-                    </Text>
-                  </View>
+                <Text style={styles.sectionTitle}>Today's Schedule</Text>
+                <View style={styles.sectionIconContainer}>
+                  <Image 
+                    source={require('../../assets/images/icons/p-cat3.png')} 
+                    style={styles.sectionIcon}
+                    resizeMode="contain"
+                  />
                 </View>
-                <TouchableOpacity 
-                  style={styles.viewModeButton}
-                  onPress={() => setViewMode('timeline')}
-                >
-                  <Ionicons name="time" size={16} color="#6C63FF" />
-                  <Text style={styles.viewModeText}>Timeline</Text>
-                </TouchableOpacity>
               </View>
               
               {selectedDateSlots.length === 0 ? (
-                <View style={styles.enhancedEmptyPlan}>
-                  <LinearGradient
-                    colors={['rgba(108, 99, 255, 0.05)', 'rgba(255, 108, 171, 0.05)']}
-                    style={styles.emptyPlanGradient}
-                  >
-                  <View style={styles.emptyIconContainer}>
-                      <Ionicons name="calendar-outline" size={48} color="#6C63FF" />
-                  </View>
-                  <Text style={styles.emptyPlanText}>No plans for today</Text>
-                  <Text style={styles.emptyPlanSubtext}>Tap the + button to add a schedule</Text>
-                    <TouchableOpacity 
-                      style={styles.addFirstPlanButton}
-                      onPress={() => setModalVisible(true)}
-                    >
-                      <LinearGradient
-                        colors={['#6C63FF', '#FF6CAB']}
-                        style={styles.addFirstPlanGradient}
-                      >
-                        <Ionicons name="add" size={18} color="#fff" />
-                        <Text style={styles.addFirstPlanText}>Add Your First Plan</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </LinearGradient>
+                <View style={styles.emptySchedule}>
+                  <Ionicons name="calendar-outline" size={48} color="#9CA3AF" />
+                  <Text style={styles.emptyScheduleText}>No plans for today</Text>
+                  <Text style={styles.emptyScheduleSubtext}>Tap the + button to add a schedule</Text>
                 </View>
               ) : (
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.eventsSlider}
-                  contentContainerStyle={styles.eventsSliderContent}
-                >
+                <View style={styles.scheduleCards}>
                   {selectedDateSlots.map((slot, index) => {
-                    // Different background colors for variety
-                    const backgroundColors: [string, string][] = [
-                      ['rgba(108, 99, 255, 0.08)', 'rgba(255, 108, 171, 0.08)'],
-                      ['rgba(255, 108, 171, 0.08)', 'rgba(255, 212, 82, 0.08)'],
-                      ['rgba(255, 212, 82, 0.08)', 'rgba(108, 99, 255, 0.08)'],
-                      ['rgba(76, 175, 80, 0.08)', 'rgba(33, 150, 243, 0.08)'],
-                      ['rgba(156, 39, 176, 0.08)', 'rgba(255, 87, 34, 0.08)'],
+                    // Different faint background colors for each schedule card
+                    const scheduleBackgroundColors = [
+                      '#F0F4FF', // Light blue
+                      '#FFF0F4', // Light pink
+                      '#F0FFF4', // Light green
+                      '#FFF4F0', // Light orange
+                      '#F4F0FF', // Light purple
+                      '#FFFFF0', // Light yellow
+                      '#F0FFFF', // Light cyan
+                      '#FFF0F0', // Light red
                     ];
-                    const cardColors = backgroundColors[index % backgroundColors.length];
+                    
+                    const scheduleBackgroundColor = scheduleBackgroundColors[index % scheduleBackgroundColors.length];
+                    
+                    // Dynamic data based on actual slot information
+                    const getSubjectIcon = (subject: string) => {
+                      const lowerSubject = subject.toLowerCase();
+                      if (lowerSubject.includes('math') || lowerSubject.includes('mathematics')) {
+                        return { icon: 'calculator', color: '#8B5CF6' };
+                      } else if (lowerSubject.includes('chemistry') || lowerSubject.includes('chem')) {
+                        return { icon: 'flask', color: '#3B82F6' };
+                      } else if (lowerSubject.includes('computer') || lowerSubject.includes('cs') || lowerSubject.includes('programming')) {
+                        return { icon: 'code-slash', color: '#F59E0B' };
+                      } else if (lowerSubject.includes('physics')) {
+                        return { icon: 'nuclear', color: '#EF4444' };
+                      } else if (lowerSubject.includes('biology')) {
+                        return { icon: 'leaf', color: '#10B981' };
+                      } else if (lowerSubject.includes('english') || lowerSubject.includes('literature')) {
+                        return { icon: 'book', color: '#8B5CF6' };
+                      } else if (lowerSubject.includes('history')) {
+                        return { icon: 'time', color: '#6B7280' };
+                      } else if (lowerSubject.includes('art') || lowerSubject.includes('drawing')) {
+                        return { icon: 'brush', color: '#EC4899' };
+                      } else {
+                        return { icon: 'book', color: '#8B5CF6' };
+                      }
+                    };
+
+                    const getStatusInfo = (startTime: string) => {
+                      const now = new Date();
+                      const slotStart = new Date(startTime);
+                      const slotEnd = new Date(startTime);
+                      slotEnd.setHours(slotEnd.getHours() + 1.5); // Assuming 1.5 hour duration
+                      
+                      if (now >= slotStart && now <= slotEnd) {
+                        return { status: 'In Progress', color: '#10B981' };
+                      } else if (now < slotStart) {
+                        return { status: 'Upcoming', color: '#6B7280' };
+                      } else {
+                        return { status: 'Completed', color: '#6B7280' };
+                      }
+                    };
+
+                    const subjectIcon = getSubjectIcon(slot.subject || 'Study Session');
+                    const statusInfo = getStatusInfo(slot.startTime);
+                    
+                    const data = {
+                      subject: slot.subject || 'Study Session',
+                      professor: slot.professor || 'Professor',
+                      time: `${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`,
+                      status: statusInfo.status,
+                      statusColor: statusInfo.color,
+                      room: slot.room || 'Study Room',
+                      icon: subjectIcon.icon,
+                      iconColor: subjectIcon.color,
+                      note: slot.notes
+                    };
                     
                     return (
-                      <View 
-                        key={index} 
-                        style={styles.sliderEventCard}
-                      >
-                        <LinearGradient
-                          colors={cardColors}
-                          style={styles.sliderCardGradient}
-                        >
-                          <View style={styles.sliderEventHeader}>
-                            <LinearGradient
-                              colors={['#6C63FF', '#FF6CAB']}
-                              style={styles.sliderTimeBadge}
-                            >
-                              <Ionicons name="time" size={14} color="#fff" />
-                              <Text style={styles.sliderTimeText}>{formatTime(slot.startTime)}</Text>
-                            </LinearGradient>
-                            <View style={styles.sliderStatus}>
-                              <View style={styles.sliderStatusDot} />
-                              <Text style={styles.sliderStatusText}>Today</Text>
-                            </View>
+                      <View key={index} style={[styles.scheduleCard, { backgroundColor: scheduleBackgroundColor }]}>
+                        <View style={styles.scheduleIcon}>
+                          <View style={[styles.iconBackground, { backgroundColor: data.iconColor }]}>
+                            <Ionicons name={data.icon as any} size={20} color="#fff" />
                           </View>
-                          <View style={styles.sliderEventContent}>
-                            {/* Schedule Name */}
-                            {name && (
-                              <Text style={styles.sliderScheduleName}>{name}</Text>
-                            )}
-                            {/* Subject */}
-                            <Text style={styles.sliderEventTitle}>{slot.subject}</Text>
-                            {/* Topic */}
-                            {slot.topic && (
-                              <Text style={styles.sliderEventSubtitle}>{slot.topic}</Text>
-                            )}
-                            {/* Description */}
-                            {description && (
-                              <View style={styles.sliderEventDescription}>
-                                <Ionicons name="document" size={12} color="#6C63FF" />
-                                <Text style={styles.sliderDescriptionText} numberOfLines={2}>
-                                  {description}
-                                </Text>
-                              </View>
-                            )}
-                            {/* Location */}
-                            <View style={styles.sliderEventLocation}>
-                              <Ionicons name="location" size={12} color="#6C63FF" />
-                              <Text style={styles.sliderLocationText}>Study Session</Text>
-                            </View>
-                            {/* Notes */}
-                            {slot.notes && (
-                              <View style={styles.sliderEventNotes}>
-                                <Ionicons name="document-text" size={12} color="#6C63FF" />
-                                <Text style={styles.sliderNotesText} numberOfLines={2}>
-                                  {slot.notes}
-                                </Text>
-                              </View>
-                            )}
-                            {/* Event Details */}
-                            <View style={styles.sliderEventDetails}>
-                              <View style={styles.sliderDetailItem}>
-                                <Ionicons name="calendar" size={10} color="#666" />
-                                <Text style={styles.sliderDetailText}>
-                                  {dayNames[slot.day]}
-                                </Text>
-                              </View>
-                              {slot.reminder && (
-                                <View style={styles.sliderDetailItem}>
-                                  <Ionicons name="notifications" size={10} color="#666" />
-                                  <Text style={styles.sliderDetailText}>Reminder</Text>
-                                </View>
-                              )}
-                              {isWeekly && (
-                                <View style={styles.sliderDetailItem}>
-                                  <Ionicons name="repeat" size={10} color="#666" />
-                                  <Text style={styles.sliderDetailText}>Weekly</Text>
-                                </View>
-                              )}
-                            </View>
-                            <View style={styles.sliderEventActions}>
-                              <TouchableOpacity style={styles.sliderActionButton}>
-                                <Ionicons name="notifications-outline" size={14} color="#6C63FF" />
-                              </TouchableOpacity>
-                              <TouchableOpacity style={styles.sliderActionButton}>
-                                <Ionicons name="share-outline" size={14} color="#6C63FF" />
-                              </TouchableOpacity>
-                              <TouchableOpacity style={styles.sliderActionButton}>
-                                <Ionicons name="ellipsis-horizontal" size={14} color="#6C63FF" />
-                              </TouchableOpacity>
-                            </View>
+                        </View>
+                        <View style={styles.scheduleContent}>
+                          <Text style={styles.scheduleSubject}>{data.subject}</Text>
+                          <Text style={styles.scheduleDetails}>
+                            {data.professor} • {data.time}
+                          </Text>
+                          <View style={styles.scheduleStatus}>
+                            <View style={[styles.statusDot, { backgroundColor: data.statusColor }]} />
+                            <Text style={[styles.statusText, { color: data.statusColor }]}>
+                              {data.status}
+                            </Text>
                           </View>
-                        </LinearGradient>
+                          {data.note && (
+                            <View style={styles.scheduleNote}>
+                              <Ionicons name="warning" size={12} color="#F59E0B" />
+                              <Text style={styles.noteText}>{data.note}</Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.scheduleRoom}>
+                          <Text style={styles.roomText}>{data.room}</Text>
+                        </View>
                       </View>
                     );
                   })}
-                </ScrollView>
+                </View>
               )}
             </View>
 
-            {/* Enhanced Upcoming Plans Section */}
+            {/* Upcoming Tasks Section */}
             {upcomingPlans.length > 0 && (
-              <View style={styles.enhancedSection}>
+              <View style={styles.tasksSection}>
                 <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleContainer}>
-                    <LinearGradient
-                      colors={['#FF6CAB', '#FFD452']}
-                      style={styles.sectionIconContainer}
-                    >
-                      <Ionicons name="calendar" size={20} color="#fff" />
-                    </LinearGradient>
-                    <View>
-                      <Text style={styles.enhancedSectionTitle}>Upcoming Plans</Text>
-                      <Text style={styles.sectionSubtitle}>{upcomingPlans.length} events this week</Text>
-                    </View>
+                  <Text style={styles.sectionTitle}>Upcoming Tasks</Text>
+                  <View style={styles.sectionIconContainer}>
+                    <Image 
+                      source={require('../../assets/images/icons/p-cat3.png')} 
+                      style={styles.sectionIcon}
+                      resizeMode="contain"
+                    />
                   </View>
                 </View>
-                <View style={styles.enhancedUpcomingContainer}>
-                  {upcomingPlans.map((plan, index) => (
-                    <View 
-                      key={index} 
-                      style={styles.enhancedUpcomingCard}
-                    >
-                      <LinearGradient
-                        colors={['rgba(255, 108, 171, 0.1)', 'rgba(255, 212, 82, 0.1)']}
-                        style={styles.upcomingCardGradient}
-                      >
-                        <View style={styles.upcomingIcon}>
-                          <LinearGradient
-                            colors={['#FF6CAB', '#FFD452']}
-                            style={styles.upcomingIconGradient}
-                          >
-                            <Ionicons name="calendar" size={20} color="#fff" />
-                          </LinearGradient>
+                <View style={styles.taskCards}>
+                  {upcomingPlans.map((plan, index) => {
+                    // Dynamic data based on actual plan information
+                    const getTaskIcon = (subject: string) => {
+                      const lowerSubject = subject.toLowerCase();
+                      if (lowerSubject.includes('math') || lowerSubject.includes('mathematics')) {
+                        return { icon: 'calculator', color: '#EF4444' };
+                      } else if (lowerSubject.includes('physics')) {
+                        return { icon: 'nuclear', color: '#8B5CF6' };
+                      } else if (lowerSubject.includes('chemistry')) {
+                        return { icon: 'flask', color: '#3B82F6' };
+                      } else if (lowerSubject.includes('computer') || lowerSubject.includes('cs')) {
+                        return { icon: 'code-slash', color: '#F59E0B' };
+                      } else if (lowerSubject.includes('biology')) {
+                        return { icon: 'leaf', color: '#10B981' };
+                      } else if (lowerSubject.includes('english') || lowerSubject.includes('literature')) {
+                        return { icon: 'book', color: '#8B5CF6' };
+                      } else {
+                        return { icon: 'document-text', color: '#8B5CF6' };
+                      }
+                    };
+
+                    const getDueDateInfo = (startTime: string) => {
+                      const now = new Date();
+                      const taskDate = new Date(startTime);
+                      const diffTime = taskDate.getTime() - now.getTime();
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      
+                      if (diffDays === 0) {
+                        return { dueDate: 'Today', color: '#EF4444', priority: 'high' };
+                      } else if (diffDays === 1) {
+                        return { dueDate: 'Tomorrow', color: '#F59E0B', priority: 'medium' };
+                      } else if (diffDays === 2) {
+                        return { dueDate: 'Day After Tomorrow', color: '#8B5CF6', priority: 'medium' };
+                      } else if (diffDays <= 3) {
+                        return { dueDate: `In ${diffDays} days`, color: '#6B7280', priority: 'low' };
+                      } else {
+                        return { dueDate: taskDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), color: '#9CA3AF', priority: 'low' };
+                      }
+                    };
+
+                    const taskIcon = getTaskIcon(plan.subject || 'Task');
+                    const dueInfo = getDueDateInfo(plan.startTime);
+                    
+                    const data = {
+                      title: plan.subject || 'Task',
+                      details: plan.topic || 'Study Session',
+                      dueDate: dueInfo.dueDate,
+                      dueColor: dueInfo.color,
+                      priority: dueInfo.priority,
+                      icon: taskIcon.icon,
+                      iconColor: taskIcon.color,
+                      time: formatTime(plan.startTime)
+                    };
+                    
+                    return (
+                      <View key={index} style={styles.taskCard}>
+                        <View style={styles.taskIcon}>
+                          <View style={[styles.iconBackground, { backgroundColor: data.iconColor }]}>
+                            <Ionicons name={data.icon as any} size={18} color="#fff" />
+                          </View>
                         </View>
-                        <View style={styles.upcomingContent}>
-                          <Text style={styles.upcomingTitle}>{plan.subject}</Text>
-                          <Text style={styles.upcomingDate}>
-                            {new Date(plan.startTime).toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric',
-                              weekday: 'short'
-                            })} • {formatTimeShort(plan.startTime)}
-                          </Text>
+                        <View style={styles.taskContent}>
+                          <Text style={styles.taskTitle}>{data.title}</Text>
+                          <Text style={styles.taskDetails}>{data.details}</Text>
+                          <Text style={styles.taskTime}>{data.time}</Text>
                         </View>
-                        <TouchableOpacity style={styles.upcomingArrow}>
-                          <Ionicons name="chevron-forward" size={20} color="#FF6CAB" />
-                        </TouchableOpacity>
-                      </LinearGradient>
-                    </View>
-                  ))}
+                        <View style={styles.taskDue}>
+                          <View style={[styles.priorityBadge, { backgroundColor: data.dueColor + '20' }]}>
+                            <Text style={[styles.dueText, { color: data.dueColor }]}>
+                              {data.dueDate}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
                 </View>
               </View>
             )}
           </Animated.View>
         ) : (
           <Animated.View style={[styles.timelineContent, { opacity: fadeAnim }]}>
-            {/* Enhanced Timeline Header */}
-            <View style={styles.enhancedTimelineHeader}>
-              <TouchableOpacity onPress={() => setViewMode('calendar')} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#6C63FF" />
-              </TouchableOpacity>
-              <View style={styles.timelineHeaderCenter}>
-                <Text style={styles.enhancedTimelineDate}>
-                  {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-                </Text>
-                <Text style={styles.enhancedTimelineGreeting}>
-                  {dayNames[selectedDate.getDay()]} • {getGreeting()}
-                </Text>
-              </View>
-            </View>
-
-            {/* Enhanced Timeline */}
-            <View style={styles.enhancedTimelineContainer}>
+            {/* Timeline */}
+            <View style={styles.timelineContainer}>
               <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleContainer}>
-                  <LinearGradient
-                    colors={['#6C63FF', '#FF6CAB']}
-                    style={styles.sectionIconContainer}
-                  >
-                    <Ionicons name="time" size={20} color="#fff" />
-                  </LinearGradient>
-                  <Text style={styles.enhancedTimelineSectionTitle}>Today's Timeline</Text>
-                </View>
+                <Text style={styles.sectionTitle}>Today's Timeline</Text>
               </View>
               
               {selectedDateSlots.length === 0 ? (
-                <View style={styles.enhancedEmptyTimeline}>
-                  <LinearGradient
-                    colors={['rgba(108, 99, 255, 0.1)', 'rgba(255, 108, 171, 0.1)']}
-                    style={styles.emptyTimelineGradient}
-                  >
-                    <View style={styles.emptyIconContainer}>
-                      <Ionicons name="time-outline" size={48} color="#6C63FF" />
-                    </View>
+                <View style={styles.emptyTimeline}>
+                  <Ionicons name="time-outline" size={48} color="#9CA3AF" />
                     <Text style={styles.emptyTimelineText}>No plans scheduled</Text>
                     <Text style={styles.emptyTimelineSubtext}>Add a schedule to get started</Text>
-                  </LinearGradient>
                 </View>
               ) : (
-                <View style={styles.enhancedTimelineItemsContainer}>
-                  {selectedDateSlots.map((slot, index) => (
-                    <View key={index} style={styles.enhancedTimelineItem}>
-                      <View style={styles.enhancedTimelineMarker}>
-                        <LinearGradient
-                          colors={['#6C63FF', '#FF6CAB']}
-                          style={styles.enhancedTimelineDot}
-                        />
-                        {index < selectedDateSlots.length - 1 && <View style={styles.enhancedTimelineLine} />}
-                      </View>
-                      <View style={styles.enhancedTimelineContent}>
-                        <View style={styles.enhancedTimelineTime}>
-                          <Text style={styles.enhancedTimelineTimeText}>{formatTime(slot.startTime)}</Text>
-                        </View>
-                        <View style={styles.enhancedTimelineCard}>
-                          <LinearGradient
-                            colors={['rgba(108, 99, 255, 0.1)', 'rgba(255, 108, 171, 0.1)']}
-                            style={styles.timelineCardGradient}
-                          >
-                            <Text style={styles.enhancedTimelineTitle}>{slot.subject}</Text>
+                <View style={styles.timelineItems}>
+                  {selectedDateSlots.map((slot, index) => {
+                    // Different enhanced background colors for each session
+                    const backgroundColors = [
+                      '#E0E7FF', // Enhanced light blue
+                      '#FCE7F3', // Enhanced light pink
+                      '#D1FAE5', // Enhanced light green
+                      '#FED7AA', // Enhanced light orange
+                      '#E9D5FF', // Enhanced light purple
+                      '#FEF3C7', // Enhanced light yellow
+                      '#CFFAFE', // Enhanced light cyan
+                      '#FEE2E2', // Enhanced light red
+                    ];
+                    
+                    const backgroundColor = backgroundColors[index % backgroundColors.length];
+                    
+                    return (
+                      <View key={index} style={[styles.timelineItem, { backgroundColor }]}>
+                        <View style={styles.timelineContentContainer}>
+                          <View style={styles.timelineCard}>
+                            <View style={styles.timelineTitleRow}>
+                              <Text style={styles.timelineTitle}>{slot.subject}</Text>
+                              <View style={styles.timelineTimeIcon}>
+                                <Image 
+                                  source={require('../../assets/images/icons/p-cat3.png')} 
+                                  style={styles.timelineTimeImage}
+                                  resizeMode="contain"
+                                />
+                              </View>
+                            </View>
                             {slot.topic && (
-                              <Text style={styles.enhancedTimelineSubtitle}>{slot.topic}</Text>
+                              <Text style={styles.timelineSubtitle}>{slot.topic}</Text>
                             )}
-                            <View style={styles.enhancedTimelineLocation}>
-                              <Ionicons name="location" size={14} color="#6C63FF" />
-                              <Text style={styles.enhancedTimelineLocationText}>Study Session</Text>
+                            <View style={styles.timelineLocation}>
+                              <Text style={styles.timelineLocationText}>Study Session</Text>
+                              <Text style={styles.timelineTimeInline}>{formatTime(slot.startTime)}</Text>
                             </View>
-                            <View style={styles.enhancedTimelineActions}>
-                              <TouchableOpacity style={styles.timelineActionButton}>
-                                <Ionicons name="notifications-outline" size={16} color="#6C63FF" />
-                                <Text style={styles.timelineActionText}>Remind</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity style={styles.timelineActionButton}>
-                                <Ionicons name="share-outline" size={16} color="#6C63FF" />
-                                <Text style={styles.timelineActionText}>Share</Text>
-                              </TouchableOpacity>
-                            </View>
-                          </LinearGradient>
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
               )}
             </View>
@@ -720,11 +744,11 @@ export default function TimetableScreen() {
         )}
       </ScrollView>
 
-      {/* Enhanced Floating Action Button */}
-      <TouchableOpacity style={styles.enhancedFab} onPress={() => setModalVisible(true)}>
+      {/* Floating Action Button */}
+      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
         <LinearGradient
-          colors={['#6C63FF', '#FF6CAB']}
-          style={styles.enhancedFabGradient}
+          colors={['#8B5CF6', '#7C3AED']}
+          style={styles.fabGradient}
         >
           <Ionicons name="add" size={28} color="#fff" />
         </LinearGradient>
@@ -823,13 +847,13 @@ export default function TimetableScreen() {
               
               <View style={styles.switchContainer}>
                 <View style={styles.switchLabelContainer}>
-                  <Ionicons name="repeat" size={20} color="#a08efe" />
+                  <Ionicons name="repeat" size={20} color="#8B5CF6" />
                   <Text style={styles.switchLabel}>Repeat Weekly</Text>
                 </View>
                 <Switch 
                   value={isWeekly} 
                   onValueChange={setIsWeekly} 
-                  thumbColor={isWeekly ? '#a08efe' : '#f4f3f4'} 
+                  thumbColor={isWeekly ? '#8B5CF6' : '#f4f3f4'} 
                   trackColor={{ true: '#e0d5ff', false: '#f4f3f4' }} 
                 />
               </View>
@@ -874,7 +898,7 @@ export default function TimetableScreen() {
                         <Text style={slot.startTime ? styles.timeText : styles.timePlaceholder}>
                           {slot.startTime || '09:00'}
                         </Text>
-                        <Ionicons name="time" size={20} color="#a08efe" />
+                        <Ionicons name="time" size={20} color="#8B5CF6" />
                       </TouchableOpacity>
                     </View>
                     <View style={styles.timeInputGroup}>
@@ -886,7 +910,7 @@ export default function TimetableScreen() {
                         <Text style={slot.endTime ? styles.timeText : styles.timePlaceholder}>
                           {slot.endTime || '10:30'}
                         </Text>
-                        <Ionicons name="time" size={20} color="#a08efe" />
+                        <Ionicons name="time" size={20} color="#8B5CF6" />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -927,13 +951,13 @@ export default function TimetableScreen() {
                   
                   <View style={styles.switchContainer}>
                     <View style={styles.switchLabelContainer}>
-                      <Ionicons name="notifications" size={20} color="#a08efe" />
+                      <Ionicons name="notifications" size={20} color="#8B5CF6" />
                       <Text style={styles.switchLabel}>Set Reminder</Text>
                     </View>
                     <Switch 
                       value={slot.reminder} 
                       onValueChange={v => handleSlotChange(idx, 'reminder', v)} 
-                      thumbColor={slot.reminder ? '#a08efe' : '#f4f3f4'} 
+                      thumbColor={slot.reminder ? '#8B5CF6' : '#f4f3f4'} 
                       trackColor={{ true: '#e0d5ff', false: '#f4f3f4' }} 
                     />
                   </View>
@@ -941,7 +965,7 @@ export default function TimetableScreen() {
               ))}
               
               <TouchableOpacity style={styles.addSlotBtn} onPress={handleAddSlot}>
-                <Ionicons name="add-circle" size={24} color="#a08efe" />
+                <Ionicons name="add-circle" size={24} color="#8B5CF6" />
                 <Text style={styles.addSlotText}>Add Another Session</Text>
               </TouchableOpacity>
               
@@ -952,7 +976,7 @@ export default function TimetableScreen() {
                   disabled={creating}
                 >
                   <LinearGradient
-                    colors={['#a08efe', '#7c3aed']}
+                    colors={['#8B5CF6', '#7C3AED']}
                     style={styles.createBtnGradient}
                   >
                     {creating ? (
@@ -986,143 +1010,374 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FF',
   },
-  fixedHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-  },
-  compactMonthSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Platform.OS === 'ios' ? -5 : 0,
-    marginBottom: 15,
-    paddingHorizontal: 20,
-  },
-  monthNavButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(108, 99, 255, 0.1)',
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.3,
-    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
-    elevation: Platform.OS === 'android' ? 3 : 0,
+    backgroundColor: '#F8F9FF',
   },
-  currentMonthText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    flex: 1,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  calendarContent: {
-    paddingBottom: Platform.OS === 'ios' ? 120 : 140,
-  },
-  compactCalendarContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
-    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
-    elevation: Platform.OS === 'android' ? 5 : 0,
-    marginBottom: 25,
-  },
-  dayHeaders: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 15,
-  },
-  dayHeader: {
-    alignItems: 'center',
-  },
-  dayHeaderText: {
-    fontSize: 13,
-    color: '#6C63FF',
-    fontWeight: 'bold',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  compactCalendarDay: {
-    width: '14.28%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    borderRadius: 15,
-  },
-  compactCalendarDayText: {
-    fontSize: 15,
-    color: '#333',
+  loadingText: {
+    color: '#8B5CF6',
+    fontSize: 18,
+    marginTop: 15,
     fontWeight: '500',
     ...Platform.select({
       ios: {
         fontFamily: 'System',
       },
       android: {
-        fontFamily: 'sans-serif',
+        fontFamily: 'sans-serif-medium',
       },
     }),
   },
+  header: {
+    backgroundColor: 'transparent',
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 15,
+    marginTop: -15,
+    marginBottom: 0,
+  },
+  headerGradient: {
+    borderRadius: 20,
+    padding: 12,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.1)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIcon: {
+    width: 45,
+    height: 45,
+    marginRight: 18,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  iconContainer: {
+    position: 'relative',
+  },
+  iconGlow: {
+    position: 'absolute',
+    top: -12,
+    left: -12,
+    right: -12,
+    bottom: -12,
+    borderRadius: 25,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    opacity: 0.8,
+    zIndex: -1,
+  },
+  headerBgGraphics: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
+  },
+  bgCircle1: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: -20,
+    left: -20,
+  },
+  bgCircle2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    bottom: 100,
+    right: -50,
+  },
+  bgCircle3: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    top: 200,
+    left: 100,
+  },
+  bgDots: {
+    position: 'absolute',
+    top: 100,
+    left: 100,
+    width: 100,
+    height: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 50,
+  },
+  bgWave: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+    textShadowColor: 'rgba(139, 92, 246, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  headerSubtitle: {
+    fontSize: 18,
+    color: '#6B7280',
+    fontWeight: '500',
+    letterSpacing: 0.5,
+  },
+  tabContainer: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: 'transparent',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  tabBackground: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 25,
+    padding: 8,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.1)',
+  },
+  tab: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  tabActive: {
+    backgroundColor: '#8B5CF6',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  tabTextActive: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    backgroundColor: '#F9FAFB',
+  },
+  calendarContent: {
+    paddingBottom: Platform.OS === 'ios' ? 120 : 140,
+  },
+  calendarSection: {
+    marginBottom: 20,
+  },
+  calendarGradient: {
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#C7D2FE',
+    backgroundColor: '#FCE7F3',
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  calendarNavButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  calendarMonthText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#4C1D95',
+    textAlign: 'center',
+    flex: 1,
+    textShadowColor: 'rgba(139, 92, 246, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  calendarDayHeaders: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 15,
+  },
+  calendarDayHeader: {
+    alignItems: 'center',
+  },
+  calendarDayHeaderText: {
+    fontSize: 14,
+    color: '#5B21B6',
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(139, 92, 246, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDay: {
+    width: '14.28%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.1)',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  calendarDayText: {
+    fontSize: 16,
+    color: '#4C1D95',
+    fontWeight: '600',
+    textShadowColor: 'rgba(139, 92, 246, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
   calendarDayToday: {
-    backgroundColor: 'rgba(108, 99, 255, 0.15)',
+    backgroundColor: 'rgba(139, 92, 246, 0.25)',
+    borderColor: 'rgba(139, 92, 246, 0.4)',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   calendarDaySelected: {
-    backgroundColor: 'rgba(255, 108, 171, 0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.35)',
+    borderColor: 'rgba(139, 92, 246, 0.5)',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
   },
   calendarDayTextToday: {
-    color: '#6C63FF',
+    color: '#4C1D95',
     fontWeight: 'bold',
+    fontSize: 17,
   },
   calendarDayTextSelected: {
-    color: '#FF6CAB',
+    color: '#4C1D95',
     fontWeight: 'bold',
+    fontSize: 17,
   },
   calendarDayTextOtherMonth: {
-    color: '#ccc',
+    color: '#A78BFA',
+    opacity: 0.7,
   },
   calendarDayOtherMonth: {
-    opacity: 0.3,
+    opacity: 0.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   eventDot: {
-    width: 6,
-    height: 6,
-    backgroundColor: '#FF6CAB',
-    borderRadius: 3,
-    marginTop: 3,
+    width: 8,
+    height: 8,
+    backgroundColor: '#F59E0B',
+    borderRadius: 4,
+    marginTop: 4,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
   },
-  enhancedSection: {
+  scheduleSection: {
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: '#C7D2FE',
+    borderRadius: 20,
+    padding: 12,
+    backgroundColor: 'transparent',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  tasksSection: {
     marginBottom: 20,
-    paddingHorizontal: 8,
+    borderWidth: 2,
+    borderColor: '#C7D2FE',
+    borderRadius: 16,
+    padding: 15,
+    backgroundColor: '#F3E8FF',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1131,425 +1386,347 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 5,
   },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sectionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 3 : 4 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.25 : 0.3,
-    shadowRadius: Platform.OS === 'ios' ? 6 : 8,
-    elevation: Platform.OS === 'android' ? 4 : 0,
-  },
-  enhancedSectionTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    fontSize: 18,
-    marginBottom: 2,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  sectionSubtitle: {
-    color: '#666',
-    fontSize: 13,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif',
-      },
-    }),
-  },
-  viewModeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.1)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.3,
-    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
-    elevation: Platform.OS === 'android' ? 3 : 0,
-  },
-  viewModeText: {
-    color: '#6C63FF',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginLeft: 6,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  enhancedEmptyPlan: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyPlanGradient: {
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 6 : 8 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.08 : 0.12,
-    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
-    elevation: Platform.OS === 'android' ? 4 : 0,
-  },
-  emptyIconContainer: {
-    backgroundColor: 'rgba(108, 99, 255, 0.08)',
-    borderRadius: 25,
-    padding: 12,
-    marginBottom: 12,
-  },
-  emptyPlanText: {
-    fontSize: 18,
-    color: '#333',
-    marginTop: 8,
-    fontWeight: 'bold',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  emptyPlanSubtext: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 6,
-    textAlign: 'center',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif',
-      },
-    }),
-  },
-  addFirstPlanButton: {
-    marginTop: 20,
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 3 : 4 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.25,
-    shadowRadius: Platform.OS === 'ios' ? 6 : 8,
-    elevation: Platform.OS === 'android' ? 4 : 0,
-  },
-  addFirstPlanGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 18,
-  },
-  addFirstPlanText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 15,
-    marginLeft: 8,
-    letterSpacing: 0.5,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  enhancedPlanCardsContainer: {
-    backgroundColor: 'transparent',
-  },
-  enhancedPlanCard: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 6 : 8 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
-    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
-    elevation: Platform.OS === 'android' ? 8 : 0,
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.06)',
-  },
-  planCardGradient: {
-    borderRadius: 18,
-    padding: 16,
-  },
-  planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  planTimeContainer: {
-    alignItems: 'center',
-  },
-  timeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.25,
-    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
-    elevation: Platform.OS === 'android' ? 3 : 0,
-  },
-  planTimeText: {
-    fontSize: 13,
-    color: '#fff',
-    marginLeft: 4,
-    fontWeight: 'bold',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  planStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.12)',
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FF6CAB',
-    marginRight: 6,
-  },
-  statusText: {
-    color: '#6C63FF',
-    fontSize: 11,
-    fontWeight: '600',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  planContent: {
-    flex: 1,
-  },
-  planTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    fontSize: 16,
-    marginBottom: 4,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  planSubtitle: {
-    color: '#666',
-    fontSize: 13,
-    marginBottom: 10,
-    lineHeight: 18,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif',
-      },
-    }),
-  },
-  planLocation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.1)',
-  },
-  planLocationText: {
-    color: '#6C63FF',
-    fontSize: 12,
-    marginLeft: 6,
-    fontWeight: '500',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  planActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  planActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.1)',
-    flex: 1,
-    marginHorizontal: 3,
-    justifyContent: 'center',
-  },
-  planActionText: {
-    color: '#6C63FF',
-    fontSize: 11,
-    fontWeight: '600',
-    marginLeft: 4,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
   sectionTitle: {
     fontWeight: 'bold',
-    color: '#333',
-    fontSize: 18,
-    marginBottom: 10,
-    marginLeft: 10,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
+    color: '#4C1D95',
+    fontSize: 20,
+    textShadowColor: 'rgba(139, 92, 246, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  enhancedUpcomingContainer: {
+  seeAllText: {
+    color: '#8B5CF6',
+    fontSize: 14,
+    fontWeight: '600',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  emptySchedule: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 25,
+  },
+  emptyScheduleText: {
+    fontSize: 16,
+    color: '#4C1D95',
+    marginTop: 6,
+    fontWeight: 'bold',
+  },
+  emptyScheduleSubtext: {
+    fontSize: 13,
+    color: '#7C3AED',
+    marginTop: 4,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  scheduleCards: {
     backgroundColor: 'transparent',
   },
-  enhancedUpcomingCard: {
+  scheduleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 15,
-    marginBottom: 12,
-    shadowColor: '#FF6CAB',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.15 : 0.2,
-    shadowRadius: Platform.OS === 'ios' ? 8 : 10,
-    elevation: Platform.OS === 'android' ? 5 : 0,
+    backgroundColor: '#FEF7FF',
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 10,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
   },
-  upcomingCardGradient: {
-    borderRadius: 20,
-    padding: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
+  scheduleIcon: {
+    marginRight: 10,
   },
-  upcomingIcon: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
+  iconBackground: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
   },
-  upcomingIconGradient: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#FF6CAB',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.3 : 0.4,
-    shadowRadius: Platform.OS === 'ios' ? 8 : 10,
-    elevation: Platform.OS === 'android' ? 5 : 0,
-  },
-  upcomingContent: {
+  scheduleContent: {
     flex: 1,
   },
-  upcomingTitle: {
+  scheduleSubject: {
     fontWeight: 'bold',
-    color: '#333',
+    color: '#4C1D95',
+    fontSize: 15,
+    marginBottom: 3,
+  },
+  scheduleDetails: {
+    color: '#6B7280',
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  scheduleStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginRight: 5,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  scheduleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  noteText: {
+    color: '#F59E0B',
+    fontSize: 11,
+    marginLeft: 5,
+    fontWeight: '500',
+  },
+  scheduleRoom: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  roomText: {
+    color: '#6B7280',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  taskCards: {
+    backgroundColor: 'transparent',
+  },
+  taskCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF7FF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  taskIcon: {
+    marginRight: 12,
+  },
+  taskContent: {
+    flex: 1,
+  },
+  taskTitle: {
+    fontWeight: 'bold',
+    color: '#1F2937',
     fontSize: 16,
     marginBottom: 4,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
   },
-  upcomingDate: {
+  taskDetails: {
+    color: '#6B7280',
     fontSize: 13,
-    color: '#666',
+    marginBottom: 0,
+  },
+  taskTime: {
+    color: '#8B5CF6',
+    fontSize: 11,
     fontWeight: '500',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif',
-      },
-    }),
+    marginTop: 2,
   },
-  upcomingArrow: {
-    marginLeft: 'auto',
-    padding: 8,
-    backgroundColor: 'rgba(255, 108, 171, 0.1)',
-    borderRadius: 15,
+  taskDue: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
-  enhancedFab: {
+  dueText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  priorityBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  timelineContent: {
+    paddingBottom: Platform.OS === 'ios' ? 120 : 140,
+  },
+  timelineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  timelineHeaderCenter: {
+    alignItems: 'center',
+  },
+  timelineDate: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  timelineGreeting: {
+    fontSize: 15,
+    color: '#6B7280',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  timelineContainer: {
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    padding: 12,
+    marginTop: 0,
+    marginHorizontal: 5,
+  },
+  timelineItems: {
+    backgroundColor: 'transparent',
+  },
+  timelineItem: {
+    marginBottom: 8,
+    borderRadius: 16,
+    padding: 10,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  timelineMarker: {
+    width: 60,
+    alignItems: 'center',
+    position: 'absolute',
+    left: -30,
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#8B5CF6',
+    marginBottom: 8,
+  },
+  timelineLine: {
+    width: 2,
+    height: '100%',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    position: 'absolute',
+    left: 29,
+  },
+  timelineContentContainer: {
+    flex: 1,
+  },
+  timelineTime: {
+    width: 60,
+    alignItems: 'center',
+    position: 'absolute',
+    left: -30,
+  },
+  timelineTimeText: {
+    fontSize: 13,
+    color: '#8B5CF6',
+    marginTop: 8,
+    fontWeight: 'bold',
+  },
+  timelineCard: {
+    backgroundColor: 'transparent',
+  },
+  timelineTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  timelineTitle: {
+    fontWeight: 'bold',
+    color: '#1F2937',
+    fontSize: 15,
+  },
+  timelineTimeIcon: {
+    padding: 5,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 10,
+  },
+  timelineTimeImage: {
+    width: 20,
+    height: 20,
+  },
+  timelineSubtitle: {
+    color: '#6B7280',
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  timelineLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginBottom: 6,
+  },
+  timelineLocationText: {
+    color: '#8B5CF6',
+    fontSize: 10,
+    marginLeft: 4,
+    fontWeight: '500',
+    flex: 1,
+  },
+  timelineTimeInline: {
+    color: '#8B5CF6',
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  timelineActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  timelineActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    flex: 1,
+    marginHorizontal: 2,
+    justifyContent: 'center',
+  },
+  timelineActionText: {
+    color: '#8B5CF6',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginLeft: 3,
+  },
+  emptyTimeline: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyTimelineText: {
+    fontSize: 20,
+    color: '#1F2937',
+    marginTop: 10,
+    fontWeight: 'bold',
+  },
+  emptyTimelineSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  fab: {
     position: 'absolute',
     right: 25,
     bottom: Platform.OS === 'ios' ? 80 : 90,
@@ -1558,293 +1735,18 @@ const styles = StyleSheet.create({
     borderRadius: 32.5,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 8 : 10 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.3 : 0.4,
-    shadowRadius: Platform.OS === 'ios' ? 15 : 18,
-    elevation: Platform.OS === 'android' ? 10 : 0,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
   },
-  enhancedFabGradient: {
+  fabGradient: {
     width: 65,
     height: 65,
     borderRadius: 32.5,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  timelineContent: {
-    paddingBottom: Platform.OS === 'ios' ? 120 : 140,
-  },
-  enhancedTimelineHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  backButton: {
-    padding: 10,
-    backgroundColor: 'rgba(108, 99, 255, 0.1)',
-    borderRadius: 20,
-  },
-  timelineHeaderCenter: {
-    alignItems: 'center',
-  },
-  enhancedTimelineDate: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  enhancedTimelineGreeting: {
-    fontSize: 15,
-    color: '#666',
-    marginTop: 4,
-    fontWeight: '500',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif',
-      },
-    }),
-  },
-  enhancedTimelineContainer: {
-    backgroundColor: 'transparent',
-    borderRadius: 20,
-    padding: 15,
-  },
-  enhancedTimelineItemsContainer: {
-    backgroundColor: 'transparent',
-  },
-  enhancedTimelineItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  enhancedTimelineMarker: {
-    width: 60,
-    alignItems: 'center',
-    position: 'absolute',
-    left: -30,
-  },
-  enhancedTimelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginBottom: 8,
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.3 : 0.4,
-    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
-    elevation: Platform.OS === 'android' ? 3 : 0,
-  },
-  enhancedTimelineLine: {
-    width: 2,
-    height: '100%',
-    backgroundColor: 'rgba(108, 99, 255, 0.2)',
-    position: 'absolute',
-    left: 29,
-  },
-  enhancedTimelineContent: {
-    flex: 1,
-    marginLeft: 60,
-  },
-  enhancedTimelineTime: {
-    width: 60,
-    alignItems: 'center',
-    position: 'absolute',
-    left: -30,
-  },
-  enhancedTimelineTimeText: {
-    fontSize: 13,
-    color: '#6C63FF',
-    marginTop: 8,
-    fontWeight: 'bold',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  enhancedTimelineCard: {
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 6 : 8 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.15 : 0.2,
-    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
-    elevation: Platform.OS === 'android' ? 8 : 0,
-  },
-  enhancedTimelineTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    fontSize: 18,
-    marginBottom: 6,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  enhancedTimelineSubtitle: {
-    color: '#666',
-    fontSize: 14,
-    marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif',
-      },
-    }),
-  },
-  enhancedTimelineLocation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.1)',
-    borderRadius: 15,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginBottom: 15,
-  },
-  enhancedTimelineLocationText: {
-    color: '#6C63FF',
-    fontSize: 13,
-    marginLeft: 8,
-    fontWeight: '500',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  enhancedTimelineActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 15,
-  },
-  timelineActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.1)',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-  },
-  timelineActionText: {
-    color: '#6C63FF',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginLeft: 6,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  enhancedEmptyTimeline: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyTimelineGradient: {
-    borderRadius: 25,
-    padding: 30,
-    alignItems: 'center',
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 8 : 10 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
-    shadowRadius: Platform.OS === 'ios' ? 15 : 18,
-    elevation: Platform.OS === 'android' ? 5 : 0,
-  },
-  emptyTimelineText: {
-    fontSize: 20,
-    color: '#333',
-    marginTop: 10,
-    fontWeight: 'bold',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  emptyTimelineSubtext: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
-    textAlign: 'center',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif',
-      },
-    }),
-  },
-  enhancedTimelineSectionTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    fontSize: 20,
-    marginBottom: 15,
-    marginLeft: 10,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  timelineCardGradient: {
-    borderRadius: 20,
-    padding: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FF',
-  },
-  loadingText: {
-    color: '#6C63FF',
-    fontSize: 18,
-    marginTop: 15,
-    fontWeight: '500',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
   },
   modalOverlay: {
     flex: 1,
@@ -1911,8 +1813,8 @@ const styles = StyleSheet.create({
     color: '#333',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.2)',
-    shadowColor: '#6C63FF',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
     shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
     shadowRadius: Platform.OS === 'ios' ? 4 : 6,
@@ -1937,7 +1839,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchLabel: {
-    color: '#6C63FF',
+    color: '#8B5CF6',
     fontWeight: 'bold',
     fontSize: 15,
     marginLeft: 10,
@@ -1957,7 +1859,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 15,
-    shadowColor: '#6C63FF',
+    shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
     shadowOpacity: Platform.OS === 'ios' ? 0.3 : 0.4,
     shadowRadius: Platform.OS === 'ios' ? 8 : 10,
@@ -2011,8 +1913,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.2)',
-    shadowColor: '#6C63FF',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
     shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
     shadowRadius: Platform.OS === 'ios' ? 4 : 6,
@@ -2061,18 +1963,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 18,
-    backgroundColor: 'rgba(108, 99, 255, 0.1)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     marginRight: 10,
     borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.2)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
   },
   dayPillActive: {
-    backgroundColor: '#6C63FF',
-    borderColor: '#6C63FF',
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6',
   },
   dayPillText: {
     fontSize: 13,
-    color: '#6C63FF',
+    color: '#8B5CF6',
     fontWeight: 'bold',
     ...Platform.select({
       ios: {
@@ -2094,7 +1996,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   addSlotText: {
-    color: '#6C63FF',
+    color: '#8B5CF6',
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 10,
@@ -2113,8 +2015,8 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.1)',
-    shadowColor: '#6C63FF',
+    borderColor: 'rgba(139, 92, 246, 0.1)',
+    shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
     shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
     shadowRadius: Platform.OS === 'ios' ? 6 : 8,
@@ -2175,7 +2077,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(108, 99, 255, 0.2)',
+    borderBottomColor: 'rgba(139, 92, 246, 0.2)',
   },
   timePickerCancel: {
     color: '#666',
@@ -2204,7 +2106,7 @@ const styles = StyleSheet.create({
     }),
   },
   timePickerDone: {
-    color: '#6C63FF',
+    color: '#8B5CF6',
     fontSize: 16,
     fontWeight: 'bold',
     ...Platform.select({
@@ -2220,260 +2122,23 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  eventsSlider: {
-    height: 160,
-    marginBottom: 20,
-  },
-  eventsSliderContent: {
-    paddingHorizontal: 10,
-  },
-  sliderEventCard: {
-    width: 320,
-    marginRight: 15,
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 4 : 6 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.15,
-    shadowRadius: Platform.OS === 'ios' ? 12 : 15,
-    elevation: Platform.OS === 'android' ? 5 : 0,
-    backgroundColor: '#fff',
-  },
-  sliderCardGradient: {
-    borderRadius: 18,
-    padding: 18,
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-  },
-  sliderEventHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sliderTimeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 2 : 3 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.25,
-    shadowRadius: Platform.OS === 'ios' ? 4 : 6,
-    elevation: Platform.OS === 'android' ? 3 : 0,
-  },
-  sliderTimeText: {
-    fontSize: 13,
-    color: '#fff',
-    marginLeft: 4,
-    fontWeight: 'bold',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  sliderStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.12)',
-  },
-  sliderStatusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FF6CAB',
-    marginRight: 6,
-  },
-  sliderStatusText: {
-    color: '#6C63FF',
-    fontSize: 11,
-    fontWeight: '600',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  sliderEventContent: {
-    flex: 1,
-  },
-  sliderEventTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    fontSize: 18,
-    marginBottom: 6,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  sliderEventSubtitle: {
-    color: '#666',
-    fontSize: 14,
-    marginBottom: 10,
-    lineHeight: 18,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif',
-      },
-    }),
-  },
-  sliderEventLocation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.1)',
-  },
-  sliderLocationText: {
-    color: '#6C63FF',
-    fontSize: 12,
-    marginLeft: 6,
-    fontWeight: '500',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  sliderEventActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  sliderActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.1)',
-    flex: 1,
-    marginHorizontal: 3,
+  sectionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
     justifyContent: 'center',
-  },
-  sliderEventNotes: {
-    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.1)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  sliderNotesText: {
-    color: '#6C63FF',
-    fontSize: 12,
-    marginLeft: 6,
-    fontWeight: '500',
-    flex: 1,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  sliderEventDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  sliderDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.1)',
-  },
-  sliderDetailText: {
-    color: '#6C63FF',
-    fontSize: 11,
-    marginLeft: 4,
-    fontWeight: '500',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  sliderScheduleName: {
-    fontWeight: 'bold',
-    color: '#333',
-    fontSize: 16,
-    marginBottom: 4,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
-  },
-  sliderEventDescription: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(108, 99, 255, 0.1)',
-  },
-  sliderDescriptionText: {
-    color: '#6C63FF',
-    fontSize: 12,
-    marginLeft: 6,
-    fontWeight: '500',
-    flex: 1,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'sans-serif-medium',
-      },
-    }),
+  sectionIcon: {
+    width: 24,
+    height: 24,
   },
 });

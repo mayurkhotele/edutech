@@ -6,9 +6,14 @@ import CreatePost from '../../components/CreatePost';
 import SocialFeed from '../../components/SocialFeed';
 
 export default function SocialScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [createPostVisible, setCreatePostVisible] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Debug navigation object
+  console.log('🔍 SocialScreen - Navigation object:', navigation);
+  console.log('🔍 SocialScreen - Navigation type:', typeof navigation);
+  console.log('🔍 SocialScreen - Navigation methods:', Object.keys(navigation || {}));
 
   const handlePostCreated = () => {
     // Trigger refresh of the social feed when a new post is created

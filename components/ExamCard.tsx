@@ -2,9 +2,10 @@ import { apiFetchAuth } from '@/constants/api';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const ExamCard = ({ exam, navigation }: any) => {
     const router = useRouter();
@@ -19,6 +20,12 @@ const ExamCard = ({ exam, navigation }: any) => {
     const [walletBalance, setWalletBalance] = useState(0);
     const [walletLoading, setWalletLoading] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false);
+    
+    // Animation refs
+    const modalScale = useRef(new Animated.Value(0)).current;
+    const modalOpacity = useRef(new Animated.Value(0)).current;
+    const headerSlide = useRef(new Animated.Value(-50)).current;
+    const contentSlide = useRef(new Animated.Value(50)).current;
 
     // Fetch wallet balance
     const fetchWalletBalance = async () => {
@@ -103,9 +110,6 @@ const ExamCard = ({ exam, navigation }: any) => {
             // 5. Update wallet balance locally
             setWalletBalance(prev => prev - exam.entryFee);
             
-            // 5. Update wallet balance locally
-            setWalletBalance(prev => prev - exam.entryFee);
-            
             // 6. Close modals and start exam directly
             setShowPaymentModal(false);
             setShowInstructionsModal(false);
@@ -161,6 +165,65 @@ const ExamCard = ({ exam, navigation }: any) => {
         });
     };
 
+    // Animation functions
+    const animateModalIn = () => {
+        Animated.parallel([
+            Animated.spring(modalScale, {
+                toValue: 1,
+                useNativeDriver: true,
+                tension: 100,
+                friction: 8,
+            }),
+            Animated.timing(modalOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.spring(headerSlide, {
+                toValue: 0,
+                useNativeDriver: true,
+                tension: 100,
+                friction: 8,
+            }),
+            Animated.spring(contentSlide, {
+                toValue: 0,
+                useNativeDriver: true,
+                tension: 100,
+                friction: 8,
+            }),
+        ]).start();
+    };
+
+    const animateModalOut = () => {
+        Animated.parallel([
+            Animated.spring(modalScale, {
+                toValue: 0,
+                useNativeDriver: true,
+                tension: 100,
+                friction: 8,
+            }),
+            Animated.timing(modalOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }),
+            Animated.spring(headerSlide, {
+                toValue: -50,
+                useNativeDriver: true,
+                tension: 100,
+                friction: 8,
+            }),
+            Animated.spring(contentSlide, {
+                toValue: 50,
+                useNativeDriver: true,
+                tension: 100,
+                friction: 8,
+            }),
+        ]).start(() => {
+            setShowPaymentModal(false);
+        });
+    };
+
     // New: Handle Attempt for live exam
     const handleAttemptLiveExam = async () => {
         if (!user?.token) {
@@ -193,8 +256,9 @@ const ExamCard = ({ exam, navigation }: any) => {
                     return;
                 }
 
-                // Show payment confirmation modal
+                // Show payment confirmation modal with animation
                 setShowPaymentModal(true);
+                setTimeout(() => animateModalIn(), 100);
             } else {
                 Alert.alert('Error', 'Failed to fetch wallet balance.');
             }
@@ -209,48 +273,83 @@ const ExamCard = ({ exam, navigation }: any) => {
     return (
         <>
         <TouchableOpacity style={styles.card} onPress={handleCardPress} activeOpacity={0.8}>
+            {/* Enhanced Header */}
             <View style={styles.header}>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.title} numberOfLines={1}>{exam.title}</Text>
-                    <Text style={styles.subtitle} numberOfLines={1}>Daily GK & Current Affairs • GK • 5Qs</Text>
+                <View style={styles.headerContent}>
+                    <View style={styles.titleContainer}>
+                        <Text style={styles.title} numberOfLines={2}>{exam.title}</Text>
+                        <View style={styles.categoryContainer}>
+                            <View style={styles.categoryBadge}>
+                                <Text style={styles.categoryText}>{exam.category || 'General Knowledge'}</Text>
+                            </View>
+                            <View style={styles.questionCountBadge}>
+                                <Text style={styles.questionCountText}>{exam.questionCount || exam.questions?.length || '5'} Questions</Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View style={styles.trophyContainer}>
+                        <Image source={require('../assets/images/trophy.jpg')} style={styles.trophyIcon} />
+                        <View style={styles.liveIndicator}>
+                            <Text style={styles.liveText}>LIVE</Text>
+                        </View>
+                    </View>
                 </View>
-                <Image source={require('../assets/images/trophy.jpg')} style={styles.trophyIcon} />
             </View>
 
+            {/* Enhanced Spots Section */}
             <View style={styles.spotsContainer}>
-                <View style={styles.spotsTextContainer}>
-                    <Text style={styles.spotsLeft}>{exam.spotsLeft} Spots left</Text>
-                    <Text style={styles.totalSpots}>{exam.spots} Spots</Text>
+                <View style={styles.spotsHeader}>
+                    <View style={styles.spotsLeftSection}>
+                        <Text style={styles.spotsTitle}>Available Spots</Text>
+                        <Text style={styles.spotsSubtitle}>Hurry up! Limited seats remaining</Text>
+                    </View>
+                    <View style={styles.timerSection}>
+                        <View style={styles.timerIconContainer}>
+                            <Ionicons name="alarm-outline" size={16} color="#FF6B6B" />
+                        </View>
+                        <View style={styles.timerTextContainer}>
+                            <Text style={styles.timerLabel}>Ends in</Text>
+                            <Text style={styles.timerValue}>{remainingTime}</Text>
+                        </View>
+                    </View>
                 </View>
-                <View style={styles.progressBar}>
-                    <View style={[styles.progress, { width: `${progress}%` }]} />
+                <View style={styles.spotsProgressContainer}>
+                    <View style={styles.spotsTextContainer}>
+                        <Text style={styles.spotsLeft}>
+                            <Text style={styles.spotsNumber}>{exam.spotsLeft}</Text> spots left
+                        </Text>
+                        <Text style={styles.totalSpots}>out of {exam.spots}</Text>
+                    </View>
+                    <View style={styles.progressBarContainer}>
+                        <View style={styles.progressBar}>
+                            <View style={[styles.progress, { width: `${progress}%` }]} />
+                        </View>
+                        <Text style={styles.progressPercentage}>{Math.round(progress)}% filled</Text>
+                    </View>
                 </View>
             </View>
 
-            <View style={styles.detailsContainer}>
-                <View style={styles.tags}>
-                    <View style={styles.tag}>
-                        <Ionicons name="gift-outline" size={16} color="#E67E22" />
-                        <Text style={styles.tagText}>{exam.entryFee}</Text>
-                    </View>
-                    <View style={styles.tag}>
-                        <Ionicons name="trophy-outline" size={16} color="#9B59B6" />
-                        <Text style={styles.tagText}>50%</Text>
-                    </View>
-                </View>
-                <Text style={styles.remainingTime}>Remaining time: {remainingTime}</Text>
-            </View>
+            {/* Enhanced Details Section */}
+            {/* Removed tags section as requested */}
 
+            {/* Enhanced Footer */}
             <View style={styles.footer}>
-                <View>
-                    <Text style={styles.prizePoolText}>Prize pool of up to</Text>
-                    <Text style={styles.prizePoolAmount}>₹{exam.prizePool.toFixed(2)}*</Text>
+                <View style={styles.prizePoolContainer}>
+                    <Text style={styles.prizePoolLabel}>Prize Pool</Text>
+                    <Text style={styles.prizePoolAmount}>₹{exam.prizePool?.toFixed(2) || '0.00'}</Text>
+                    <Text style={styles.prizePoolSubtext}>*Up to this amount</Text>
                 </View>
+                
                 <TouchableOpacity style={styles.attemptButton} onPress={handleAttemptLiveExam}>
-                    <Text style={styles.attemptButtonText}>Attempt</Text>
-                    <View style={styles.attemptFeeContainer}>
-                        <Text style={styles.attemptButtonFee}>₹{exam.entryFee}</Text>
-                    </View>
+                    <LinearGradient
+                        colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
+                        style={styles.attemptButtonGradient}
+                    >
+                        <Text style={styles.attemptButtonText}>Attempt Now</Text>
+                        <View style={styles.attemptButtonIcon}>
+                            <Ionicons name="arrow-forward" size={16} color="#fff" />
+                        </View>
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
         </TouchableOpacity>
@@ -258,84 +357,172 @@ const ExamCard = ({ exam, navigation }: any) => {
         {/* Payment Confirmation Modal */}
         <Modal
           visible={showPaymentModal}
-          animationType="slide"
+          animationType="none"
           transparent={true}
-          onRequestClose={() => setShowPaymentModal(false)}
+          onRequestClose={animateModalOut}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Payment Confirmation</Text>
-                <TouchableOpacity 
-                  style={styles.closeButton}
-                  onPress={() => setShowPaymentModal(false)}
+          <Animated.View style={[styles.modalOverlay, { opacity: modalOpacity }]}>
+            <Animated.View 
+              style={[
+                styles.modalContent,
+                {
+                  transform: [
+                    { scale: modalScale },
+                    { translateY: contentSlide }
+                  ]
+                }
+              ]}
+            >
+                             {/* Enhanced Header with App Header Colors */}
+               <LinearGradient
+                 colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                 style={styles.modalHeaderGradient}
+               >
+                <Animated.View 
+                  style={[
+                    styles.modalHeader,
+                    { transform: [{ translateY: headerSlide }] }
+                  ]}
                 >
-                  <Ionicons name="close" size={24} color="#666" />
-                </TouchableOpacity>
-              </View>
+                  <View style={styles.modalHeaderContent}>
+                    <View style={styles.modalIconContainer}>
+                      <Ionicons name="card" size={28} color="#fff" />
+                    </View>
+                    <View style={styles.modalTitleContainer}>
+                      <Text style={styles.modalTitleEnhanced}>Payment Confirmation</Text>
+                      <Text style={styles.modalSubtitleEnhanced}>Complete your exam registration</Text>
+                    </View>
+                  </View>
+                  
+                </Animated.View>
+              </LinearGradient>
               
               <View style={styles.paymentDetails}>
-                <View style={styles.examInfo}>
-                  <Text style={styles.examTitle}>{exam.title}</Text>
-                  <Text style={styles.examSubtitle}>Live Exam</Text>
+                {/* Enhanced Exam Info */}
+                <View style={styles.examInfoEnhanced}>
+                  <View style={styles.examIconContainer}>
+                    <Ionicons name="school" size={24} color="#667eea" />
+                  </View>
+                  <View style={styles.examInfoContent}>
+                    <Text style={styles.examTitleEnhanced}>{exam.title}</Text>
+                    <View style={styles.examBadgeContainer}>
+                      <View style={styles.liveExamBadge}>
+                        <Ionicons name="radio" size={12} color="#fff" />
+                        <Text style={styles.liveExamText}>LIVE EXAM</Text>
+                      </View>
+                      <View style={styles.questionBadge}>
+                        <Text style={styles.questionBadgeText}>{exam.questionCount || exam.questions?.length || '5'} Questions</Text>
+                      </View>
+                    </View>
+                  </View>
                 </View>
                 
-                <View style={styles.paymentBreakdown}>
-                  <View style={styles.paymentRow}>
-                    <Text style={styles.paymentLabel}>Entry Fee:</Text>
-                    <Text style={styles.paymentAmount}>₹{exam.entryFee}</Text>
+                {/* Enhanced Payment Breakdown */}
+                <View style={styles.paymentBreakdownEnhanced}>
+                  <View style={styles.paymentBreakdownHeader}>
+                                         <Ionicons name="calculator" size={20} color="#4F46E5" />
+                    <Text style={styles.paymentBreakdownTitle}>Payment Summary</Text>
                   </View>
-                  <View style={styles.paymentRow}>
-                    <Text style={styles.paymentLabel}>Your Balance:</Text>
-                    <Text style={[styles.paymentAmount, { color: walletBalance >= exam.entryFee ? '#28a745' : '#dc3545' }]}>
+                  
+                  <View style={styles.paymentRowEnhanced}>
+                    <View style={styles.paymentLabelContainer}>
+                      <Ionicons name="pricetag" size={16} color="#666" />
+                      <Text style={styles.paymentLabelEnhanced}>Entry Fee</Text>
+                    </View>
+                    <Text style={styles.paymentAmountEnhanced}>₹{exam.entryFee}</Text>
+                  </View>
+                  
+                  <View style={styles.paymentRowEnhanced}>
+                    <View style={styles.paymentLabelContainer}>
+                      <Ionicons name="wallet" size={16} color="#666" />
+                      <Text style={styles.paymentLabelEnhanced}>Your Balance</Text>
+                    </View>
+                    <Text style={[styles.paymentAmountEnhanced, { color: walletBalance >= exam.entryFee ? '#28a745' : '#dc3545' }]}>
                       ₹{walletBalance.toFixed(2)}
                     </Text>
                   </View>
-                  <View style={[styles.paymentRow, styles.balanceAfterRow]}>
-                    <Text style={styles.paymentLabel}>Balance After:</Text>
-                    <Text style={styles.paymentAmount}>
+                  
+                  <View style={styles.paymentDivider} />
+                  
+                  <View style={styles.paymentRowEnhanced}>
+                    <View style={styles.paymentLabelContainer}>
+                      <Ionicons name="trending-down" size={16} color="#666" />
+                      <Text style={styles.paymentLabelEnhanced}>Balance After Payment</Text>
+                    </View>
+                    <Text style={[styles.paymentAmountEnhanced, styles.balanceAfterAmount]}>
                       ₹{(walletBalance - exam.entryFee).toFixed(2)}
                     </Text>
                   </View>
                 </View>
                 
+                {/* Enhanced Warning for Insufficient Balance */}
                 {walletBalance < exam.entryFee && (
-                  <View style={styles.insufficientWarning}>
-                    <Ionicons name="warning" size={20} color="#dc3545" />
-                    <Text style={styles.insufficientText}>
-                      Insufficient balance. Please add money to your wallet.
-                    </Text>
+                  <View style={styles.insufficientWarningEnhanced}>
+                    <View style={styles.warningIconContainer}>
+                      <Ionicons name="warning" size={24} color="#dc3545" />
+                    </View>
+                    <View style={styles.warningContent}>
+                      <Text style={styles.warningTitle}>Insufficient Balance</Text>
+                      <Text style={styles.warningText}>
+                        You need ₹{(exam.entryFee - walletBalance).toFixed(2)} more to join this exam. Please add money to your wallet.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                
+                {/* Enhanced Success Message for Sufficient Balance */}
+                {walletBalance >= exam.entryFee && (
+                  <View style={styles.sufficientBalanceMessage}>
+                    <View style={styles.successIconContainer}>
+                      <Ionicons name="checkmark-circle" size={24} color="#28a745" />
+                    </View>
+                    <View style={styles.successContent}>
+                      <Text style={styles.successTitle}>Ready to Join!</Text>
+                      <Text style={styles.successText}>
+                        You have sufficient balance to join this exam. Click "Join Exam" to proceed.
+                      </Text>
+                    </View>
                   </View>
                 )}
               </View>
               
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setShowPaymentModal(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[
-                    styles.confirmButton,
-                    (walletBalance < exam.entryFee || paymentLoading) && styles.confirmButtonDisabled
-                  ]}
-                  disabled={walletBalance < exam.entryFee || paymentLoading}
-                  onPress={handlePaymentAndJoin}
-                >
-                  {paymentLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.confirmButtonText}>
-                      Pay ₹{exam.entryFee} & Join
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+                                                           {/* Enhanced Modal Actions */}
+                <View style={styles.modalActionsEnhanced}>
+                  <TouchableOpacity
+                    style={[
+                      styles.confirmButtonEnhanced,
+                      (walletBalance < exam.entryFee || paymentLoading) && styles.confirmButtonDisabledEnhanced
+                    ]}
+                    disabled={walletBalance < exam.entryFee || paymentLoading}
+                    onPress={handlePaymentAndJoin}
+                  >
+                    <LinearGradient
+                      colors={walletBalance >= exam.entryFee ? ['#4F46E5', '#7C3AED', '#8B5CF6'] : ['#ccc', '#999']}
+                      style={styles.confirmButtonGradient}
+                    >
+                      {paymentLoading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <>
+                          <Ionicons name="play-circle" size={20} color="#fff" />
+                          <Text style={styles.confirmButtonTextEnhanced}>
+                            Join Exam - ₹{exam.entryFee}
+                          </Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.cancelButtonEnhanced}
+                    onPress={() => setShowPaymentModal(false)}
+                  >
+                    <Ionicons name="close-circle" size={20} color="#fff" />
+                    <Text style={styles.cancelButtonTextEnhanced}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+            </Animated.View>
+          </Animated.View>
         </Modal>
 
         {/* Instructions Modal for Live Exam */}
@@ -348,9 +535,9 @@ const ExamCard = ({ exam, navigation }: any) => {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{liveExamTitle}</Text>
+                <Text style={styles.modalTitleEnhanced}>{liveExamTitle}</Text>
                 <TouchableOpacity 
-                  style={styles.closeButton}
+                  style={styles.closeButtonEnhanced}
                   onPress={() => setShowInstructionsModal(false)}
                 >
                   <Ionicons name="close" size={24} color="#666" />
@@ -389,27 +576,36 @@ const ExamCard = ({ exam, navigation }: any) => {
                 </Text>
               </View>
               
-              <View style={styles.modalActions}>
+              <View style={styles.modalActionsEnhanced}>
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={styles.cancelButtonEnhanced}
                   onPress={() => setShowInstructionsModal(false)}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Ionicons name="close-circle" size={20} color="#666" />
+                  <Text style={styles.cancelButtonTextEnhanced}>Cancel</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
                   style={[
-                    styles.confirmButton,
-                    (!declarationChecked || instructionsLoading) && styles.confirmButtonDisabled
+                    styles.confirmButtonEnhanced,
+                    (!declarationChecked || instructionsLoading) && styles.confirmButtonDisabledEnhanced
                   ]}
                   disabled={!declarationChecked || instructionsLoading}
                   onPress={handlePaymentAndJoin}
                 >
-                  {instructionsLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.confirmButtonText}>Start Exam</Text>
-                  )}
+                  <LinearGradient
+                    colors={['#667eea', '#764ba2']}
+                    style={styles.confirmButtonGradient}
+                  >
+                    {instructionsLoading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="play-circle" size={20} color="#fff" />
+                        <Text style={styles.confirmButtonTextEnhanced}>Start Exam</Text>
+                      </>
+                    )}
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             </View>
@@ -423,8 +619,8 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: AppColors.white,
         borderRadius: 15,
-        padding: 15,
-        marginVertical: 10,
+        padding: 12, // Reduced from 15
+        marginVertical: 8, // Reduced from 10
         marginHorizontal: 15,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -436,115 +632,312 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 8,
+    },
+    headerGradient: {
+        padding: 12,
+        borderRadius: 12,
+    },
+    headerContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    titleContainer: {
+        flex: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)', // Added semi-transparent background
+        padding: 8, // Added padding
+        borderRadius: 8, // Added border radius
+        marginRight: 10, // Added margin to separate from trophy
     },
     title: {
-        fontSize: 16,
+        fontSize: 18, // Increased for better visibility
+        fontWeight: '800', // Made bolder
+        color: '#1E293B', // Darker color for better contrast
+        marginBottom: 8, // Increased spacing
+        lineHeight: 22, // Added line height
+        textShadowColor: 'rgba(255, 255, 255, 0.8)', // Added white text shadow
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    categoryContainer: {
+        flexDirection: 'row',
+    },
+    categoryBadge: {
+        marginRight: 6,
+    },
+    categoryBadgeGradient: {
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+    },
+    categoryText: {
+        fontSize: 11, // Reduced from 12
+        color: '#E65100',
+        fontWeight: 'bold',
+    },
+    questionCountBadge: {
+        marginLeft: 6, // Reduced from 8
+    },
+    questionCountBadgeGradient: {
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+    },
+    questionCountText: {
+        fontSize: 11, // Reduced from 12
+        color: '#00796B',
+        fontWeight: 'bold',
+    },
+    trophyContainer: {
+        position: 'relative',
+    },
+    trophyBackground: {
+        width: 45, // Reduced from 50
+        height: 45, // Reduced from 50
+        borderRadius: 22.5, // Half of width/height
+        backgroundColor: '#FFE082',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    trophyIcon: {
+        width: 35, // Reduced from 40
+        height: 35, // Reduced from 40
+    },
+    liveIndicator: {
+        position: 'absolute',
+        top: -3, // Reduced from -5
+        right: -3, // Reduced from -5
+    },
+    liveIndicatorGradient: {
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+    },
+    liveText: {
+        color: AppColors.white,
+        fontSize: 9, // Reduced from 10
+        fontWeight: 'bold',
+    },
+    spotsContainer: {
+        marginTop: 12, // Reduced from 15
+    },
+    spotsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8, // Reduced from 10
+    },
+    spotsLeftSection: {
+        flex: 1,
+    },
+    spotsTitle: {
+        fontSize: 13, // Reduced from 14
         fontWeight: 'bold',
         color: AppColors.darkGrey,
     },
-    subtitle: {
-        fontSize: 12,
+    spotsSubtitle: {
+        fontSize: 11, // Reduced from 12
         color: AppColors.grey,
-        marginTop: 4,
     },
-    trophyIcon: {
-        width: 50,
-        height: 50,
-        marginLeft: 10,
+    timerSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 10, // Added margin to separate from spotsLeftSection
     },
-    spotsContainer: {
-        marginTop: 15,
+    timerIconContainer: {
+        width: 20, // Reduced from 24
+        height: 20, // Reduced from 24
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 6, // Reduced from 8
+        flexShrink: 0, // Added to prevent icon shrinking
     },
-     progressBar: {
-        height: 8,
+    timerTextContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    timerLabel: {
+        fontSize: 13, // Reduced from 14
+        color: AppColors.grey,
+    },
+    timerValue: {
+        fontSize: 15, // Reduced from 16
+        fontWeight: 'bold',
+        color: AppColors.primary,
+    },
+    spotsProgressContainer: {
+        marginTop: 8, // Reduced from 10
+    },
+    spotsTextContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4, // Reduced from 5
+    },
+    spotsLeft: {
+        color: '#E67E22',
+        fontWeight: 'bold',
+        fontSize: 13, // Reduced from 14
+    },
+    spotsNumber: {
+        fontSize: 15, // Reduced from 16
+        fontWeight: 'bold',
+        color: '#E67E22',
+    },
+    totalSpots: {
+        color: AppColors.grey,
+        fontSize: 11, // Reduced from 12
+    },
+    progressBarContainer: {
+        alignItems: 'center',
+    },
+    progressBar: {
+        height: 6, // Reduced from 8
         backgroundColor: '#EAEAEA',
-        borderRadius: 4,
+        borderRadius: 3, // Reduced from 4
         overflow: 'hidden',
-        marginTop: 5,
+        width: '100%',
     },
     progress: {
         height: '100%',
         backgroundColor: '#5DADE2',
     },
-    spotsTextContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    spotsLeft: {
-        color: '#E67E22',
-        fontWeight: 'bold',
-        fontSize: 12,
-    },
-    totalSpots: {
+    progressPercentage: {
+        fontSize: 11, // Reduced from 12
         color: AppColors.grey,
-        fontSize: 12,
+        marginTop: 4, // Reduced from 5
     },
     detailsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 15,
-        paddingBottom: 15,
+        marginTop: 12, // Reduced from 15
+        paddingBottom: 12, // Reduced from 15
         borderBottomWidth: 1,
         borderBottomColor: AppColors.lightGrey,
     },
-    tags: {
+    tagsContainer: {
         flexDirection: 'row',
+        marginBottom: 8, // Reduced from 10
     },
     tag: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 15,
+        marginRight: 16, // Reduced from 20
+    },
+    tagIconContainer: {
+        width: 20, // Reduced from 24
+        height: 20, // Reduced from 24
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 6, // Reduced from 8
     },
     tagText: {
-        marginLeft: 4,
+        fontSize: 13, // Reduced from 14
         color: AppColors.darkGrey,
-        fontSize: 12,
+        fontWeight: '500',
+    },
+    timerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8, // Reduced from 10
+        flexWrap: 'wrap', // Added to prevent text cutting
+    },
+    timerIconContainer: {
+        width: 20, // Reduced from 24
+        height: 20, // Reduced from 24
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 6, // Reduced from 8
+        flexShrink: 0, // Added to prevent icon shrinking
+    },
+    timerText: { // Added this style to fix linter error
+        flex: 1,
+        fontSize: 13, // Reduced from 14
+        color: AppColors.darkGrey,
+        fontWeight: '500',
+        flexWrap: 'wrap', // Added to prevent text cutting
+    },
+    timerLabel: {
+        fontSize: 13, // Reduced from 14
+        color: AppColors.grey,
+    },
+    timerValue: {
+        fontSize: 15, // Reduced from 16
+        fontWeight: 'bold',
+        color: AppColors.primary,
     },
     remainingTime: {
-        color: '#E74C3C',
-        fontSize: 12,
+        fontSize: 14,
+        color: AppColors.darkGrey,
+        fontWeight: '500',
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: 15,
+        paddingTop: 12, // Reduced from 15
     },
-    prizePoolText: {
+    prizePoolContainer: {
+        marginRight: 16, // Reduced from 20
+    },
+    prizePoolLabel: {
+        fontSize: 11, // Reduced from 12
         color: AppColors.grey,
-        fontSize: 12,
     },
     prizePoolAmount: {
-        fontSize: 20,
+        fontSize: 18, // Reduced from 20
         fontWeight: 'bold',
         color: AppColors.primary,
     },
+    prizePoolSubtext: {
+        fontSize: 11, // Reduced from 12
+        color: AppColors.grey,
+        marginTop: 3, // Reduced from 4
+    },
     attemptButton: {
-        backgroundColor: '#6C3483',
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10,
-        paddingLeft: 20,
-        paddingRight: 10,
-        borderRadius: 8,
+        paddingVertical: 8, // Increased for better touch target
+        paddingHorizontal: 16, // Increased for better proportions
+        borderRadius: 12, // Increased for modern look
+        overflow: 'hidden',
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 4 }, // Enhanced shadow
+        shadowOpacity: 0.4, // Increased shadow opacity
+        shadowRadius: 8, // Increased shadow radius
+        elevation: 6, // Increased elevation
+        borderWidth: 1, // Added border
+        borderColor: 'rgba(139, 92, 246, 0.3)', // Subtle border
+    },
+    attemptButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8, // Increased for better proportions
+        paddingHorizontal: 16, // Increased for better spacing
+        gap: 8, // Increased gap between text and icon
+        minHeight: 40, // Added minimum height
     },
     attemptButtonText: {
         color: AppColors.white,
-        fontWeight: 'bold',
-        fontSize: 16,
-        marginRight: 10,
+        fontWeight: '800', // Made bolder
+        fontSize: 15, // Increased font size
+        letterSpacing: 0.5, // Increased letter spacing
+        textShadowColor: 'rgba(0, 0, 0, 0.3)', // Enhanced text shadow
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 3,
     },
-    attemptFeeContainer: {
-        backgroundColor: 'rgba(0,0,0,0.2)',
-        borderRadius: 5,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-    },
-    attemptButtonFee: {
-        color: AppColors.white,
-        fontWeight: 'bold',
-        fontSize: 12,
+    attemptButtonIcon: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)', // Added subtle background
+        borderRadius: 8, // Rounded background
+        padding: 4, // Added padding around icon
     },
     // Modal Styles
     modalOverlay: {
@@ -553,93 +946,305 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    modalContent: {
-        backgroundColor: AppColors.white,
-        borderRadius: 20,
-        margin: 20,
-        maxHeight: '80%',
-        width: '90%',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.25,
-        shadowRadius: 20,
-        elevation: 10,
+         modalContent: {
+         backgroundColor: AppColors.white,
+         borderRadius: 20,
+         margin: 20,
+         maxHeight: '85%',
+         width: '90%',
+         shadowColor: '#000',
+         shadowOffset: { width: 0, height: 10 },
+         shadowOpacity: 0.25,
+         shadowRadius: 20,
+         elevation: 10,
+         overflow: 'hidden',
+     },
+    modalHeaderGradient: {
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.2)',
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
     },
-    modalTitle: {
+    modalHeaderContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    modalIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 15,
+    },
+    modalTitleContainer: {
+        flex: 1,
+    },
+    modalTitleEnhanced: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: AppColors.darkGrey,
+        color: AppColors.white,
+        marginBottom: 4,
     },
-    closeButton: {
-        padding: 5,
+    modalSubtitleEnhanced: {
+        fontSize: 13,
+        color: AppColors.white,
     },
-    // Payment Modal Styles
+         closeButtonEnhanced: {
+         position: 'absolute',
+         top: 10,
+         right: 10,
+         zIndex: 10,
+     },
+         closeButtonBackground: {
+         width: 36,
+         height: 36,
+         borderRadius: 18,
+         backgroundColor: 'rgba(255, 255, 255, 0.15)',
+         justifyContent: 'center',
+         alignItems: 'center',
+         borderWidth: 1,
+         borderColor: 'rgba(255, 255, 255, 0.25)',
+     },
     paymentDetails: {
         padding: 20,
     },
-    examInfo: {
-        marginBottom: 20,
+    examInfoEnhanced: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
     },
-    examTitle: {
+         examIconContainer: {
+         width: 40,
+         height: 40,
+         borderRadius: 20,
+         backgroundColor: 'rgba(79, 70, 229, 0.2)',
+         justifyContent: 'center',
+         alignItems: 'center',
+         marginRight: 15,
+     },
+    examInfoContent: {
+        flex: 1,
+    },
+    examTitleEnhanced: {
         fontSize: 18,
         fontWeight: 'bold',
         color: AppColors.darkGrey,
         marginBottom: 4,
     },
-    examSubtitle: {
-        fontSize: 14,
-        color: AppColors.grey,
+    examBadgeContainer: {
+        flexDirection: 'row',
     },
-    paymentBreakdown: {
+    liveExamBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#4F46E5',
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        marginRight: 8,
+    },
+    liveExamText: {
+        color: AppColors.white,
+        fontSize: 11,
+        fontWeight: 'bold',
+        marginLeft: 4,
+    },
+    questionBadge: {
+        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+    },
+    questionBadgeText: {
+        color: AppColors.white,
+        fontSize: 11,
+        fontWeight: 'bold',
+    },
+    paymentBreakdownEnhanced: {
         backgroundColor: '#f8f9fa',
         borderRadius: 12,
         padding: 16,
-        marginBottom: 20,
+        marginBottom: 15,
     },
-    paymentRow: {
+    paymentBreakdownHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    paymentBreakdownTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: AppColors.darkGrey,
+        marginLeft: 8,
+    },
+    paymentRowEnhanced: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 8,
     },
-    balanceAfterRow: {
-        borderTopWidth: 1,
-        borderTopColor: '#dee2e6',
-        paddingTop: 8,
-        marginTop: 8,
+    paymentLabelContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 10,
     },
-    paymentLabel: {
-        fontSize: 16,
+    paymentLabelEnhanced: {
+        fontSize: 15,
         color: AppColors.darkGrey,
         fontWeight: '500',
     },
-    paymentAmount: {
-        fontSize: 16,
+    paymentAmountEnhanced: {
+        fontSize: 15,
         fontWeight: 'bold',
         color: AppColors.primary,
     },
-    insufficientWarning: {
+    paymentDivider: {
+        height: 1,
+        backgroundColor: '#dee2e6',
+        marginVertical: 10,
+    },
+    balanceAfterAmount: {
+        color: '#dc3545', // Red color for insufficient balance
+    },
+    insufficientWarningEnhanced: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#f8d7da',
         borderRadius: 8,
         padding: 12,
-        marginBottom: 20,
+        marginBottom: 15,
     },
-    insufficientText: {
-        fontSize: 14,
-        color: '#721c24',
-        marginLeft: 8,
+    warningIconContainer: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: '#f5c6cb',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    warningContent: {
         flex: 1,
     },
+    warningTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#721c24',
+        marginBottom: 4,
+    },
+    warningText: {
+        fontSize: 13,
+        color: '#721c24',
+        lineHeight: 18,
+    },
+    sufficientBalanceMessage: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#d4edda',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 15,
+    },
+    successIconContainer: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: '#a5d6a7',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    successContent: {
+        flex: 1,
+    },
+    successTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#28a745',
+        marginBottom: 4,
+    },
+    successText: {
+        fontSize: 13,
+        color: '#28a745',
+        lineHeight: 18,
+    },
+    modalActionsEnhanced: {
+        flexDirection: 'row',
+        padding: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+        gap: 12,
+        backgroundColor: AppColors.white,
+        position: 'relative',
+        zIndex: 1,
+    },
+                                                                                                                                                                                                                                                                                                                               cancelButtonEnhanced: {
+              flex: 0.5,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#ff6b6b',
+              borderRadius: 8,
+              paddingVertical: 8,
+              paddingHorizontal: 8,
+              borderWidth: 1.5,
+              borderColor: '#ff5252',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 2,
+              minHeight: 36,
+          },
+    cancelButtonTextEnhanced: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#ffffff',
+        marginLeft: 8,
+    },
+                                                                                               confirmButtonEnhanced: {
+             flex: 1.0,
+             flexDirection: 'row',
+             alignItems: 'center',
+             justifyContent: 'center',
+             borderRadius: 10,
+             paddingVertical: 12,
+             paddingHorizontal: 16,
+             gap: 8,
+             minHeight: 48,
+             shadowColor: '#4F46E5',
+             shadowOffset: { width: 0, height: 4 },
+             shadowOpacity: 0.3,
+             shadowRadius: 8,
+             elevation: 6,
+         },
+                       confirmButtonGradient: {
+           flexDirection: 'row',
+           alignItems: 'center',
+           justifyContent: 'center',
+           paddingVertical: 12,
+           paddingHorizontal: 16,
+           gap: 8,
+           minHeight: 48,
+           borderRadius: 10,
+       },
+     confirmButtonDisabledEnhanced: {
+         backgroundColor: '#e9ecef',
+         shadowOpacity: 0,
+         elevation: 0,
+     },
+     confirmButtonTextEnhanced: {
+         fontSize: 17,
+         fontWeight: '700',
+         color: AppColors.white,
+         letterSpacing: 0.5,
+     },
     // Instructions Modal Styles
     instructionsTitle: {
         fontSize: 16,
@@ -698,43 +1303,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 20,
     },
-    // Modal Actions
-    modalActions: {
-        flexDirection: 'row',
-        padding: 20,
-        borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
-        gap: 12,
-    },
-    cancelButton: {
-        flex: 1,
-        backgroundColor: '#f8f9fa',
-        borderRadius: 10,
-        padding: 12,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#dee2e6',
-    },
-    cancelButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: AppColors.darkGrey,
-    },
-    confirmButton: {
-        flex: 1,
-        backgroundColor: AppColors.primary,
-        borderRadius: 10,
-        padding: 12,
-        alignItems: 'center',
-    },
-    confirmButtonDisabled: {
-        backgroundColor: '#ccc',
-    },
-    confirmButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: AppColors.white,
-    },
+
 });
 
 export default ExamCard; 

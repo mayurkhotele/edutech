@@ -12,51 +12,47 @@ import 'react-native-reanimated';
 import CustomDrawerContent from '../components/CustomDrawerContent';
 import ErrorBoundary from '../components/ErrorBoundary';
 import SplashScreen from '../components/SplashScreen';
-import { apiFetchAuth } from '../constants/api';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { RefreshProvider } from '../context/RefreshContext';
 import { ToastProvider } from '../context/ToastContext';
+import { WalletProvider, useWallet } from '../context/WalletContext';
+import { WebSocketProvider } from '../context/WebSocketContext';
 import '../utils/errorHandler'; // Initialize global error handler
-// import { WebSocketProvider } from '../context/WebSocketContext';
 
 // Header Right Component
 const HeaderRight = ({ navigation }: any) => {
     const { user } = useAuth();
-    const [walletAmount, setWalletAmount] = React.useState<string>('0.00');
+    const { walletAmount, refreshWalletAmount } = useWallet();
 
+    // Refresh wallet amount when screen comes into focus
     React.useEffect(() => {
-        const fetchWalletAmount = async () => {
-            if (!user?.token) return;
-            
-            try {
-                const response = await apiFetchAuth('/student/wallet', user.token);
-                if (response.ok && response.data.balance) {
-                    setWalletAmount(response.data.balance.toFixed(2));
-                }
-            } catch (error) {
-                console.error('Error fetching wallet amount:', error);
-            }
-        };
+        const unsubscribe = navigation.addListener('focus', () => {
+            refreshWalletAmount();
+        });
 
-        fetchWalletAmount();
-    }, [user]);
+        return unsubscribe;
+    }, [navigation, refreshWalletAmount]);
 
     return (
         <View style={styles.headerRight}>
-            {/* Notification Icon */}
+            {/* Enhanced Notification Icon */}
             <TouchableOpacity style={styles.notificationContainer}>
-                <Ionicons name="notifications-outline" size={24} color={AppColors.white} />
+                <View style={styles.notificationIconContainer}>
+                    <Ionicons name="notifications" size={22} color="#FFFFFF" />
+                </View>
                 <View style={styles.notificationBadge}>
                     <Text style={styles.notificationBadgeText}>3</Text>
                 </View>
             </TouchableOpacity>
             
-            {/* Wallet Amount */}
+            {/* Enhanced Wallet Amount */}
             <TouchableOpacity 
                 style={styles.walletContainer}
                 onPress={() => navigation.navigate('(tabs)', { screen: 'wallet' })}
             >
-                <Ionicons name="wallet-outline" size={20} color={AppColors.white} />
+                <View style={styles.walletIconContainer}>
+                    <Ionicons name="wallet" size={18} color="#FFFFFF" />
+                </View>
                 <Text style={styles.walletAmount}>₹{walletAmount}</Text>
             </TouchableOpacity>
         </View>
@@ -79,40 +75,48 @@ function RootNavigator() {
     
     // If the user is logged in, show the main app with a drawer.
     return (
-        <Drawer
-            drawerContent={(props) => <CustomDrawerContent {...props} />}
-            screenOptions={({ navigation }) => ({
-                headerShown: true, // Show the header
-                headerStyle: {
-                    backgroundColor: 'transparent', // Make background transparent for gradient
-                },
-                headerTintColor: AppColors.white,
-                headerBackground: () => (
-                    <LinearGradient
-                        colors={['#667eea', '#764ba2']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={{ flex: 1 }}
-                    />
-                ),
-                headerLeft: () => (
-                    <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={{ marginLeft: 15 }}>
-                        <Ionicons name="menu" size={24} color="white" />
-                    </TouchableOpacity>
-                ),
-                headerRight: () => <HeaderRight navigation={navigation} />,
-                drawerStyle: {
-                    width: 250, // Set the width of the drawer
-                },
-            })}
-        >
-            <Drawer.Screen
-                name="(tabs)"
-                options={{
-                  title: '', // Remove the title
-                }}
-            />
-        </Drawer>
+        <WalletProvider>
+            <Drawer
+                drawerContent={(props) => <CustomDrawerContent {...props} />}
+                screenOptions={({ navigation }) => ({
+                    headerShown: true, // Show the header
+                    headerStyle: {
+                        backgroundColor: 'transparent', // Make background transparent for gradient
+                    },
+                    headerTintColor: AppColors.white,
+                    headerBackground: () => (
+                        <LinearGradient
+                            colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={{ flex: 1 }}
+                        />
+                    ),
+                    headerLeft: () => (
+                        <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={{ marginLeft: 15 }}>
+                            <Ionicons name="menu" size={24} color="white" />
+                        </TouchableOpacity>
+                    ),
+                    headerRight: () => <HeaderRight navigation={navigation} />,
+                    drawerStyle: {
+                        width: 250, // Set the width of the drawer
+                    },
+                })}
+            >
+                <Drawer.Screen
+                    name="(tabs)"
+                    options={{
+                      title: '', // Remove the title
+                    }}
+                />
+                <Drawer.Screen
+                    name="privacy-policy"
+                    options={{
+                      title: '', // Remove the title for privacy-policy
+                    }}
+                />
+            </Drawer>
+        </WalletProvider>
     );
 }
 
@@ -121,40 +125,86 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginRight: 15,
+        gap: 12,
     },
     walletContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    walletIconContainer: {
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 15,
-        marginLeft: 10,
+        borderRadius: 12,
+        width: 28,
+        height: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     walletAmount: {
-        color: AppColors.white,
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginLeft: 5,
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '700',
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+        letterSpacing: 0.3,
     },
     notificationContainer: {
         position: 'relative',
     },
-    notificationBadge: {
-        position: 'absolute',
-        top: -5,
-        right: -5,
-        backgroundColor: '#FF4444',
-        borderRadius: 10,
-        width: 20,
-        height: 20,
+    notificationIconContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 20,
+        width: 40,
+        height: 40,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    notificationBadge: {
+        position: 'absolute',
+        top: -6,
+        right: -6,
+        backgroundColor: '#EF4444',
+        borderRadius: 12,
+        width: 24,
+        height: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
     },
     notificationBadgeText: {
-        color: AppColors.white,
-        fontSize: 10,
-        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '800',
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
 });
 
@@ -180,13 +230,15 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RefreshProvider>
-        <ToastProvider>
-          <ErrorBoundary>
-            <RootNavigator />
-          </ErrorBoundary>
-        </ToastProvider>
-      </RefreshProvider>
+      <WebSocketProvider>
+        <RefreshProvider>
+          <ToastProvider>
+            <ErrorBoundary>
+              <RootNavigator />
+            </ErrorBoundary>
+          </ToastProvider>
+        </RefreshProvider>
+      </WebSocketProvider>
     </AuthProvider>
   );
 }

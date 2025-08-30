@@ -19,6 +19,8 @@ const Register = () => {
     const [secureTextEntry, setSecureTextEntry] = useState(true);
 
     const handleRegister = async () => {
+        console.log('handleRegister called with:', { name, email, phoneNumber, referralCode });
+        
         if (!name || !email || !password || !phoneNumber) {
             showError('Please fill all the required fields.');
             return;
@@ -36,7 +38,12 @@ const Register = () => {
         }
         
         try {
-            await register({ name, email, password, phoneNumber, referralCode });
+            console.log('Calling register function...');
+            const userData = { name, email, password, phoneNumber, referralCode };
+            console.log('User data to register:', userData);
+            
+            await register(userData);
+            console.log('Registration successful!');
             showSuccess('Registration successful! Please log in.');
             setTimeout(() => {
                 router.replace('/login');
@@ -50,6 +57,8 @@ const Register = () => {
             } else if (error?.message) {
                 errorMessage = error.message;
             }
+            
+            console.log('Error message to show:', errorMessage);
             
             // Show specific error messages
             if (errorMessage.toLowerCase().includes('email already exists')) {

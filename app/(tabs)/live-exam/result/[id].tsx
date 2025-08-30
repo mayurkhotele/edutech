@@ -1,11 +1,12 @@
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Dimensions, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface LiveExamResult {
   score: number;
@@ -13,6 +14,17 @@ interface LiveExamResult {
   correctAnswers: number;
   wrongAnswers: number;
   unattempted: number;
+  examDuration: number;
+  timeTakenSeconds: number;
+  timeTakenMinutes: number;
+  timeTakenFormatted: string;
+  currentRank: number;
+  prizeAmount: number;
+  examTitle: string;
+  completedAt: string;
+  accuracy: number;
+  timeEfficiency: number;
+  message: string;
 }
 
 export default function LiveExamResultScreen() {
@@ -21,357 +33,1387 @@ export default function LiveExamResultScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<LiveExamResult | null>(null);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
+  const [scoreAnim] = useState(new Animated.Value(0));
+  const [pulseAnim] = useState(new Animated.Value(1));
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [breakdownAnim] = useState(new Animated.Value(0));
+  const [donutAnim] = useState(new Animated.Value(0));
+  const [rankAnim] = useState(new Animated.Value(0));
+
+  // Confetti particles
+  const confettiRefs = useRef<Animated.Value[]>([]);
 
   useEffect(() => {
     if (resultData) {
       try {
         const parsedResult = JSON.parse(resultData);
+        console.log('📊 Complete API Response:', parsedResult);
         setResult(parsedResult);
+        
+        // Enhanced animations sequence
+        Animated.sequence([
+          Animated.parallel([
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 800,
+              useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+              toValue: 0,
+              duration: 600,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.timing(scoreAnim, {
+            toValue: 1,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // Start confetti if score is high
+          console.log('🎯 Accuracy:', parsedResult.accuracy, 'Score:', parsedResult.score);
+          if (parsedResult.score >= 60) {
+            console.log('🎉 Triggering victory celebration!');
+            startConfetti();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } else {
+            console.log('😔 Score too low for celebration');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          }
+
+          // Start breakdown animations
+          Animated.sequence([
+            Animated.timing(breakdownAnim, {
+              toValue: 1,
+              duration: 800,
+              useNativeDriver: true,
+            }),
+            Animated.parallel([
+              Animated.timing(donutAnim, {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: true,
+              }),
+              Animated.timing(rankAnim, {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: true,
+              }),
+            ]),
+          ]).start();
+        });
+
+        // Pulse animation for performance badge
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.05,
+              duration: 1500,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 1500,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+
       } catch (e) {
         console.error('Error parsing result data:', e);
       }
     }
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      confettiRefs.current.forEach(anim => {
+        if (anim) {
+          anim.stopAnimation();
+        }
+      });
+      confettiRefs.current = [];
+    };
   }, [resultData]);
+
+  const startConfetti = () => {
+    console.log('🎉 Starting confetti celebration!');
+    console.log('🎊 Confetti animation initiated');
+    setShowConfetti(true);
+    confettiRefs.current = Array.from({ length: 25 }, () => new Animated.Value(0));
+    
+    confettiRefs.current.forEach((anim, index) => {
+      const startAnimation = () => {
+        Animated.sequence([
+          Animated.delay(index * 40),
+          Animated.parallel([
+            Animated.timing(anim, {
+              toValue: 1,
+              duration: 3000,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]).start(() => {
+          // Restart animation for continuous effect without recursion
+          anim.setValue(0);
+          setTimeout(() => {
+            startAnimation();
+          }, 100);
+        });
+      };
+      
+      startAnimation();
+    });
+    console.log('🎊 Confetti particles created:', confettiRefs.current.length);
+  };
+
+  const handleShare = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Share.share({
+        message: `I scored ${result?.score}% in ${result?.examTitle}! Check out my performance! 🎯`,
+        title: 'My Exam Results',
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handlePlayAgain = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Retake Exam',
+      'Are you sure you want to retake this exam?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Retake', 
+          style: 'destructive',
+          onPress: () => {
+            router.back();
+          }
+        },
+      ]
+    );
+  };
+
+  const handleReview = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert('Review Mode', 'Review mode will be available soon!');
+  };
+
+  const handlePDF = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert('PDF Export', 'PDF export feature will be available soon!');
+  };
+
+  const handleLeaderboard = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert('Leaderboard', 'Leaderboard feature will be available soon!');
+  };
 
   if (!result) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6C63FF" />
-        <Text style={styles.loadingText}>Loading Results...</Text>
-      </View>
+      <LinearGradient
+        colors={['#667eea', '#764ba2', '#f093fb']}
+        style={styles.loadingContainer}
+      >
+        <ActivityIndicator size="large" color="#FFFFFF" />
+        <Text style={styles.loadingText}>Loading results...</Text>
+      </LinearGradient>
     );
   }
 
-  // Calculate analytics
-  const total = result.totalQuestions;
-  const correct = result.correctAnswers;
-  const incorrect = result.wrongAnswers;
-  const unattempted = result.unattempted;
-  const score = result.score;
-  const totalMarks = total; // Assuming 1 mark per question
+  const accuracy = (result.correctAnswers / result.totalQuestions) * 100;
+  const completion = ((result.correctAnswers + result.wrongAnswers) / result.totalQuestions) * 100;
 
-  const accuracy = total > 0 ? (correct / total) * 100 : 0;
-  const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
-
-  // Performance rating
   const getPerformanceRating = () => {
-    if (percentage >= 90) return { text: 'Excellent', color: '#28a745', icon: 'star' };
-    if (percentage >= 80) return { text: 'Very Good', color: '#20c997', icon: 'star' };
-    if (percentage >= 70) return { text: 'Good', color: '#17a2b8', icon: 'star-half' };
-    if (percentage >= 60) return { text: 'Average', color: '#ffc107', icon: 'star-half' };
-    if (percentage >= 50) return { text: 'Below Average', color: '#fd7e14', icon: 'star-outline' };
-    return { text: 'Needs Improvement', color: '#dc3545', icon: 'alert-circle' };
+    if (accuracy >= 90) return 'Excellent!';
+    if (accuracy >= 80) return 'Very Good!';
+    if (accuracy >= 70) return 'Good!';
+    if (accuracy >= 60) return 'Average!';
+    return 'Needs Improvement!';
   };
 
-  const performance = getPerformanceRating();
+  const getCongratulatoryMessage = () => {
+    if (accuracy >= 80) return "Congratulations! You've excelled! 🎉";
+    if (accuracy >= 60) return "Well done! You've passed! 🎯";
+    return "Keep practicing! You'll improve! 😔";
+  };
 
-  // Chart data
-  const accuracyData = [
-    { label: 'Correct', value: correct, color: '#28a745' },
-    { label: 'Incorrect', value: incorrect, color: '#dc3545' },
-    { label: 'Unattempted', value: unattempted, color: '#6c757d' }
-  ];
+  const getScoreColor = (): [string, string, string] => {
+    return ['#667eea', '#764ba2', '#f093fb'];
+  };
 
-  const renderBarChart = (data: any[], title: string, maxValue: number) => (
-    <View style={styles.chartContainer}>
-      <Text style={styles.chartTitle}>{title}</Text>
-      {data.map((item, index) => (
-        <View key={index} style={styles.barRow}>
-          <Text style={styles.barLabel}>{item.label}</Text>
-          <View style={styles.barContainer}>
-            <View 
-              style={[
-                styles.bar, 
-                { 
-                  width: `${(item.value / maxValue) * 100}%`,
-                  backgroundColor: item.color 
-                }
-              ]} 
-            />
-            <Text style={styles.barValue}>{item.value}</Text>
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-
-  const renderCircularProgress = (percentage: number, size: number = 80) => {
-    const radius = size / 2 - 4;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDasharray = circumference;
-    const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
-    return (
-      <View style={[styles.circularContainer, { width: size, height: size }]}>
-        <View style={[styles.circularBackground, { width: size, height: size, borderRadius: size / 2 }]} />
-        <View 
-          style={[
-            styles.circularProgress,
-            {
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              borderWidth: 4,
-              borderColor: performance.color,
-              borderTopColor: 'transparent',
-              borderRightColor: 'transparent',
-              transform: [{ rotate: '-90deg' }]
-            }
-          ]}
-        />
-        <View style={styles.circularText}>
-          <Text style={[styles.circularPercentage, { color: performance.color }]}>{Math.round(percentage)}%</Text>
-        </View>
-      </View>
-    );
+  const getBackgroundGradient = (): [string, string, string] => {
+    return ['#FAFBFC', '#F8FAFC', '#F1F5F9']; // Even more faint light gradient
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f6f8fb' }} contentContainerStyle={{ paddingBottom: 32 }}>
-      <LinearGradient colors={['#667eea', '#764ba2']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
-        <Ionicons name="trophy" size={40} color="#FFD700" style={{ marginBottom: 8 }} />
-        <Text style={styles.headerTitle}>Live Exam Results</Text>
-        <Text style={styles.scoreText}>Score: <Text style={{ color: '#FFD700' }}>{score}</Text> / {totalMarks}</Text>
-        
-        <View style={styles.performanceContainer}>
-          {renderCircularProgress(percentage, 100)}
-          <View style={styles.performanceInfo}>
-            <Text style={[styles.performanceText, { color: performance.color }]}>
-              <Ionicons name={performance.icon as any} size={20} /> {performance.text}
-            </Text>
-            <Text style={styles.accuracyText}>Accuracy: {accuracy.toFixed(1)}%</Text>
-            <Text style={styles.timeText}>Total Questions: {total}</Text>
-          </View>
+    <LinearGradient
+      colors={getBackgroundGradient()}
+      style={styles.container}
+    >
+      {/* Confetti Background */}
+      {showConfetti && (
+        <View style={styles.confettiContainer} pointerEvents="none">
+          {confettiRefs.current.map((anim, index) => (
+            <Animated.View
+              key={`confetti-${index}`}
+              style={[
+                styles.confetti,
+                {
+                  backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43'][index % 10],
+                  left: Math.random() * width,
+                  transform: [
+                    {
+                      translateY: anim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-50, height + 50],
+                      }),
+                    },
+                    {
+                      rotate: anim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          ))}
         </View>
-      </LinearGradient>
+      )}
 
-      <View style={{ padding: 18 }}>
-        {loading ? (
-          <ActivityIndicator size="large" color="#6C63FF" style={{ marginTop: 40 }} />
-        ) : (
-          <>
-            {/* Summary Cards */}
-            <View style={styles.summaryGrid}>
-              <View style={[styles.summaryCard, { backgroundColor: '#d4edda' }]}>
-                <Ionicons name="checkmark-circle" size={24} color="#28a745" />
-                <Text style={[styles.summaryCardValue, { color: '#28a745' }]}>{correct}</Text>
-                <Text style={styles.summaryCardLabel}>Correct</Text>
-              </View>
-              <View style={[styles.summaryCard, { backgroundColor: '#f8d7da' }]}>
-                <Ionicons name="close-circle" size={24} color="#dc3545" />
-                <Text style={[styles.summaryCardValue, { color: '#dc3545' }]}>{incorrect}</Text>
-                <Text style={styles.summaryCardLabel}>Incorrect</Text>
-              </View>
-              <View style={[styles.summaryCard, { backgroundColor: '#e2e3e5' }]}>
-                <Ionicons name="remove-circle" size={24} color="#6c757d" />
-                <Text style={[styles.summaryCardValue, { color: '#6c757d' }]}>{unattempted}</Text>
-                <Text style={styles.summaryCardLabel}>Unattempted</Text>
-              </View>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Animated.View 
+          style={[
+            styles.resultContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <Text style={styles.headerTitle}>{result.examTitle}</Text>
+          </View>
+
+          {/* Main Score Circle */}
+          <View style={styles.scoreCircleContainer}>
+            {/* Animated Background Elements */}
+            <Animated.View 
+              style={[
+                styles.animatedBg1,
+                {
+                  transform: [
+                    {
+                      rotate: pulseAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+            <Animated.View 
+              style={[
+                styles.animatedBg2,
+                {
+                  transform: [
+                    {
+                      rotate: pulseAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['360deg', '0deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+            <Animated.View 
+              style={[
+                styles.animatedBg3,
+                {
+                  transform: [
+                    {
+                      scale: pulseAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1.2],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+            <Animated.View 
+              style={[
+                styles.animatedBg4,
+                {
+                  transform: [
+                    {
+                      rotate: pulseAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '-360deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+            <Animated.View 
+              style={[
+                styles.animatedBg5,
+                {
+                  transform: [
+                    {
+                      scale: pulseAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1.2, 0.8],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+            
+            <Animated.View 
+              style={[
+                styles.scoreCircle,
+                { transform: [{ scale: scoreAnim }] }
+              ]}
+            >
+              <LinearGradient
+                colors={getScoreColor()}
+                style={styles.scoreGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <View style={styles.scoreInnerGlow} />
+                <Text style={styles.scoreLabel}>Your Score</Text>
+                <Text style={styles.scoreValue}>{result.score}</Text>
+                <Text style={styles.scoreUnit}>%</Text>
+                <Animated.View 
+                  style={[
+                    styles.performanceBadge,
+                    { transform: [{ scale: pulseAnim }] }
+                  ]}
+                >
+                  <Text style={styles.performanceText}>{getPerformanceRating()}</Text>
+                </Animated.View>
+              </LinearGradient>
+            </Animated.View>
+          </View>
+
+          {/* Congratulatory Message */}
+          <Animated.Text 
+            style={[
+              styles.congratulatoryMessage,
+              { opacity: scoreAnim }
+            ]}
+          >
+            {getCongratulatoryMessage()}
+          </Animated.Text>
+
+          {/* Stats Grid */}
+          <Animated.View 
+            style={[
+              styles.statsGrid,
+              { opacity: scoreAnim }
+            ]}
+          >
+            <View style={styles.statCard}>
+              <LinearGradient
+                colors={['#DBEAFE', '#BFDBFE']}
+                style={styles.statGradient}
+              >
+                <View style={[styles.statIconContainer, { backgroundColor: '#60A5FA', borderColor: '#3B82F6' }]}>
+                  <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.statValue}>{completion.toFixed(0)}%</Text>
+                <Text style={styles.statLabel}>Completion</Text>
+              </LinearGradient>
             </View>
 
-            {/* Charts */}
-            {renderBarChart(accuracyData, 'Answer Analysis', total)}
+            <View style={styles.statCard}>
+              <LinearGradient
+                colors={['#FCE7F3', '#FBCFE8']}
+                style={styles.statGradient}
+              >
+                <View style={[styles.statIconContainer, { backgroundColor: '#EC4899', borderColor: '#DB2777' }]}>
+                  <Ionicons name="help-circle" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.statValue}>{result.totalQuestions}</Text>
+                <Text style={styles.statLabel}>Questions</Text>
+              </LinearGradient>
+            </View>
 
-            {/* Action Buttons */}
-            <View style={styles.actionButtons}>
+            <View style={styles.statCard}>
+              <LinearGradient
+                colors={['#D1FAE5', '#A7F3D0']}
+                style={styles.statGradient}
+              >
+                <View style={[styles.statIconContainer, { backgroundColor: '#10B981', borderColor: '#059669' }]}>
+                  <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.statValue}>{result.correctAnswers}</Text>
+                <Text style={styles.statLabel}>Correct</Text>
+              </LinearGradient>
+            </View>
+
+            <View style={styles.statCard}>
+              <LinearGradient
+                colors={['#FEE2E2', '#FECACA']}
+                style={styles.statGradient}
+              >
+                <View style={[styles.statIconContainer, { backgroundColor: '#EF4444', borderColor: '#DC2626' }]}>
+                  <Ionicons name="close-circle" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.statValue}>{result.wrongAnswers}</Text>
+                <Text style={styles.statLabel}>Wrong</Text>
+              </LinearGradient>
+            </View>
+          </Animated.View>
+
+          {/* Performance Breakdown with Donut Chart */}
+          <Animated.View 
+            style={[
+              styles.breakdownCard,
+              { opacity: scoreAnim }
+            ]}
+          >
+            <LinearGradient
+              colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
+              style={styles.breakdownGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              {/* Animated Background Elements */}
+              <Animated.View 
+                style={[
+                  styles.breakdownBg1,
+                  {
+                    opacity: breakdownAnim,
+                    transform: [
+                      {
+                        scale: breakdownAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+              <Animated.View 
+                style={[
+                  styles.breakdownBg2,
+                  {
+                    opacity: breakdownAnim,
+                    transform: [
+                      {
+                        rotate: breakdownAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg'],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+              <Animated.View 
+                style={[
+                  styles.breakdownBg3,
+                  {
+                    opacity: breakdownAnim,
+                    transform: [
+                      {
+                        scale: breakdownAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.2],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+              <Animated.View 
+                style={[
+                  styles.breakdownBg4,
+                  {
+                    opacity: breakdownAnim,
+                    transform: [
+                      {
+                        rotate: breakdownAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '-360deg'],
+                        }),
+                      },
+                      {
+                        scale: breakdownAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1.1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+
+              <View style={styles.breakdownContent}>
+                <Animated.Text 
+                  style={[
+                    styles.breakdownTitle,
+                    {
+                      opacity: breakdownAnim,
+                      transform: [
+                        {
+                          translateY: breakdownAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [20, 0],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  Performance Breakdown
+                </Animated.Text>
+                
+                {/* Donut Chart */}
+                <Animated.View 
+                  style={[
+                    styles.donutChartContainer,
+                    {
+                      opacity: donutAnim,
+                      transform: [
+                        {
+                          scale: donutAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.8, 1],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <Animated.View 
+                    style={[
+                      styles.donutChart,
+                      { transform: [{ scale: scoreAnim }] }
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={['#FFFFFF', '#F8FAFC']}
+                      style={styles.donutChartGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      <View style={styles.donutChartInner}>
+                        <Text style={styles.donutChartText}>{accuracy.toFixed(0)}%</Text>
+                      </View>
+                      <View style={styles.donutChartSegments}>
+                        {/* Wrong Answers (Background) */}
+                        <View 
+                          style={[
+                            styles.donutSegment, 
+                            { 
+                              backgroundColor: '#EF4444',
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: 70,
+                              position: 'absolute',
+                            }
+                          ]} 
+                        />
+                        {/* Correct Answers (Progress) */}
+                        <View 
+                          style={[
+                            styles.donutSegment, 
+                            { 
+                              backgroundColor: '#10B981',
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: 70,
+                              position: 'absolute',
+                              transform: [
+                                { rotate: '-90deg' },
+                                { scale: (result.correctAnswers / result.totalQuestions) }
+                              ],
+                            }
+                          ]} 
+                        />
+                      </View>
+                    </LinearGradient>
+                  </Animated.View>
+                </Animated.View>
+
+                {/* Legend */}
+                <Animated.View 
+                  style={[
+                    styles.legendContainer,
+                    {
+                      opacity: donutAnim,
+                      transform: [
+                        {
+                          translateY: donutAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [10, 0],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
+                    <Text style={styles.legendText}>Correct</Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+                    <Text style={styles.legendText}>Wrong</Text>
+                  </View>
+                </Animated.View>
+
+                {/* Current Rank Section */}
+                <Animated.View 
+                  style={[
+                    styles.rankSection,
+                    {
+                      opacity: rankAnim,
+                      transform: [
+                        {
+                          translateY: rankAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [20, 0],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <Text style={styles.sectionTitle}>Current Rank</Text>
+                  
+                  <View style={styles.rankContainer}>
+                    <View style={styles.rankIconContainer}>
+                      <Ionicons name="trophy" size={32} color="#F59E0B" />
+                    </View>
+                    <View style={styles.rankInfo}>
+                      <Text style={styles.rankNumber}>#{result.currentRank}</Text>
+                      <Text style={styles.rankLabel}>Your Position</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.prizeInfo}>
+                    <Text style={styles.prizeLabel}>Prize Amount</Text>
+                    <Text style={styles.prizeAmount}>₹{result.prizeAmount.toLocaleString()}</Text>
+                  </View>
+                </Animated.View>
+              </View>
+            </LinearGradient>
+          </Animated.View>
+
+          {/* Action Buttons */}
+          <Animated.View 
+            style={[
+              styles.actionSection,
+              { opacity: scoreAnim }
+            ]}
+          >
+            <View style={styles.actionRow}>
               <TouchableOpacity 
                 style={styles.actionButton}
-                onPress={() => router.push('/(tabs)/home')}
+                onPress={handlePlayAgain}
+                activeOpacity={0.8}
               >
-                <Ionicons name="home" size={20} color="#fff" />
-                <Text style={styles.actionButtonText}>Go to Home</Text>
+                <LinearGradient
+                  colors={['#E0E7FF', '#C7D2FE']}
+                  style={styles.actionButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="refresh" size={24} color="#6366F1" />
+                  <Text style={styles.actionButtonText}>Retake</Text>
+                </LinearGradient>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: '#28a745' }]}
-                onPress={() => router.push('/(tabs)/exam')}
+                style={styles.actionButton}
+                onPress={handleReview}
+                activeOpacity={0.8}
               >
-                <Ionicons name="library" size={20} color="#fff" />
-                <Text style={styles.actionButtonText}>Take More Exams</Text>
+                <LinearGradient
+                  colors={['#D1FAE5', '#A7F3D0']}
+                  style={styles.actionButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="eye" size={24} color="#10B981" />
+                  <Text style={styles.actionButtonText}>Review</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={handleShare}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#FEF3C7', '#FDE68A']}
+                  style={styles.actionButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="share" size={24} color="#F59E0B" />
+                  <Text style={styles.actionButtonText}>Share</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
-          </>
-        )}
-      </View>
-    </ScrollView>
+
+            <View style={styles.actionRow}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={handlePDF}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#DBEAFE', '#BFDBFE']}
+                  style={styles.actionButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="document-text" size={20} color="#3B82F6" />
+                  <Text style={styles.actionButtonText}>PDF</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/(tabs)/home');
+                }}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#F3E8FF', '#E9D5FF']}
+                  style={styles.actionButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="home" size={20} color="#8B5CF6" />
+                  <Text style={styles.actionButtonText}>Home</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={handleLeaderboard}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#FCE7F3', '#FBCFE8']}
+                  style={styles.actionButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="trophy" size={20} color="#EC4899" />
+                  <Text style={styles.actionButtonText}>Leaderboard</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </Animated.View>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f6f8fb'
   },
   loadingText: {
-    marginTop: 10,
     fontSize: 16,
-    color: '#6C63FF'
+    color: '#FFFFFF',
+    fontWeight: '500',
+    marginTop: 12,
   },
-  header: {
-    padding: 24,
+  confettiContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  confetti: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+    flexGrow: 1,
+  },
+  resultContainer: {
+    paddingVertical: 20,
+    paddingBottom: 40,
+  },
+  headerSection: {
     alignItems: 'center',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 32,
+    color: '#1E293B',
+    fontWeight: '800',
     marginBottom: 8,
+    textShadowColor: 'rgba(255, 255, 255, 0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
-  scoreText: {
+  examTitle: {
+    fontSize: 16,
+    color: '#475569',
+    fontWeight: '500',
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  scoreCircleContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  scoreCircle: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.4,
+    shadowRadius: 40,
+    elevation: 20,
+    position: 'relative',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  scoreGradient: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  scoreLabel: {
     fontSize: 18,
-    color: '#fff',
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  scoreValue: {
+    fontSize: 56,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    lineHeight: 56,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  scoreUnit: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginTop: -8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  performanceBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  performanceText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  congratulatoryMessage: {
+    fontSize: 24,
+    color: '#1E293B',
+    textAlign: 'center',
+    marginBottom: 32,
+    fontWeight: '700',
+    textShadowColor: 'rgba(255, 255, 255, 0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    letterSpacing: 0.8,
+    lineHeight: 32,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+  },
+  statCard: {
+    width: '48%',
+    borderRadius: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  statGradient: {
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+  },
+  statValue: {
+    fontSize: 28,
+    color: '#1E293B',
+    fontWeight: '800',
+    marginBottom: 4,
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  statLabel: {
+    fontSize: 16,
+    color: '#64748B',
+    fontWeight: '600',
+    textShadowColor: 'rgba(255, 255, 255, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  breakdownCard: {
+    borderRadius: 24,
+    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  breakdownGradient: {
+    borderRadius: 24,
+    padding: 24,
+  },
+  breakdownContent: {
+    alignItems: 'center',
+  },
+  breakdownTitle: {
+    fontSize: 26,
+    color: '#1E293B',
+    fontWeight: '800',
+    marginBottom: 24,
+    textAlign: 'center',
+    textShadowColor: 'rgba(255, 255, 255, 0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    letterSpacing: 0.8,
+  },
+  donutChartContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  donutChart: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  donutChartGradient: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  donutChartInner: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  donutChartText: {
+    fontSize: 20,
+    color: '#1E293B',
+    fontWeight: 'bold',
+  },
+  donutChartSegments: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 70,
+  },
+  donutSegment: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 70,
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 12,
+  },
+  legendDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 8,
+  },
+  legendText: {
+    fontSize: 16,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  subjectSection: {
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    color: '#1E293B',
     fontWeight: '600',
     marginBottom: 16,
   },
-  performanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 20,
+  subjectItem: {
+    marginBottom: 16,
   },
-  performanceInfo: {
-    flex: 1,
-    marginLeft: 20,
-  },
-  performanceText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  accuracyText: {
-    fontSize: 14,
-    color: '#fff',
-    marginBottom: 2,
-  },
-  timeText: {
-    fontSize: 14,
-    color: '#fff',
-  },
-  circularContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circularBackground: {
-    position: 'absolute',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  circularProgress: {
-    position: 'absolute',
-  },
-  circularText: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circularPercentage: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  summaryGrid: {
+  subjectInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  summaryCard: {
-    flex: 1,
-    marginHorizontal: 4,
-    padding: 16,
-    borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 6,
   },
-  summaryCardValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  summaryCardLabel: {
-    fontSize: 12,
-    color: '#666',
+  subjectName: {
+    fontSize: 14,
+    color: '#475569',
     fontWeight: '500',
   },
-  chartContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  chartTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#333',
-  },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  barLabel: {
-    width: 80,
+  subjectScore: {
     fontSize: 14,
-    color: '#666',
+    color: '#1E293B',
+    fontWeight: '600',
   },
-  barContainer: {
-    flex: 1,
-    height: 20,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
+  subjectBar: {
+    height: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 3,
     overflow: 'hidden',
-    flexDirection: 'row',
-    alignItems: 'center',
   },
-  bar: {
+  subjectFill: {
     height: '100%',
-    borderRadius: 10,
+    borderRadius: 3,
   },
-  barValue: {
-    position: 'absolute',
-    right: 8,
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#333',
+  actionSection: {
+    marginTop: 16,
+    paddingHorizontal: 4,
   },
-  actionButtons: {
+  actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginBottom: 16,
   },
   actionButton: {
     flex: 1,
-    flexDirection: 'row',
+    borderRadius: 20,
+    marginHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+  },
+  actionButtonGradient: {
+    borderRadius: 20,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6C63FF',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    minHeight: 80,
   },
   actionButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 8,
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '700',
+    marginTop: 8,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  animatedBg1: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(236, 72, 153, 0.15)',
+    top: -30,
+    right: -30,
+    zIndex: -1,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  animatedBg2: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    bottom: -40,
+    right: -40,
+    zIndex: -1,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  animatedBg3: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(236, 72, 153, 0.08)',
+    top: 0,
+    right: 0,
+    zIndex: -1,
+    shadowColor: 'rgba(255, 255, 255, 0.5)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  animatedBg4: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    top: -20,
+    left: -20,
+    zIndex: -1,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  animatedBg5: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(236, 72, 153, 0.15)',
+    bottom: 0,
+    left: 0,
+    zIndex: -1,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  scoreInnerGlow: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: -20,
+    left: -20,
+    zIndex: -1,
+    shadowColor: 'rgba(255, 255, 255, 0.5)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  rankSection: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  rankContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  rankIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  rankInfo: {
+    alignItems: 'flex-start',
+  },
+  rankNumber: {
+    fontSize: 32,
+    color: '#1E293B',
+    fontWeight: '800',
+    lineHeight: 40,
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+  },
+  rankLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  prizeInfo: {
+    alignItems: 'center',
+  },
+  prizeLabel: {
+    fontSize: 16,
+    color: '#64748B',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  prizeAmount: {
+    fontSize: 32,
+    color: '#1E293B',
+    fontWeight: '800',
+    lineHeight: 40,
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+  },
+  breakdownBg1: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(236, 72, 153, 0.08)',
+    top: -20,
+    left: -20,
+    zIndex: -1,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  breakdownBg2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    bottom: -40,
+    right: -40,
+    zIndex: -1,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  breakdownBg3: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    top: 0,
+    right: 0,
+    zIndex: -1,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  breakdownBg4: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    bottom: -20,
+    left: -20,
+    zIndex: -1,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
 }); 

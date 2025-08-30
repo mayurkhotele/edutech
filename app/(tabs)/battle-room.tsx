@@ -272,12 +272,12 @@ export default function BattleRoomScreen() {
     
     if (user?.token) {
       console.log('🚀 Initializing socket connection...');
-      console.log('   - Server URL: http://192.168.1.4:3001');
+      console.log('   - Server URL: http://192.168.1.3:3001');
       console.log('   - Auth token length:', user.token.length);
       console.log('   - User ID:', user.id);
       console.log('   - Match ID:', matchId);
       
-      const newSocket = io('http://192.168.1.4:3001', {
+      const newSocket = io('http://192.168.1.3:3001', {
         auth: {
           token: user.token
         },
@@ -1208,142 +1208,260 @@ const handleMatchEnded = (data: {
 
   return (
     <LinearGradient 
-      colors={["#6C63FF", "#FF6CAB", "#FFD452"]}
+      colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
+      {/* Animated Background Elements */}
+      <View style={styles.backgroundContainer}>
+        {/* Floating Particles */}
+        <Animated.View 
+          style={[
+            styles.floatingParticle1,
+            {
+              transform: [{
+                translateY: new Animated.Value(0).interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -100]
+                })
+              }],
+              opacity: new Animated.Value(0).interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0, 1, 0]
+              })
+            }
+          ]}
+        />
+        <Animated.View 
+          style={[
+            styles.floatingParticle2,
+            {
+              transform: [{
+                translateY: new Animated.Value(0).interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -80]
+                })
+              }],
+              opacity: new Animated.Value(0).interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0, 1, 0]
+              })
+            }
+          ]}
+        />
+        <Animated.View 
+          style={[
+            styles.floatingParticle3,
+            {
+              transform: [{
+                translateY: new Animated.Value(0).interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -120]
+                })
+              }],
+              opacity: new Animated.Value(0).interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0, 1, 0]
+              })
+            }
+          ]}
+        />
+        
+        {/* Glowing Orbs */}
+        <Animated.View 
+          style={[
+            styles.glowOrb1,
+            {
+              transform: [{ scale: new Animated.Value(1) }],
+              opacity: new Animated.Value(0).interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.3, 0.8]
+              })
+            }
+          ]}
+        />
+        <Animated.View 
+          style={[
+            styles.glowOrb2,
+            {
+              transform: [{ scale: new Animated.Value(1) }],
+              opacity: new Animated.Value(0).interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.2, 0.6]
+              })
+            }
+          ]}
+        />
+        
+        {/* Animated Waves */}
+        <Animated.View 
+          style={[
+            styles.animatedWave1,
+            {
+              transform: [{
+                scale: new Animated.Value(0).interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 1.5]
+                })
+              }],
+              opacity: new Animated.Value(0).interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0.4, 0.8, 0.2]
+              })
+            }
+          ]}
+        />
+        <Animated.View 
+          style={[
+            styles.animatedWave2,
+            {
+              transform: [{
+                scale: new Animated.Value(0).interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1.2, 1.8]
+                })
+              }],
+              opacity: new Animated.Value(0).interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0.2, 0.6, 0.1]
+              })
+            }
+          ]}
+        />
+      </View>
+
       <View style={styles.content}>
-        {/* Compact Header */}
+        {/* Enhanced Header */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.headerBackButton}
             onPress={() => router.back()}
           >
             <LinearGradient
-              colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.1)']}
+              colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.15)']}
               style={styles.headerBackGradient}
             >
-              <Ionicons name="arrow-back" size={20} color="#fff" />
+              <Ionicons name="arrow-back" size={22} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
           
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>📚 Battle Quiz</Text>
-            <Text style={styles.headerSubtitle}>Question {battleState.currentQuestion + 1}/{battleState.totalQuestions}</Text>
+            <Text style={styles.headerTitle}>⚔️ Battle Arena</Text>
+            <Text style={styles.headerSubtitle}>Question {battleState.currentQuestion + 1} of {battleState.totalQuestions}</Text>
           </View>
         </View>
 
-        {/* Compact Score Board */}
+        {/* Enhanced Score Board */}
         <View style={styles.scoreBoard}>
           <LinearGradient
-            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.12)']}
+            colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']}
             style={styles.scoreBoardGradient}
           >
-          <View style={styles.scoreContainer}>
+            <View style={styles.scoreContainer}>
               <View style={styles.playerAvatar}>
                 <LinearGradient
-                  colors={["#FF6CAB", "#7366FF"]}
+                  colors={["#FF6B6B", "#FF8E53"]}
                   style={styles.avatarGradient}
                 >
-                  <Ionicons name="person" size={18} color="#fff" />
+                  <Ionicons name="person" size={20} color="#fff" />
                 </LinearGradient>
               </View>
-            <Text style={styles.scoreLabel}>You</Text>
-            <Text style={styles.scoreValue}>{battleState.player1Score}</Text>
-          </View>
-          
-          <View style={styles.vsContainer}>
+              <Text style={styles.scoreLabel}>You</Text>
+              <Text style={styles.scoreValue}>{battleState.player1Score}</Text>
+            </View>
+            
+            <View style={styles.vsContainer}>
               <LinearGradient
-                colors={["#FFD452", "#FF6CAB"]}
+                colors={["#FF6B6B", "#FF8E53", "#FFD93D"]}
                 style={styles.vsGradient}
               >
-            <Text style={styles.vsText}>VS</Text>
+                <Text style={styles.vsText}>⚔️ VS</Text>
               </LinearGradient>
-          </View>
-          
-          <View style={styles.scoreContainer}>
+            </View>
+            
+            <View style={styles.scoreContainer}>
               <View style={styles.playerAvatar}>
                 <LinearGradient
-                  colors={["#6C63FF", "#FF6CAB"]}
+                  colors={["#4ECDC4", "#44A08D"]}
                   style={styles.avatarGradient}
                 >
-                  <Ionicons name="person" size={18} color="#fff" />
+                  <Ionicons name="person" size={20} color="#fff" />
                 </LinearGradient>
               </View>
-            <Text style={styles.scoreLabel}>Opponent</Text>
-            <Text style={styles.scoreValue}>{battleState.player2Score}</Text>
-          </View>
-          
-          <View style={styles.timerContainer}>
+              <Text style={styles.scoreLabel}>Opponent</Text>
+              <Text style={styles.scoreValue}>{battleState.player2Score}</Text>
+            </View>
+            
+            <View style={styles.timerContainer}>
               <LinearGradient
-                colors={battleState.timeLeft <= 5 ? ["#FF6CAB", "#EA4335"] : ["#6C63FF", "#7366FF"]}
+                colors={battleState.timeLeft <= 5 ? ["#FF6B6B", "#FF5252"] : ["#4F46E5", "#7C3AED"]}
                 style={styles.timerGradient}
               >
-                <Ionicons name="time" size={16} color="#fff" />
+                <Ionicons name="time" size={18} color="#fff" />
                 <Text style={styles.timerText}>
                   {battleState.timeLeft}s
                 </Text>
               </LinearGradient>
-          </View>
+            </View>
           </LinearGradient>
         </View>
 
-        {/* Compact Progress Dots */}
+        {/* Enhanced Progress Dots */}
         <View style={styles.progressContainer}>
           <LinearGradient
-            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.12)']}
+            colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']}
             style={styles.progressGradient}
           >
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.progressRow}>
-              {Array.from({ length: battleState.totalQuestions }, (_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.progressDot,
-                    getAnswerStyle(i)
-                  ]}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.progressRow}>
+                {Array.from({ length: battleState.totalQuestions }, (_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.progressDot,
+                      getAnswerStyle(i)
+                    ]}
                   >
                     <LinearGradient
                       colors={
                         getAnswerStatus(i) === 'answered' 
-                          ? ["#6C63FF", "#7366FF"]
+                          ? ["#4F46E5", "#7C3AED"]
                           : getAnswerStatus(i) === 'opponent-answered'
-                          ? ["#FF6CAB", "#EA4335"]
+                          ? ["#FF6B6B", "#FF5252"]
                           : ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.2)']
                       }
                       style={styles.progressDotGradient}
-                >
-                  <Text style={styles.progressText}>{i + 1}</Text>
+                    >
+                      <Text style={styles.progressText}>{i + 1}</Text>
                     </LinearGradient>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
           </LinearGradient>
         </View>
 
-        {/* Compact Question */}
+        {/* Enhanced Question Container */}
         {battleState.question && (
           <View style={styles.questionContainer}>
             <LinearGradient
-              colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.12)']}
+              colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']}
               style={styles.questionGradient}
             >
               <View style={styles.questionHeader}>
                 <LinearGradient
-                  colors={["#FF6CAB", "#7366FF"]}
+                  colors={["#FF6B6B", "#FF8E53"]}
                   style={styles.questionIconGradient}
                 >
-                  <Ionicons name="help-circle" size={20} color="#fff" />
+                  <Ionicons name="help-circle" size={24} color="#fff" />
                 </LinearGradient>
-                <Text style={styles.questionNumber}>Q{battleState.currentQuestion + 1}</Text>
+                <Text style={styles.questionNumber}>Question {battleState.currentQuestion + 1}</Text>
               </View>
               
-            <Text style={styles.questionText}>
-              {battleState.question.text}
-            </Text>
+              <Text style={styles.questionText}>
+                {battleState.question.text}
+              </Text>
             
             <View style={styles.optionsContainer}>
               {/* {battleState.question.options.map((option, index) => (
@@ -1416,15 +1534,37 @@ const handleMatchEnded = (data: {
     <LinearGradient
       colors={
         battleState.answers[battleState.currentQuestion] === index
-          ? ["#6C63FF", "#7366FF"]
+          ? ["#4F46E5", "#7C3AED"]
           : battleState.opponentAnswers[battleState.currentQuestion] === index
-          ? ["#FF6B6B", "#FF5252"] // Red for opponent's answer
-          : ['rgba(255,255,255,0.85)', 'rgba(255,255,255,0.95)']
+          ? ["#FF6B6B", "#FF5252"]
+          : ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']
       }
       style={styles.optionButtonGradient}
     >
       <View style={styles.optionContent}>
-        <Text style={styles.optionText}>{option}</Text>
+        <View style={styles.optionNumber}>
+          <LinearGradient
+            colors={
+              battleState.answers[battleState.currentQuestion] === index
+                ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']
+                : ['rgba(79, 70, 229, 0.2)', 'rgba(124, 58, 237, 0.1)']
+            }
+            style={styles.optionNumberGradient}
+          >
+            <Text style={[
+              styles.optionNumberText,
+              battleState.answers[battleState.currentQuestion] === index && styles.selectedOptionNumberText
+            ]}>
+              {String.fromCharCode(65 + index)}
+            </Text>
+          </LinearGradient>
+        </View>
+        <Text style={[
+          styles.optionText,
+          battleState.answers[battleState.currentQuestion] === index && styles.selectedOptionText
+        ]}>
+          {option}
+        </Text>
         
         {/* Answer indicators */}
         {battleState.answers[battleState.currentQuestion] === index && (
@@ -1438,6 +1578,17 @@ const handleMatchEnded = (data: {
             <Text style={styles.answerIndicatorText}>Opponent</Text>
           </View>
         )}
+        
+        {battleState.answers[battleState.currentQuestion] === index && (
+          <View style={styles.checkmarkContainer}>
+            <LinearGradient
+              colors={["#4F46E5", "#7C3AED"]}
+              style={styles.checkmarkGradient}
+            >
+              <Ionicons name="checkmark" size={18} color="#fff" />
+            </LinearGradient>
+          </View>
+        )}
       </View>
     </LinearGradient>
   </TouchableOpacity>
@@ -1448,21 +1599,26 @@ const handleMatchEnded = (data: {
           
         )}
       </View>
-      {/* Real-time status */}
-<View style={styles.statusContainer}>
-  <Text style={styles.statusText}>
-    {battleState.answers[battleState.currentQuestion] !== undefined && 
-     battleState.opponentAnswers[battleState.currentQuestion] !== undefined ? (
-      "✅ Both players answered!"
-    ) : battleState.answers[battleState.currentQuestion] !== undefined ? (
-      "⏳ Waiting for opponent to answer..."
-    ) : battleState.opponentAnswers[battleState.currentQuestion] !== undefined ? (
-      "⏳ Opponent answered, waiting for you..."
-    ) : (
-      `⏰ Time remaining: ${battleState.timeLeft}s`
-    )}
-  </Text>
-</View>
+      {/* Enhanced Status Container */}
+      <View style={styles.statusContainer}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']}
+          style={styles.statusGradient}
+        >
+          <Text style={styles.statusText}>
+            {battleState.answers[battleState.currentQuestion] !== undefined && 
+             battleState.opponentAnswers[battleState.currentQuestion] !== undefined ? (
+              "🎯 Both players answered! Next question loading..."
+            ) : battleState.answers[battleState.currentQuestion] !== undefined ? (
+              "⏳ Waiting for opponent to answer..."
+            ) : battleState.opponentAnswers[battleState.currentQuestion] !== undefined ? (
+              "⏳ Opponent answered, waiting for you..."
+            ) : (
+              `⏰ Time remaining: ${battleState.timeLeft}s`
+            )}
+          </Text>
+        </LinearGradient>
+      </View>
     </LinearGradient>
   );
 }
@@ -1491,16 +1647,29 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   statusContainer: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
+    marginTop: 12,
     alignItems: 'center',
   },
+  statusGradient: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
   statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   headerBackGradient: {
     width: '100%',
@@ -1772,8 +1941,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   selectedOption: {
-    borderWidth: 2,
-    borderColor: '#6C63FF',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   optionText: {
     fontSize: 14,
@@ -1783,7 +1957,32 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   selectedOptionText: {
-    color: '#6C63FF',
+    color: '#fff',
+    fontWeight: '700',
+  },
+  optionNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  optionNumberGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  optionNumberText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4F46E5',
+  },
+  selectedOptionNumberText: {
+    color: '#fff',
+    fontWeight: '900',
   },
   checkmarkContainer: {
     width: 28,
@@ -2087,5 +2286,108 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: '#fff',
+  },
+  // Enhanced Background Animation Styles
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
+  },
+  floatingParticle1: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    top: '20%',
+    left: '15%',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  floatingParticle2: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    top: '60%',
+    right: '20%',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  floatingParticle3: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    top: '40%',
+    left: '70%',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  glowOrb1: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    top: '10%',
+    right: '10%',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  glowOrb2: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    bottom: '20%',
+    left: '10%',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  animatedWave1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -100 }, { translateY: -100 }],
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  animatedWave2: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -150 }, { translateY: -150 }],
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
 });

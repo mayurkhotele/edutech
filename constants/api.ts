@@ -1,7 +1,7 @@
 // const BASE_URL = 'https://examindia-production.up.railway.app/api';
 // const BASE_URL = 'https://examindia-production.up.railway.app/api';
 
-const BASE_URL = 'http://192.168.1.4:3000/api';
+const BASE_URL = 'http://192.168.1.3:3000/api';
 
 type ApiOptions = {
   method?: string;
