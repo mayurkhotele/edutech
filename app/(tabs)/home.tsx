@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AdvertisementBanner from '../../components/AdvertisementBanner';
+import EducationBannerSlider from '../../components/EducationBannerSlider';
 import ExamCard from '../../components/ExamCard';
 import ExamNotificationsSection from '../../components/ExamNotificationsSection';
 import JobCompetitionBanner from '../../components/JobCompetitionBanner';
@@ -107,14 +108,32 @@ export default function HomeScreen() {
                 }
             >
 
+                                {/* Education Banner Slider */}
+                    <EducationBannerSlider onBannerPress={(banner) => {
+                        console.log('Banner pressed:', banner.title);
+                        // Handle banner press - you can navigate to different screens based on banner
+                        switch (banner.id) {
+                            case '1':
+                                router.push('/(tabs)/practice-exam');
+                                break;
+                            case '2':
+                                router.push('/(tabs)/exam');
+                                break;
+                            case '3':
+                                router.push('/(tabs)/profile');
+                                break;
+                            default:
+                                break;
+                        }
+                    }} />
 
-            {/* Featured Exams Section */}
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Featured Exams</Text>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/exam')}>
-                    <Text style={styles.viewAll}>View All</Text>
-                </TouchableOpacity>
-            </View>
+                    {/* Featured Exams Section */}
+                    <View style={[styles.sectionHeader, { marginTop: -15 }]}>
+                        <Text style={styles.sectionTitle}>Featured Exams</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/exam')}>
+                            <Text style={styles.viewAll}>View All</Text>
+                        </TouchableOpacity>
+                    </View>
 
             {loading ? (
                 <ActivityIndicator size="large" color={AppColors.primary} style={{ marginTop: 20 }} />

@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { apiFetchAuth, getImageUrl } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import AddStory from './AddStory';
@@ -78,6 +78,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
   useEffect(() => {
     fetchPosts();
     fetchStories();
+    fetchFollowRequests(); // Fetch follow requests on mount
   }, []);
 
   // Refresh when refreshTrigger changes
@@ -312,7 +313,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
     try {
       const response = await apiFetchAuth('/student/follow', user?.token || '', {
         method: 'POST',
-        body: JSON.stringify({ targetUserId: authorId }),
+        body: { targetUserId: authorId },
       });
 
       if (response.ok) {
@@ -382,9 +383,10 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
     setSearchQuery(query);
     
     if (query.trim().length === 0) {
-      // If no query, show all users
-      console.log('🔍 No query, fetching all users...');
-      await fetchAllUsers();
+      // If no query, hide search results
+      console.log('🔍 No query, hiding search results...');
+      setSearchResults([]);
+      setShowSearchResults(false);
       return;
     }
 
@@ -405,19 +407,49 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         const users = response.data.users || [];
         console.log('🔍 Found users:', users);
         
-        // Filter out invalid users and ensure they have required properties
-        const validUsers = users.filter((user: any) => user && user.id && user.name);
-        console.log('🔍 Valid users after filtering:', validUsers);
+        // Enhanced filtering to remove unwanted results
+        const validUsers = users.filter((searchUser: any) => {
+          // Basic validation
+          if (!searchUser || !searchUser.id || !searchUser.name) {
+            console.log('🔍 Filtering out user with missing data:', searchUser);
+            return false;
+          }
+          
+          // Filter out current user (fix the variable reference)
+          if (searchUser.id === user?.id) {
+            console.log('🔍 Filtering out current user:', searchUser.name);
+            return false;
+          }
+          
+          // Filter out users with incomplete profiles
+          if (!searchUser.email || !searchUser.name.trim()) {
+            console.log('🔍 Filtering out incomplete profile:', searchUser);
+            return false;
+          }
+          
+          // Only filter out obvious test/dummy accounts (very minimal filtering)
+          const email = searchUser.email.toLowerCase();
+          const unwantedPatterns = [
+            'test@test', 'demo@demo', 'admin@admin', 'fake@fake'
+          ];
+          
+          const isUnwanted = unwantedPatterns.some(pattern => 
+            email.includes(pattern)
+          );
+          
+          if (isUnwanted) {
+            console.log('🔍 Filtering out test account:', searchUser.email);
+            return false;
+          }
+          
+          console.log('🔍 Valid user:', searchUser.name, searchUser.email);
+          return true;
+        });
         
-        console.log('🔍 Setting search results:', validUsers);
-        console.log('🔍 Setting showSearchResults to true');
-        console.log('🔍 Setting search results:', validUsers);
-        console.log('🔍 Setting showSearchResults to true');
+        console.log('🔍 Valid users after enhanced filtering:', validUsers);
+        
         setSearchResults(validUsers);
         setShowSearchResults(true);
-        console.log('🔍 State should now be updated');
-        console.log('🔍 State after setting - searchResults:', validUsers);
-        console.log('🔍 State after setting - showSearchResults: true');
       } else {
         console.log('🔍 Search API error:', response);
         setSearchResults([]);
@@ -432,36 +464,11 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
     }
   };
 
-  // Fetch all users for initial display
+  // Fetch all users for initial display - REMOVED to prevent unwanted results
   const fetchAllUsers = async () => {
-    setSearching(true);
-    try {
-      console.log('🔍 Fetching all users...');
-      const response = await apiFetchAuth('/student/users', user?.token || '');
-      console.log('🔍 All users API response:', response);
-      
-      if (response.ok) {
-        const users = response.data.users || response.data || [];
-        console.log('🔍 All users found:', users);
-        
-        // Filter out invalid users and ensure they have required properties
-        const validUsers = users.filter((user: any) => user && user.id && user.name);
-        console.log('🔍 Valid users after filtering:', validUsers);
-        
-        setSearchResults(validUsers);
-        setShowSearchResults(true);
-      } else {
-        console.log('🔍 All users API error:', response);
-        setSearchResults([]);
-        setShowSearchResults(false);
-      }
-    } catch (error) {
-      console.error('🔍 Error fetching all users:', error);
-      setSearchResults([]);
-      setShowSearchResults(false);
-    } finally {
-      setSearching(false);
-    }
+    // Don't show all users by default - only show when searching
+    setSearchResults([]);
+    setShowSearchResults(false);
   };
 
   const handleUserPress = (searchUser: any) => {
@@ -611,117 +618,113 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
     );
   };
 
-  const renderSearchResult = ({ item }: { item: any }) => {
-    console.log('🔍 Rendering search result item:', item);
-    console.log('🔍 Item type:', typeof item);
-    console.log('🔍 Item keys:', Object.keys(item || {}));
-    
+    const renderSearchResult = ({ item }: { item: any }) => {
     // Validate that the item has required properties
     if (!item || !item.id || !item.name) {
-      console.warn('🔍 Invalid search result item:', item);
       return null;
     }
     
-    console.log('🔍 About to render TouchableOpacity for:', item.name);
-    console.log('🔍 About to render TEST button for:', item.name);
-    
     const handleItemPress = () => {
-      console.log('🔍 Search result item pressed:', item);
-      console.log('🔍 Item ID:', item.id);
-      console.log('🔍 Item Name:', item.name);
-      
-      // First, show an alert to confirm the touch is working
-      alert(`Touch detected for: ${item.name} (ID: ${item.id})`);
-      
       if (item && item.id) {
         handleUserPress(item);
-      } else {
-        console.error('🔍 Cannot navigate: Invalid item data');
       }
     };
     
     return (
-      <View style={styles.searchResultItem}>
-        {/* Test Button - Remove this after testing */}
-        <TouchableOpacity 
-          style={{
-            backgroundColor: '#ff0000',
-            padding: 8,
-            borderRadius: 8,
-            marginLeft: 10,
-            minWidth: 40,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          onPress={() => {
-            console.log('🧪 Test button pressed for:', item.name);
-            alert(`Test button works! User: ${item.name}`);
-          }}
+      <TouchableOpacity 
+        style={styles.enhancedSearchResultItem}
+        onPress={handleItemPress}
+        activeOpacity={0.7}
+      >
+        <LinearGradient
+          colors={['rgba(255,255,255,0.9)', 'rgba(248,250,252,0.9)']}
+          style={styles.searchResultGradient}
         >
-          <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>TEST</Text>
-        </TouchableOpacity>
-        
-        <Pressable 
-          style={{ flex: 1 }}
-          onPress={() => {
-            console.log('🔍 Main Pressable pressed for:', item.name);
-            alert(`Main Pressable pressed for: ${item.name}`);
-            handleItemPress();
-          }}
-          testID={`search-result-${item.id}`}
-        >
-          <View style={styles.searchResultAvatar}>
+          {/* Avatar Section */}
+          <View style={styles.enhancedSearchAvatar}>
             {item.profilePhoto ? (
-              <Image source={{ uri: item.profilePhoto }} style={styles.searchResultAvatarImage} />
+              <Image source={{ uri: item.profilePhoto }} style={styles.enhancedAvatarImage} />
             ) : (
-              <View style={styles.searchResultAvatarPlaceholder}>
-                <Text style={styles.searchResultAvatarInitials}>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                style={styles.enhancedAvatarPlaceholder}
+              >
+                <Text style={styles.enhancedAvatarInitials}>
                   {item.name ? item.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U'}
                 </Text>
-              </View>
+              </LinearGradient>
             )}
+            
+            {/* Online Status Indicator */}
+            <View style={styles.onlineStatusIndicator} />
           </View>
           
-          <View style={styles.searchResultInfo}>
-            <Text style={styles.searchResultName}>{item.name}</Text>
-            <Text style={styles.searchResultEmail}>{item.email}</Text>
+          {/* User Info Section */}
+          <View style={styles.enhancedSearchInfo}>
+            <View style={styles.userNameContainer}>
+              <Text style={styles.enhancedSearchName}>{item.name}</Text>
+              {item.isFollowedBack && (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                </View>
+              )}
+            </View>
+            
+            <Text style={styles.enhancedSearchEmail}>{item.email}</Text>
+            
             {(item.course || item.year) && (
-              <View style={styles.searchResultCourse}>
-                <Ionicons name="school-outline" size={12} color="#6B7280" />
-                <Text style={styles.searchResultCourseText}>
-                  {[item.course, item.year].filter(Boolean).join(' • ')}
-                </Text>
+              <View style={styles.enhancedCourseContainer}>
+                <LinearGradient
+                  colors={['#F3F4F6', '#E5E7EB']}
+                  style={styles.courseTagGradient}
+                >
+                  <Ionicons name="school-outline" size={12} color="#6B7280" />
+                  <Text style={styles.enhancedCourseText}>
+                    {[item.course, item.year].filter(Boolean).join(' • ')}
+                  </Text>
+                </LinearGradient>
               </View>
             )}
           </View>
           
-          <View style={styles.searchResultActions}>
+          {/* Action Section */}
+          <View style={styles.enhancedSearchActions}>
             {item.isFollowing ? (
-              <View style={styles.followingBadge}>
-                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                <Text style={styles.followingBadgeText}>Following</Text>
-              </View>
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                style={styles.enhancedFollowingBadge}
+              >
+                <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                <Text style={styles.enhancedFollowingText}>Following</Text>
+              </LinearGradient>
             ) : (
               <TouchableOpacity 
-                style={styles.followButtonSmall}
+                style={styles.enhancedFollowButton}
                 onPress={(e) => {
                   e.stopPropagation();
-                  console.log('🔍 Follow button pressed for:', item.name);
+                  // Handle follow action
                 }}
+                activeOpacity={0.8}
               >
-                <Ionicons name="person-add-outline" size={16} color="#8B5CF6" />
+                <LinearGradient
+                  colors={['#8B5CF6', '#7C3AED']}
+                  style={styles.followButtonGradient}
+                >
+                  <Ionicons name="person-add-outline" size={16} color="#fff" />
+                  <Text style={styles.followButtonText}>Follow</Text>
+                </LinearGradient>
               </TouchableOpacity>
             )}
-                     </View>
-         </Pressable>
-       </View>
-     );
-   };
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
 
   const renderPost = ({ item }: { item: any }) => (
-    <View style={styles.postCard}>
-      {/* Professional Header */}
-      <View style={styles.postHeader}>
+    <View style={styles.instagramPostCard}>
+      {/* Instagram-Style Header */}
+      <View style={styles.instagramPostHeader}>
         <TouchableOpacity 
           style={styles.authorSection} 
           onPress={() => {
@@ -731,18 +734,15 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
           }}
           activeOpacity={0.7}
         >
-          <Image
-            source={item.author?.profilePhoto ? { uri: item.author.profilePhoto } : require('../assets/images/avatar1.jpg')}
-            style={styles.authorAvatar}
-          />
+          <View style={styles.instagramAvatarContainer}>
+            <Image
+              source={item.author?.profilePhoto ? { uri: item.author.profilePhoto } : require('../assets/images/avatar1.jpg')}
+              style={styles.instagramAvatar}
+            />
+          </View>
           <View style={styles.authorInfo}>
-            <Text style={styles.authorName}>{item.author?.name || 'Unknown'}</Text>
-            <View style={styles.postMeta}>
-              <Text style={styles.authorCourse}>
-                {[item.author?.course, item.author?.year].filter(Boolean).join(' • ')}
-              </Text>
-              <Text style={styles.postTime}>{timeAgo(item.createdAt)}</Text>
-            </View>
+            <Text style={styles.instagramAuthorName}>{item.author?.name || 'Unknown'}</Text>
+            <Text style={styles.instagramPostLocation}>{timeAgo(item.createdAt)}</Text>
           </View>
         </TouchableOpacity>
         <View style={styles.postActions}>
@@ -787,121 +787,155 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         </View>
       </View>
 
-      {/* Clean Content */}
-      <Text style={styles.postContent}>{item.content}</Text>
+             {/* Instagram-Style Content */}
+       <Text style={styles.instagramPostContent}>{item.content}</Text>
 
-      {/* Professional Media Display */}
-      {item.imageUrl && (
-        <View style={styles.mediaContainer}>
-          <Image source={{ uri: item.imageUrl }} style={styles.mediaImage} resizeMode="cover" />
-        </View>
-      )}
+       {/* Instagram-Style Media */}
+       {item.imageUrl && (
+         <View style={styles.instagramMediaContainer}>
+           <Image source={{ uri: item.imageUrl }} style={styles.instagramMediaImage} resizeMode="cover" />
+         </View>
+       )}
 
-      {item.videoUrl && (
-        <View style={styles.videoContainer}>
-          <View style={styles.videoPlaceholder}>
-            <Ionicons name="play-circle" size={48} color="#667eea" />
-            <Text style={styles.videoText}>Video</Text>
-          </View>
-        </View>
-      )}
+       {item.videoUrl && (
+         <View style={styles.instagramVideoContainer}>
+           <View style={styles.instagramVideoPlaceholder}>
+             <Ionicons name="play-circle" size={48} color="#fff" />
+           </View>
+         </View>
+       )}
 
-      {/* Elegant Hashtags */}
-      {item.hashtags && item.hashtags.length > 0 && (
-        <View style={styles.hashtagsContainer}>
-          {item.hashtags.map((tag: string) => (
-            <View key={tag} style={styles.hashtagChip}>
-              <Text style={styles.hashtagText}>#{tag}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+       {/* Instagram-Style Hashtags */}
+       {item.hashtags && item.hashtags.length > 0 && (
+         <View style={styles.instagramHashtagsContainer}>
+           {item.hashtags.map((tag: string) => (
+             <Text key={tag} style={styles.instagramHashtagText}>#{tag}</Text>
+           ))}
+         </View>
+       )}
 
-      {/* Professional Action Bar */}
-      <View style={styles.postActionsBar}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => handleLikePost(item.id)}>
-          <Ionicons 
-            name={item.isLiked ? 'heart' : 'heart-outline'} 
-            size={20} 
-            color={item.isLiked ? '#ff6b6b' : '#666'} 
-          />
-          <Text style={[styles.actionButtonText, item.isLiked && styles.likedText]}>
-            {item._count?.likes || 0}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.actionButton} onPress={() => openComments(item)}>
-          <Ionicons name="chatbubble-outline" size={20} color="#666" />
-          <Text style={styles.actionButtonText}>{item._count?.comments || 0}</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.shareButton}>
-          <Ionicons name="share-outline" size={20} color="#666" />
-          <Text style={styles.actionButtonText}>Share</Text>
-        </TouchableOpacity>
-      </View>
+       {/* Instagram-Style Action Bar */}
+       <View style={styles.instagramActionsBar}>
+         <View style={styles.instagramActionLeft}>
+           <TouchableOpacity style={styles.instagramActionButton} onPress={() => handleLikePost(item.id)}>
+             <Ionicons 
+               name={item.isLiked ? 'heart' : 'heart-outline'} 
+               size={28} 
+               color={item.isLiked ? '#ed4956' : '#262626'} 
+             />
+           </TouchableOpacity>
+           
+           <TouchableOpacity style={styles.instagramActionButton} onPress={() => openComments(item)}>
+             <Ionicons name="chatbubble-outline" size={28} color="#262626" />
+           </TouchableOpacity>
+           
+           <TouchableOpacity style={styles.instagramActionButton}>
+             <Ionicons name="paper-plane-outline" size={28} color="#262626" />
+           </TouchableOpacity>
+         </View>
+         
+         <TouchableOpacity style={styles.instagramBookmarkButton}>
+           <Ionicons name="bookmark-outline" size={28} color="#262626" />
+         </TouchableOpacity>
+       </View>
+
+       {/* Instagram-Style Likes Count */}
+       <View style={styles.instagramLikesContainer}>
+         <Text style={styles.instagramLikesText}>
+           <Text style={styles.instagramLikesBold}>{item._count?.likes || 0} likes</Text>
+         </Text>
+       </View>
+
+       {/* Instagram-Style Comments Preview */}
+       <View style={styles.instagramCommentsContainer}>
+         <Text style={styles.instagramCommentsText}>
+           <Text style={styles.instagramCommentsBold}>{item.author?.name}</Text> {item.content}
+         </Text>
+         {item._count?.comments > 0 && (
+           <TouchableOpacity onPress={() => openComments(item)}>
+             <Text style={styles.instagramViewCommentsText}>
+               View all {item._count.comments} comments
+             </Text>
+           </TouchableOpacity>
+         )}
+       </View>
     </View>
   );
 
   const renderStories = () => {
     return (
-      <View style={styles.storiesContainer}>
-        <View style={styles.storiesHeader}>
-          <Text style={styles.storiesTitle}>Stories</Text>
-          <TouchableOpacity style={styles.viewAllButton}>
-            <Text style={styles.viewAllText}>View All</Text>
-            <Ionicons name="chevron-forward" size={16} color="#667eea" />
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={stories}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.storiesList}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => {
-            return (
-              <TouchableOpacity 
-                style={styles.storyItem} 
-                activeOpacity={0.8}
-                onPress={() => item.isAdd ? handleAddStory() : handleStoryPress(index)}
+      <View style={styles.enhancedStoriesContainer}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.95)', 'rgba(248,250,252,0.95)']}
+          style={styles.storiesGradient}
+        >
+          <View style={styles.enhancedStoriesHeader}>
+            <View style={styles.storiesTitleContainer}>
+              <Ionicons name="sparkles" size={20} color="#667eea" />
+              <Text style={styles.enhancedStoriesTitle}>Today's Stories</Text>
+            </View>
+            <TouchableOpacity style={styles.enhancedViewAllButton}>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                style={styles.viewAllButtonGradient}
               >
-                <View style={styles.storyWrapper}>
-                  <View style={[
-                    styles.storyRing,
-                    item.isAdd && styles.addStoryRing,
-                    item.hasStory && !item.viewed && styles.unviewedStoryRing,
-                    item.hasStory && item.viewed && styles.viewedStoryRing
-                  ]}>
-                    {typeof item.image === 'string' ? (
-                      <Image source={{ uri: item.image }} style={styles.storyImage} />
-                    ) : (
-                      <Image source={item.image} style={styles.storyImage} />
-                    )}
-                    {item.isAdd && (
-                      <View style={styles.addStoryIcon}>
-                        <Ionicons name="add" size={16} color="#fff" />
-                      </View>
-                    )}
-                    {item.hasStory && !item.viewed && (
-                      <View style={styles.storyIndicator}>
-                        <View style={styles.storyDot} />
-                      </View>
-                    )}
+                <Text style={styles.enhancedViewAllText}>View All</Text>
+                <Ionicons name="chevron-forward" size={16} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={stories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.enhancedStoriesList}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => {
+              return (
+                <TouchableOpacity 
+                  style={styles.enhancedStoryItem} 
+                  activeOpacity={0.8}
+                  onPress={() => item.isAdd ? handleAddStory() : handleStoryPress(index)}
+                >
+                  <View style={styles.enhancedStoryWrapper}>
+                    <LinearGradient
+                      colors={
+                        item.isAdd ? ['#667eea', '#764ba2'] :
+                        item.hasStory && !item.viewed ? ['#ff6b6b', '#ee5a52'] :
+                        ['#e0e0e0', '#d0d0d0']
+                      }
+                      style={styles.enhancedStoryRing}
+                    >
+                      {typeof item.image === 'string' ? (
+                        <Image source={{ uri: item.image }} style={styles.enhancedStoryImage} />
+                      ) : (
+                        <Image source={item.image} style={styles.enhancedStoryImage} />
+                      )}
+                      {item.isAdd && (
+                        <View style={styles.enhancedAddStoryIcon}>
+                          <Ionicons name="add" size={18} color="#fff" />
+                        </View>
+                      )}
+                      {item.hasStory && !item.viewed && (
+                        <View style={styles.enhancedStoryIndicator}>
+                          <View style={styles.enhancedStoryDot} />
+                        </View>
+                      )}
+                    </LinearGradient>
+                    <View style={styles.enhancedStoryInfo}>
+                      <Text style={styles.enhancedStoryUsername} numberOfLines={1}>
+                        {item.username}
+                      </Text>
+                      {item.isAdd && (
+                        <Text style={styles.enhancedAddStoryText}>Add Story</Text>
+                      )}
+                    </View>
                   </View>
-                  <View style={styles.storyInfo}>
-                    <Text style={styles.storyUsername} numberOfLines={1}>
-                      {item.username}
-                    </Text>
-                    {item.isAdd && (
-                      <Text style={styles.addStoryText}>Add Story</Text>
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-        />
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </LinearGradient>
       </View>
     );
   };
@@ -984,55 +1018,70 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 
   return (
     <View style={styles.container}>
-      {/* Enhanced Social Feed Header */}
-      <View style={styles.enhancedHeader}>
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          style={styles.headerGradient}
-        >
-          <View style={styles.headerContent}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.headerTitle}>Social Feed</Text>
-              <Text style={styles.headerSubtitle}>Connect with your community</Text>
-            </View>
-            <View style={styles.headerRight}>
-              <TouchableOpacity 
-                style={styles.notificationButton}
-                onPress={() => {
-                  setShowFollowRequests(true);
-                  fetchFollowRequests();
-                }}
-              >
-                <Ionicons name="notifications" size={24} color="#fff" />
-                {followRequests.length > 0 && (
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>{followRequests.length}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
+      
+      {/* Enhanced Header with Gradient */}
+      <LinearGradient
+        colors={['#667eea', '#764ba2', '#f093fb', '#f5576c']}
+        style={styles.enhancedHeader}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>✨ Social Feed</Text>
+            <Text style={styles.headerSubtitle}>Connect with your community</Text>
           </View>
-        </LinearGradient>
-      </View>
+          <View style={styles.headerRight}>
+            {/* Follow Requests Button */}
+            <TouchableOpacity 
+              style={styles.followRequestsButton}
+              onPress={() => {
+                console.log('🔍 Follow requests button clicked!');
+                // Navigate to dedicated follow requests page
+                if (navigation) {
+                  navigation.navigate('follow-requests' as never);
+                } else {
+                  router.push('/follow-requests');
+                }
+              }}
+            >
+              <Ionicons name="people-outline" size={24} color="#fff" />
+              {followRequests.length > 0 && (
+                <View style={styles.followRequestsBadge}>
+                  <Text style={styles.followRequestsBadgeText}>{followRequests.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            
+            {/* Notification Button */}
+            <TouchableOpacity style={styles.notificationButton}>
+              <Ionicons name="notifications-outline" size={24} color="#fff" />
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>3</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
 
       {/* Enhanced Search Bar */}
       <View style={styles.enhancedSearchContainer}>
         <LinearGradient
-          colors={['#fff', '#f8f9fa']}
+          colors={['rgba(255,255,255,0.9)', 'rgba(248,250,252,0.9)']}
           style={styles.searchBarGradient}
         >
           <View style={styles.searchContent}>
-            <Ionicons name="search" size={20} color="#667eea" style={styles.searchIcon} />
+            <View style={styles.searchIconContainer}>
+              <Ionicons name="search" size={20} color="#667eea" />
+            </View>
             <TextInput
               style={styles.enhancedSearchInput}
-              placeholder="Search posts, users, or hashtags..."
-              placeholderTextColor="#999"
+              placeholder="🔍 Search users, posts, hashtags..."
+              placeholderTextColor="#94a3b8"
               value={searchQuery}
               onChangeText={handleSearch}
               onFocus={() => {
-                console.log('🔍 Search bar focused, showing all users...');
-                // Immediately show all users when search bar is focused
-                fetchAllUsers();
+                console.log('🔍 Search bar focused');
               }}
               onBlur={() => {
                 setTimeout(() => {
@@ -1044,56 +1093,17 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
               <TouchableOpacity 
                 style={styles.clearSearchButton}
                 onPress={() => {
-                  console.log('🔍 Clear button pressed, showing all users...');
+                  console.log('🔍 Clear button pressed, clearing search...');
                   setSearchQuery('');
-                  // Show all users again when clearing search
-                  fetchAllUsers();
+                  setSearchResults([]);
+                  setShowSearchResults(false);
                 }}
               >
-                <Ionicons name="close-circle" size={20} color="#999" />
+                <Ionicons name="close-circle" size={20} color="#94a3b8" />
               </TouchableOpacity>
             )}
           </View>
         </LinearGradient>
-        
-        {/* Debug Navigation Button - Remove this after testing */}
-        <TouchableOpacity 
-          style={{
-            backgroundColor: '#ff6b6b',
-            paddingHorizontal: 20,
-            paddingVertical: 12,
-            borderRadius: 10,
-            alignSelf: 'center',
-            marginTop: 10,
-            width: '80%',
-            alignItems: 'center',
-          }}
-          onPress={() => {
-            console.log('🧪 Debug navigation button pressed');
-            console.log('Navigation object:', navigation);
-            console.log('Navigation type:', typeof navigation);
-            console.log('Navigation methods:', Object.keys(navigation || {}));
-            
-            if (navigation) {
-              try {
-                navigation.navigate('user-profile' as never, { userId: 'test-user-id' } as never);
-                console.log('✅ Test navigation successful');
-                alert('Test navigation successful!');
-              } catch (error) {
-                console.error('❌ Test navigation failed:', error);
-                alert('Test navigation failed: ' + error);
-              }
-            } else {
-              console.log('❌ Navigation object not available');
-              alert('Navigation object not available');
-            }
-          }}
-        >
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
-            🧪 Test Navigation
-          </Text>
-        </TouchableOpacity>
-
       </View>
 
       {/* Enhanced Search Results */}
@@ -1112,33 +1122,11 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
               </View>
                                      ) : searchResults.length > 0 ? (
                <View>
-                 <Text style={{ padding: 10, backgroundColor: '#ff0', textAlign: 'center' }}>
-                   🔍 Found {searchResults.length} users - FlatList should render below
-                 </Text>
                  
-                 {/* Simple Test Button */}
-                 <Pressable 
-                   style={{
-                     backgroundColor: '#00ff00',
-                     padding: 10,
-                     margin: 10,
-                     borderRadius: 8,
-                     alignItems: 'center',
-                   }}
-                   onPress={() => {
-                     console.log('🧪 Simple test button pressed!');
-                     alert('Simple test button works!');
-                   }}
-                 >
-                   <Text style={{ color: '#000', fontWeight: 'bold' }}>
-                     🧪 Simple Test Button
-                   </Text>
-                 </Pressable>
                  
-                 {/* Debug Info */}
-                 <Text style={{ padding: 5, backgroundColor: '#f0f', textAlign: 'center', fontSize: 12 }}>
-                   🔍 About to render FlatList with {searchResults.length} items
-                 </Text>
+                 
+                 
+                 
                  
                 <FlatList
                   data={searchResults}
@@ -1156,11 +1144,11 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
                 <Text style={styles.noSearchResultsText}>No results found</Text>
                 <Text style={styles.noSearchResultsSubtext}>Try different keywords or check spelling</Text>
               </View>
-            ) : searchResults.length === 0 && !searching ? (
+            ) : searchQuery.trim().length === 0 ? (
               <View style={styles.noSearchResultsContainer}>
-                <Ionicons name="people-outline" size={48} color="#ccc" />
-                <Text style={styles.noSearchResultsText}>No users available</Text>
-                <Text style={styles.noSearchResultsSubtext}>Try refreshing or check your connection</Text>
+                <Ionicons name="search-outline" size={48} color="#ccc" />
+                <Text style={styles.noSearchResultsText}>Start typing to search users</Text>
+                <Text style={styles.noSearchResultsSubtext}>Search by name, email, or course</Text>
               </View>
             ) : null}
           </LinearGradient>
@@ -1302,7 +1290,181 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fafafa',
+  },
+  // Instagram-style header
+  instagramHeader: {
+    paddingTop: 50,
+    paddingBottom: 15,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#dbdbdb',
+  },
+  headerSubtitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  headerIconButton: {
+    padding: 8,
+    marginLeft: 12,
+  },
+  // Instagram-style search
+  instagramSearchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#dbdbdb',
+  },
+  searchBarContainer: {
+    backgroundColor: '#fafafa',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dbdbdb',
+  },
+  searchIconContainer: {
+    paddingHorizontal: 12,
+  },
+  instagramSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#262626',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  // Instagram-style stories
+  instagramStoriesContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#dbdbdb',
+  },
+  // Instagram-style posts
+  instagramPostCard: {
+    backgroundColor: '#fff',
+    marginBottom: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#dbdbdb',
+  },
+  instagramPostHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+  },
+  instagramAvatarContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#dbdbdb',
+  },
+  instagramAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+  },
+  instagramAuthorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#262626',
+    marginBottom: 1,
+  },
+  instagramPostLocation: {
+    fontSize: 12,
+    color: '#8e8e93',
+  },
+  // Instagram-style post content
+  instagramPostContent: {
+    fontSize: 14,
+    color: '#262626',
+    lineHeight: 20,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  instagramMediaContainer: {
+    width: '100%',
+    height: 400,
+  },
+  instagramMediaImage: {
+    width: '100%',
+    height: '100%',
+  },
+  instagramVideoContainer: {
+    width: '100%',
+    height: 400,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instagramVideoPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instagramHashtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  instagramHashtagText: {
+    color: '#00376b',
+    fontSize: 14,
+    marginRight: 8,
+  },
+  instagramActionsBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  instagramActionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  instagramActionButton: {
+    marginRight: 16,
+    padding: 4,
+  },
+  instagramBookmarkButton: {
+    padding: 4,
+  },
+  instagramLikesContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 4,
+  },
+  instagramLikesText: {
+    fontSize: 14,
+    color: '#262626',
+  },
+  instagramLikesBold: {
+    fontWeight: '600',
+  },
+  instagramCommentsContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  instagramCommentsText: {
+    fontSize: 14,
+    color: '#262626',
+    lineHeight: 18,
+  },
+  instagramCommentsBold: {
+    fontWeight: '600',
+  },
+  instagramViewCommentsText: {
+    fontSize: 14,
+    color: '#8e8e93',
+    marginTop: 4,
   },
   loadingContainer: {
     flex: 1,
@@ -1948,6 +2110,134 @@ const styles = StyleSheet.create({
      borderWidth: 1,
      borderColor: 'rgba(139, 92, 246, 0.2)',
    },
+   // Enhanced Search Result Styles
+   enhancedSearchResultItem: {
+     marginBottom: 8,
+     marginHorizontal: 12,
+     borderRadius: 12,
+     overflow: 'hidden',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 1 },
+     shadowOpacity: 0.08,
+     shadowRadius: 4,
+     elevation: 2,
+     borderWidth: 1,
+     borderColor: 'rgba(102, 126, 234, 0.06)',
+   },
+   searchResultGradient: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     padding: 12,
+     backgroundColor: 'transparent',
+   },
+   enhancedSearchAvatar: {
+     position: 'relative',
+     marginRight: 12,
+   },
+   enhancedAvatarImage: {
+     width: 40,
+     height: 40,
+     borderRadius: 20,
+     borderWidth: 2,
+     borderColor: 'rgba(102, 126, 234, 0.2)',
+   },
+   enhancedAvatarPlaceholder: {
+     width: 40,
+     height: 40,
+     borderRadius: 20,
+     justifyContent: 'center',
+     alignItems: 'center',
+     borderWidth: 2,
+     borderColor: 'rgba(255, 255, 255, 0.3)',
+   },
+   enhancedAvatarInitials: {
+     fontSize: 16,
+     fontWeight: 'bold',
+     color: '#fff',
+   },
+   onlineStatusIndicator: {
+     position: 'absolute',
+     bottom: 2,
+     right: 2,
+     width: 14,
+     height: 14,
+     borderRadius: 7,
+     backgroundColor: '#10B981',
+     borderWidth: 2,
+     borderColor: '#fff',
+   },
+   enhancedSearchInfo: {
+     flex: 1,
+     paddingRight: 12,
+   },
+   userNameContainer: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     marginBottom: 4,
+   },
+   enhancedSearchName: {
+     fontSize: 14,
+     fontWeight: '600',
+     color: '#1F2937',
+     marginRight: 6,
+   },
+   verifiedBadge: {
+     marginLeft: 4,
+   },
+   enhancedSearchEmail: {
+     fontSize: 12,
+     color: '#6B7280',
+     marginBottom: 4,
+   },
+   enhancedCourseContainer: {
+     marginTop: 2,
+   },
+   courseTagGradient: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     paddingHorizontal: 6,
+     paddingVertical: 3,
+     borderRadius: 8,
+     alignSelf: 'flex-start',
+   },
+   enhancedCourseText: {
+     fontSize: 11,
+     color: '#6B7280',
+     fontWeight: '500',
+     marginLeft: 3,
+   },
+   enhancedSearchActions: {
+     alignItems: 'center',
+   },
+   enhancedFollowingBadge: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     paddingHorizontal: 8,
+     paddingVertical: 4,
+     borderRadius: 16,
+   },
+   enhancedFollowingText: {
+     fontSize: 11,
+     fontWeight: '600',
+     color: '#fff',
+     marginLeft: 3,
+   },
+   enhancedFollowButton: {
+     borderRadius: 16,
+     overflow: 'hidden',
+   },
+   followButtonGradient: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     paddingHorizontal: 12,
+     paddingVertical: 6,
+   },
+   followButtonText: {
+     fontSize: 11,
+     fontWeight: '600',
+     color: '#fff',
+     marginLeft: 3,
+   },
    noSearchResults: {
      alignItems: 'center',
      padding: 30,
@@ -2122,7 +2412,30 @@ const styles = StyleSheet.create({
     color: '#e0e0e0',
   },
   headerRight: {
-    paddingLeft: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  followRequestsButton: {
+    position: 'relative',
+  },
+  followRequestsBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#ff6b6b',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  followRequestsBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   notificationButton: {
     position: 'relative',
@@ -2377,8 +2690,141 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  searchResultsList: {
-    paddingBottom: 16,
-  },
+     searchResultsList: {
+     paddingBottom: 16,
+   },
+   // Enhanced Stories Styles
+   enhancedStoriesContainer: {
+     marginHorizontal: 16,
+     marginVertical: 12,
+     borderRadius: 20,
+     overflow: 'hidden',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.1,
+     shadowRadius: 12,
+     elevation: 8,
+   },
+   storiesGradient: {
+     padding: 20,
+   },
+   enhancedStoriesHeader: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'space-between',
+     marginBottom: 16,
+   },
+   storiesTitleContainer: {
+     flexDirection: 'row',
+     alignItems: 'center',
+   },
+   enhancedStoriesTitle: {
+     fontSize: 18,
+     fontWeight: '700',
+     color: '#1F2937',
+     marginLeft: 8,
+   },
+   enhancedViewAllButton: {
+     borderRadius: 20,
+     overflow: 'hidden',
+   },
+   viewAllButtonGradient: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     paddingHorizontal: 16,
+     paddingVertical: 8,
+   },
+   enhancedViewAllText: {
+     fontSize: 14,
+     fontWeight: '600',
+     color: '#fff',
+     marginRight: 4,
+   },
+   enhancedStoriesList: {
+     paddingHorizontal: 4,
+   },
+   enhancedStoryItem: {
+     alignItems: 'center',
+     marginRight: 16,
+   },
+   enhancedStoryWrapper: {
+     alignItems: 'center',
+   },
+   enhancedStoryRing: {
+     width: 70,
+     height: 70,
+     borderRadius: 35,
+     padding: 3,
+     justifyContent: 'center',
+     alignItems: 'center',
+     marginBottom: 8,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.15,
+     shadowRadius: 8,
+     elevation: 6,
+   },
+   enhancedStoryImage: {
+     width: 64,
+     height: 64,
+     borderRadius: 32,
+   },
+   enhancedAddStoryIcon: {
+     position: 'absolute',
+     bottom: 4,
+     right: 4,
+     width: 24,
+     height: 24,
+     borderRadius: 12,
+     backgroundColor: '#667eea',
+     justifyContent: 'center',
+     alignItems: 'center',
+     borderWidth: 3,
+     borderColor: '#fff',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.3,
+     shadowRadius: 4,
+     elevation: 4,
+   },
+   enhancedStoryIndicator: {
+     position: 'absolute',
+     top: 4,
+     right: 4,
+     width: 18,
+     height: 18,
+     borderRadius: 9,
+     backgroundColor: '#fff',
+     justifyContent: 'center',
+     alignItems: 'center',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.3,
+     shadowRadius: 4,
+     elevation: 4,
+   },
+   enhancedStoryDot: {
+     width: 10,
+     height: 10,
+     borderRadius: 5,
+     backgroundColor: '#ff6b6b',
+   },
+   enhancedStoryInfo: {
+     alignItems: 'center',
+   },
+   enhancedStoryUsername: {
+     fontSize: 13,
+     fontWeight: '600',
+     color: '#1F2937',
+     textAlign: 'center',
+     lineHeight: 16,
+   },
+   enhancedAddStoryText: {
+     fontSize: 11,
+     fontWeight: '500',
+     color: '#667eea',
+     marginTop: 4,
+     textAlign: 'center',
+   },
 
-}); 
+ }); 

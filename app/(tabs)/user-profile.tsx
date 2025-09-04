@@ -176,7 +176,7 @@ export default function UserProfileScreen() {
       try {
         const res = await apiFetchAuth('/student/follow', user?.token || '', {
           method: 'POST',
-          body: JSON.stringify({ targetUserId: profile.id }),
+          body: { targetUserId: profile.id },
         });
         
         if (res.ok) {
@@ -210,10 +210,10 @@ export default function UserProfileScreen() {
     try {
       const response = await apiFetchAuth('/student/follow-requests', user?.token || '', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           action: 'accept',
           requestId: requestId
-        })
+        }
       });
       
       if (response.ok) {
@@ -232,10 +232,10 @@ export default function UserProfileScreen() {
     try {
       const response = await apiFetchAuth('/student/follow-requests', user?.token || '', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           action: 'reject',
           requestId: requestId
-        })
+        }
       });
       
       if (response.ok) {
@@ -613,7 +613,15 @@ export default function UserProfileScreen() {
             
             <View style={styles.profileDetails}>
               <Text style={styles.profileName}>{profile.name}</Text>
-              <Text style={styles.profileEmail}>{profile.email}</Text>
+              <Text style={styles.profileEmail}>
+                {profile?.handle
+                  ? `@${profile.handle}`
+                  : profile?.username
+                  ? `@${profile.username}`
+                  : profile?.name
+                  ? `@${profile.name.replace(/\s+/g, '').toLowerCase()}`
+                  : ''}
+              </Text>
               {(profile.course || profile.year) && (
                 <View style={styles.profileCourseInfo}>
                   <Ionicons name="school-outline" size={16} color="#65676b" />
@@ -677,67 +685,105 @@ export default function UserProfileScreen() {
           </View>
         )}
 
-        {/* Professional Action Buttons */}
-        <View style={styles.actionSection}>
-          <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity 
-              style={[
-                styles.actionButton, 
-                styles.followButton,
-                isFollowing && styles.unfollowButton,
-                profile?.followRequestStatus === 'PENDING' && styles.pendingButton
-              ]} 
-              activeOpacity={0.8} 
-              onPress={handleFollow}
-            >
-              <Ionicons 
-                name={
-                  isFollowing ? "person-remove-outline" : 
-                  profile?.followRequestStatus === 'PENDING' ? "time-outline" : 
-                  "person-add-outline"
-                } 
-                size={18} 
-                color="#fff" 
-              />
-              <Text style={styles.actionButtonText}>
-                {isFollowing ? 'Unfollow' : 
-                 profile?.followRequestStatus === 'PENDING' ? 'Request Sent' : 
-                 'Follow'}
-              </Text>
-            </TouchableOpacity>
+        {/* Enhanced Action Buttons Section */}
+        <View style={styles.enhancedActionSection}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.95)', 'rgba(248,250,252,0.95)']}
+            style={styles.enhancedActionCard}
+          >
+            <View style={styles.enhancedActionHeader}>
+              <Ionicons name="person-circle-outline" size={20} color="#667eea" />
+              <Text style={styles.enhancedActionTitle}>Connect</Text>
+            </View>
             
-            {canMessageUser() && (
-              <TouchableOpacity
-                style={styles.messageButton}
-                onPress={() => {
-                  console.log('🔍 Message button clicked!');
-                  console.log('🔍 Profile data being passed:', {
-                    userId: profile?.id,
-                    userName: profile?.name,
-                    userProfilePhoto: profile?.profilePhoto,
-                    isFollowing: isFollowing
-                  });
-                  router.push({
-                    pathname: '/chat-screen',
-                    params: {
-                      userId: profile?.id || '',
-                      userName: profile?.name || 'User',
-                      userProfilePhoto: profile?.profilePhoto || '',
-                      isFollowing: isFollowing.toString()
-                    }
-                  });
-                }}
+            <View style={styles.enhancedActionButtonsContainer}>
+              {/* Enhanced Follow Button */}
+              <TouchableOpacity 
+                style={styles.enhancedFollowButtonWrapper}
+                activeOpacity={0.8} 
+                onPress={handleFollow}
               >
                 <LinearGradient
-                  colors={['#1877f2', '#42a5f5']}
-                  style={styles.messageButtonGradient}
+                  colors={
+                    isFollowing ? ['#ff6b6b', '#ee5a52'] :
+                    profile?.followRequestStatus === 'PENDING' ? ['#ff9f43', '#f39c12'] :
+                    ['#667eea', '#764ba2']
+                  }
+                  style={styles.enhancedFollowButtonGradient}
                 >
-                  <Ionicons name="chatbubble-outline" size={20} color="#fff" />
-                  <Text style={styles.messageButtonText}>Message</Text>
+                  <Ionicons 
+                    name={
+                      isFollowing ? "person-remove-outline" : 
+                      profile?.followRequestStatus === 'PENDING' ? "time-outline" : 
+                      "person-add-outline"
+                    } 
+                    size={20} 
+                    color="#fff" 
+                  />
+                  <Text style={styles.enhancedFollowButtonText}>
+                    {isFollowing ? 'Unfollow' : 
+                     profile?.followRequestStatus === 'PENDING' ? 'Request Sent' : 
+                     'Follow'}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
-            )}
-          </View>
+              
+              {/* Enhanced Message Button */}
+              {canMessageUser() && (
+                <TouchableOpacity
+                  style={styles.enhancedMessageButtonWrapper}
+                  onPress={() => {
+                    console.log('🔍 Message button clicked!');
+                    console.log('🔍 Profile data being passed:', {
+                      userId: profile?.id,
+                      userName: profile?.name,
+                      userProfilePhoto: profile?.profilePhoto,
+                      isFollowing: isFollowing
+                    });
+                    router.push({
+                      pathname: '/chat-screen',
+                      params: {
+                        userId: profile?.id || '',
+                        userName: profile?.name || 'User',
+                        userProfilePhoto: profile?.profilePhoto || '',
+                        isFollowing: isFollowing.toString()
+                      }
+                    });
+                  }}
+                >
+                  <LinearGradient
+                    colors={['#4facfe', '#00f2fe']}
+                    style={styles.enhancedMessageButtonGradient}
+                  >
+                    <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
+                    <Text style={styles.enhancedMessageButtonText}>Message</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {/* Enhanced Status Indicators */}
+            <View style={styles.enhancedStatusContainer}>
+              {isFollowing && (
+                <View style={styles.enhancedStatusItem}>
+                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                  <Text style={styles.enhancedStatusText}>Following</Text>
+                </View>
+              )}
+              {profile?.followRequestStatus === 'PENDING' && (
+                <View style={styles.enhancedStatusItem}>
+                  <Ionicons name="time-outline" size={16} color="#F59E0B" />
+                  <Text style={styles.enhancedStatusText}>Request Pending</Text>
+                </View>
+              )}
+              {profile?.isPrivate && (
+                <View style={styles.enhancedStatusItem}>
+                  <Ionicons name="lock-closed" size={16} color="#EF4444" />
+                  <Text style={styles.enhancedStatusText}>Private Account</Text>
+                </View>
+              )}
+            </View>
+          </LinearGradient>
         </View>
 
         {/* Professional Posts Section */}
@@ -1852,16 +1898,90 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   enhancedActionSection: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    margin: 20,
+    marginTop: 0,
+  },
+  enhancedActionCard: {
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  enhancedActionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  enhancedActionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginLeft: 8,
   },
   enhancedActionButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
+  },
+  enhancedFollowButtonWrapper: {
+    flex: 1,
+    borderRadius: 25,
+    overflow: 'hidden',
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  enhancedFollowButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+  },
+  enhancedMessageButtonWrapper: {
+    flex: 1,
+    borderRadius: 25,
+    overflow: 'hidden',
+    shadowColor: '#4facfe',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  enhancedMessageButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+  },
+  enhancedStatusContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 16,
+    gap: 12,
+  },
+  enhancedStatusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  enhancedStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+    marginLeft: 4,
   },
   enhancedFollowButton: {
     flexDirection: 'row',

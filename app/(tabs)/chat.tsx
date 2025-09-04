@@ -52,25 +52,8 @@ export default function ChatScreen() {
     messages: any[] 
   };
   
-  const [messages, setMessages] = useState<Message[]>(() => {
-    // Clean and validate initial messages
-    const validMessages = (initialMessages || [])
-      .filter(msg => msg && msg.senderId && msg.content)
-      .map((msg, index) => ({
-        id: msg.id || `init-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
-        content: msg.content,
-        senderId: msg.senderId,
-        receiverId: msg.receiverId,
-        createdAt: msg.createdAt || new Date().toISOString(),
-        isRead: msg.isRead || false,
-        messageType: msg.messageType || 'text',
-        sender: msg.sender,
-        receiver: msg.receiver
-      }));
-    
-    console.log('🔧 Initial messages loaded:', validMessages.length);
-    return validMessages;
-  });
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -78,6 +61,47 @@ export default function ChatScreen() {
   const [chatId, setChatId] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch messages from API when chat screen loads
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!userId || !user?.token) return;
+      
+      setLoading(true);
+      try {
+        console.log('📡 Fetching messages for user:', userId);
+        const response = await apiFetchAuth(`/student/messages/${userId}`, user.token);
+        
+        if (response.ok) {
+          const data = response.data || response;
+          console.log('📨 Fetched messages:', data);
+          
+          if (Array.isArray(data)) {
+            // Sort messages by creation time
+            const sortedMessages = data.sort((a: Message, b: Message) => 
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+            
+            setMessages(sortedMessages);
+            console.log('✅ Messages loaded:', sortedMessages.length);
+          } else {
+            console.log('❌ Messages data is not an array');
+            setMessages([]);
+          }
+        } else {
+          console.log('❌ Failed to fetch messages:', response.status);
+          setMessages([]);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching messages:', error);
+        setMessages([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMessages();
+  }, [userId, user?.token]);
 
   // Generate chat ID for WebSocket room
   useEffect(() => {
@@ -107,73 +131,61 @@ export default function ChatScreen() {
         console.log('Joining chat room:', chatId, 'as user:', user?.id);
       }
 
-      // Handle new messages from WebSocket
-      wsOn('new_message', (wsData: any) => {
-        console.log('📨 [WebSocket] New message received:', wsData, 'User:', user?.id);
+      // Step 5: Real-time Updates - Like React website
+      // 1. New message receive karne par
+      const handleNewMessage = (newMessage: any) => {
+        console.log('📨 [WebSocket] New message received:', newMessage, 'User:', user?.id);
         
-        // Extract message from WebSocket data
-        let messageData = wsData;
-        if (wsData.message) {
-          messageData = {
-            ...wsData.message,
-            senderId: wsData.senderId || wsData.message.senderId
-          };
-        }
-        
-        // Validate message
-        if (!messageData || !messageData.senderId || !messageData.content) {
-          console.log('❌ Invalid WebSocket message:', messageData);
+        // Add null checks to prevent the error
+        if (!newMessage || !newMessage.sender || !newMessage.sender.id) {
+          console.log('❌ Invalid message format received:', newMessage);
           return;
         }
         
-        // Check if message is for this chat
-        const isForThisChat = messageData.senderId === userId || messageData.receiverId === userId;
-        if (!isForThisChat) {
-          console.log('🚫 Message not for this chat');
-          return;
-        }
-        
-        // Don't add our own messages from WebSocket (they're already in UI)
-        if (messageData.senderId === user?.id) {
-          console.log('🚫 Skipping own message from WebSocket');
-          return;
-        }
-        
-        // Create clean message object
-        const newMessage: Message = {
-          id: messageData.id || `ws-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          content: messageData.content,
-          senderId: messageData.senderId,
-          receiverId: messageData.receiverId,
-          createdAt: messageData.createdAt,
-          isRead: messageData.isRead || false,
-          messageType: messageData.messageType || 'text',
-          sender: messageData.sender,
-          receiver: messageData.receiver
-        };
-        
-        // Check for duplicates
-        setMessages(prev => {
-          const exists = prev.some(msg => 
-            msg.content === newMessage.content && 
-            msg.senderId === newMessage.senderId &&
-            Math.abs(new Date(msg.createdAt).getTime() - new Date(newMessage.createdAt).getTime()) < 5000
-          );
-          
-          if (exists) {
-            console.log('🚫 Duplicate message, skipping');
+        // Check if this message is for the currently selected user
+        if (userId && 
+            (newMessage.sender.id === userId || 
+             newMessage.receiver?.id === userId)) {
+          // Current chat mai hai to message add karta hai
+          console.log('✅ Adding message to current chat');
+          setMessages(prev => {
+            const exists = prev.some(msg => msg.id === newMessage.id);
+            if (!exists) {
+              return [...prev, newMessage];
+            }
             return prev;
-          }
+          });
           
-          console.log('✅ Adding new message from WebSocket');
-          return [...prev, newMessage];
-        });
-        
-        // Mark as read
-        if (user?.id && messageData.senderId !== user.id) {
-          markMessageAsRead(user.id, messageData.senderId);
+          // Auto-scroll to bottom for new message
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+          
+          // Mark as read if it's from other user
+          if (user?.id && newMessage.sender.id !== user.id) {
+            markMessageAsRead(user.id, newMessage.sender.id);
+          }
+        } else {
+          // Dusre chat ka message hai to conversations update karta hai
+          console.log('📨 Message from other chat, updating conversations');
+          // Note: In React Native, we'll refresh conversations when user goes back
         }
-      });
+      };
+
+      // 2. Message read status update karne par
+      const handleMessagesRead = ({ readerId }: { readerId: string }) => {
+        console.log('👁️ Messages read by:', readerId);
+        if (userId && userId === readerId) {
+          setMessages(prev =>
+            prev.map(msg => 
+              msg.sender?.id === user?.id ? { ...msg, isRead: true } : msg
+            )
+          );
+        }
+      };
+
+      wsOn('new_message', handleNewMessage);
+      wsOn('messages_were_read', handleMessagesRead);
 
       // Handle typing indicators
       wsOn('user_typing', (typingUserId: string) => {
@@ -191,10 +203,11 @@ export default function ChatScreen() {
       // Cleanup
       return () => {
         wsOff('new_message');
+        wsOff('messages_were_read');
         wsOff('user_typing');
         wsOff('user_stopped_typing');
       };
-    }, [chatId, userId, isConnected, joinChat, markMessageAsRead, wsOn, wsOff])
+    }, [chatId, userId, isConnected, joinChat, markMessageAsRead, wsOn, wsOff, user?.id])
   );
 
   // Handle typing with debounce
@@ -228,26 +241,27 @@ export default function ChatScreen() {
     };
   }, []);
 
-  // Send message function
+  // Send message function - Like React website
   const sendMessage = async () => {
-    if (!newMessage.trim() || sending) return;
-    
-    const messageContent = newMessage.trim();
+    if (!userId || !newMessage.trim() || !user) return;
+
     setSending(true);
-    
-    // Create temporary message for immediate UI update
-    const tempMessage: Message = {
-      id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      content: messageContent,
-      senderId: user?.id || '',
+    const content = newMessage.trim();
+    setNewMessage('');
+
+    // 1. Optimistic message create karta hai (immediate UI update)
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      content: content,
+      messageType: 'TEXT',
+      senderId: user.id,
       receiverId: userId,
       createdAt: new Date().toISOString(),
       isRead: false,
-      messageType: 'text',
       sender: {
-        id: user?.id,
-        name: user?.name,
-        profilePhoto: user?.profilePhoto
+        id: user.id,
+        name: user.name,
+        profilePhoto: user.profilePhoto
       },
       receiver: {
         id: userId,
@@ -255,53 +269,63 @@ export default function ChatScreen() {
         profilePhoto: null
       }
     };
-    
-    // Add to UI immediately (WhatsApp style)
-    setMessages(prev => [...prev, tempMessage]);
-    setNewMessage('');
-    
+
+    // 2. UI mai immediately show karta hai
+    setMessages(prev => [...prev, optimisticMessage]);
+
     // Scroll to bottom
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
 
     try {
-      // Send to API
-      const res = await apiFetchAuth('/student/messages', user?.token || '', {
+      // 3. API call karta hai
+      const response = await apiFetchAuth('/student/messages', user.token, {
         method: 'POST',
         body: {
           receiverId: userId,
-          content: messageContent
+          content: content,
         }
       });
-      
-      if (res.ok) {
-        // Update with server data, fallback to original content/createdAt if missing
-        setMessages(prev => prev.map(msg => 
-          msg.id === tempMessage.id
-            ? {
-                ...msg, // fallback to original
-                ...res.data, // overwrite with API data
-                content: res.data.content || msg.content,
-                createdAt: res.data.createdAt || msg.createdAt,
-                senderId: user?.id
-              }
-            : msg
-        ));
-        
-        // Send via WebSocket
-        if (isConnected) {
-          wsSendMessage({
-            content: messageContent,
-            receiverId: userId,
-            messageType: 'text'
-          });
+
+      if (response.ok) {
+        const result = response.data || response;
+
+        if (result.type === 'direct' || result.message) {
+          // 4. Optimistic message ko real message se replace karta hai
+          if (result.message) {
+            setMessages(prev => prev.map(msg => 
+              msg.id === optimisticMessage.id ? result.message : msg
+            ));
+          }
+          
+          // 5. Conversations update karta hai (if we had access to fetchConversations)
+          // Note: In React Native, we'll need to refresh conversations when user goes back
+          
+                     // 6. Socket event emit karta hai real-time delivery ke liye
+           if (isConnected) {
+             const chatId = [user.id, userId].sort().join('-');
+             wsSendMessage({
+               content: content,
+               receiverId: userId,
+               messageType: 'text',
+               sender: {
+                 id: user.id,
+                 name: user.name,
+                 profilePhoto: user.profilePhoto
+               }
+             });
+           }
         }
       } else {
-        console.error('API error:', res);
+        console.error('API error:', response);
+        // Error case mai optimistic message remove karta hai
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
       }
     } catch (error) {
       console.error('Send message error:', error);
+      // Error case mai optimistic message remove karta hai
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
     } finally {
       setSending(false);
     }
@@ -448,22 +472,33 @@ export default function ChatScreen() {
 
         {/* Messages */}
         <View style={styles.messagesContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item, index) => item.id || `msg-${index}-${Date.now()}`}
-            renderItem={renderMessage}
-            style={styles.messagesList}
-            contentContainerStyle={styles.messagesContent}
-            showsVerticalScrollIndicator={false}
-            ListFooterComponent={() => renderTypingIndicator()}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            ListEmptyComponent={() => (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No messages yet</Text>
-              </View>
-            )}
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                style={styles.loadingCard}
+              >
+                <Text style={styles.loadingText}>Loading messages...</Text>
+              </LinearGradient>
+            </View>
+          ) : (
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={(item, index) => item.id || `msg-${index}-${Date.now()}`}
+              renderItem={renderMessage}
+              style={styles.messagesList}
+              contentContainerStyle={styles.messagesContent}
+              showsVerticalScrollIndicator={false}
+              ListFooterComponent={() => renderTypingIndicator()}
+              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+              ListEmptyComponent={() => (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No messages yet</Text>
+                </View>
+              )}
+            />
+          )}
         </View>
 
         {/* Input */}
@@ -770,5 +805,26 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  loadingCard: {
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

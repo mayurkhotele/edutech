@@ -87,6 +87,13 @@ export default function TabLayout() {
           href: null, // Hide from tab bar
         }}
       />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 } 

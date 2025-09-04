@@ -47,9 +47,21 @@ const CustomDrawerContent = (props: any) => {
         navigation.closeDrawer();
     };
 
+    const navigateToMessages = () => {
+        setActiveMenu('messages');
+        navigation.navigate('(tabs)', { screen: 'messages' });
+        navigation.closeDrawer();
+    };
+
     const navigateToPrivacyPolicy = () => {
         setActiveMenu('privacy-policy');
         navigation.navigate('privacy-policy');
+        navigation.closeDrawer();
+    };
+
+    const navigateToMembership = () => {
+        setActiveMenu('membership');
+        navigation.navigate('membership');
         navigation.closeDrawer();
     };
 
@@ -142,9 +154,11 @@ const CustomDrawerContent = (props: any) => {
                         <DrawerItem icon="document-text-outline" label="My Exams" onPress={navigateToMyExams} isActive={activeMenu === 'my-exams'} iconColor="#2ED573" />
                         <DrawerItem icon="school-outline" label="Practice Exam" onPress={navigateToPracticeExam} isActive={activeMenu === 'practice-exam'} iconColor="#1E90FF" />
                         <DrawerItem icon="game-controller-outline" label="Battle Quiz" onPress={navigateToBattleQuiz} isActive={activeMenu === 'quiz'} iconColor="#96CEB4" />
+                        <DrawerItem icon="chatbubbles-outline" label="Messages" onPress={navigateToMessages} isActive={activeMenu === 'messages'} iconColor="#667eea" />
                         <DrawerItem icon="stats-chart-outline" label="Leaderboard" onPress={handleLeaderboardPress} isActive={activeMenu === 'leaderboard'} iconColor="#FF6348" />
                         <DrawerItem icon="calendar-outline" label="My Timetable" onPress={navigateToTimetable} isActive={activeMenu === 'timetable'} iconColor="#9C88FF" />
                         <DrawerItem icon="person-add-outline" label="Refer & Earn" onPress={navigateToRefer} isActive={activeMenu === 'refer'} iconColor="#FF9FF3" />
+                        <DrawerItem icon="diamond-outline" label="Membership" onPress={navigateToMembership} isActive={activeMenu === 'membership'} iconColor="#FFD700" />
                         <DrawerItem icon="headset-outline" label="24/7 Support" onPress={handleSupportPress} isActive={activeMenu === 'support'} iconColor="#54A0FF" />
                         <DrawerItem icon="shield-checkmark-outline" label="Privacy Policy" onPress={navigateToPrivacyPolicy} isActive={activeMenu === 'privacy-policy'} iconColor="#FFC048" />
                     </View>

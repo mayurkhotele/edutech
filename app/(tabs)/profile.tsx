@@ -51,11 +51,14 @@ export default function ProfileScreen() {
   const { user, updateUser } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [pendingPosts, setPendingPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [pendingPostsLoading, setPendingPostsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [createPostVisible, setCreatePostVisible] = useState(false);
+
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
@@ -197,9 +200,23 @@ export default function ProfileScreen() {
     }
   };
 
+  const fetchPendingPosts = async () => {
+    setPendingPostsLoading(true);
+    try {
+      const res = await apiFetchAuth('/student/posts/pending', user?.token || '');
+      if (res.ok) {
+        setPendingPosts(res.data);
+      }
+    } catch (e) {
+      console.error('Error fetching pending posts:', e);
+    } finally {
+      setPendingPostsLoading(false);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchProfile(), fetchUserPosts()]);
+    await Promise.all([fetchProfile(), fetchUserPosts(), fetchPendingPosts()]);
     setRefreshing(false);
   };
 
@@ -208,6 +225,7 @@ export default function ProfileScreen() {
     React.useCallback(() => {
       fetchProfile();
       fetchUserPosts();
+      fetchPendingPosts();
     }, [user?.token])
   );
 
@@ -271,6 +289,7 @@ export default function ProfileScreen() {
     setRefreshTrigger(prev => prev + 1);
     fetchProfile();
     fetchUserPosts();
+    fetchPendingPosts();
   };
 
   const handlePostPress = (post: any) => {
@@ -462,19 +481,24 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <LinearGradient
-          colors={['#4F46E5', '#7C3AED']}
-          style={styles.searchBarGradient}
-        >
-          <View style={styles.searchBarContent}>
-            <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={20} color="#8B5CF6" style={styles.searchIcon} />
-                             <TextInput
-                 style={styles.searchInput}
-                 placeholder="Search users..."
-                 placeholderTextColor="#9CA3AF"
+             {/* Enhanced Modern Search Bar */}
+       <LinearGradient
+         colors={['#f8fafc', '#e2e8f0']}
+         style={styles.enhancedSearchContainer}
+       >
+         <View style={styles.enhancedSearchBarContainer}>
+           <LinearGradient
+             colors={['#ffffff', '#f1f5f9']}
+             style={styles.enhancedSearchBarGradient}
+           >
+             <View style={styles.enhancedSearchContent}>
+               <View style={styles.enhancedSearchIconContainer}>
+                 <Ionicons name="search" size={22} color="#667eea" />
+               </View>
+               <TextInput
+                 style={styles.enhancedSearchInput}
+                 placeholder="Search users, posts, or hashtags..."
+                 placeholderTextColor="#94a3b8"
                  value={searchQuery}
                  onChangeText={handleSearch}
                  onFocus={() => {
@@ -483,166 +507,209 @@ export default function ProfileScreen() {
                    }
                  }}
                  onBlur={() => {
-                   // Hide results after a small delay to allow user to tap on results
                    setTimeout(() => {
                      setShowSearchResults(false);
                    }, 200);
                  }}
                />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity 
-                  style={styles.clearSearchButton}
-                  onPress={() => {
-                    setSearchQuery('');
-                    setSearchResults([]);
-                    setShowSearchResults(false);
-                  }}
-                >
-                  <Ionicons name="close-circle" size={20} color="#9CA3AF" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </LinearGradient>
+               {searchQuery.length > 0 && (
+                 <TouchableOpacity 
+                   style={styles.enhancedClearSearchButton}
+                   onPress={() => {
+                     setSearchQuery('');
+                     setSearchResults([]);
+                     setShowSearchResults(false);
+                   }}
+                 >
+                   <LinearGradient
+                     colors={['#ef4444', '#dc2626']}
+                     style={styles.enhancedClearButtonGradient}
+                   >
+                     <Ionicons name="close" size={16} color="#fff" />
+                   </LinearGradient>
+                 </TouchableOpacity>
+               )}
+             </View>
+           </LinearGradient>
+         </View>
         
-        {/* Search Results */}
-        {showSearchResults && (
-          <View style={styles.searchResultsContainer}>
-            {searching ? (
-              <View style={styles.searchLoading}>
-                <ActivityIndicator size="small" color="#8B5CF6" />
-                <Text style={styles.searchLoadingText}>Searching...</Text>
-              </View>
-            ) : searchResults.length > 0 ? (
-              <FlatList
-                data={searchResults}
-                keyExtractor={(item) => item.id}
-                renderItem={renderSearchResult}
-                style={styles.searchResultsList}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                nestedScrollEnabled={true}
-              />
-            ) : searchQuery.trim().length >= 2 ? (
-              <View style={styles.noSearchResults}>
-                <Ionicons name="search-outline" size={48} color="#9CA3AF" />
-                <Text style={styles.noSearchResultsText}>No users found</Text>
-                <Text style={styles.noSearchResultsSubtext}>Try a different search term</Text>
-              </View>
-            ) : null}
-          </View>
-        )}
-      </View>
+                 {/* Search Results */}
+         {showSearchResults && (
+           <View style={styles.enhancedSearchResultsContainer}>
+             {searching ? (
+               <View style={styles.enhancedSearchLoading}>
+                 <ActivityIndicator size="small" color="#667eea" />
+                 <Text style={styles.enhancedSearchLoadingText}>Searching...</Text>
+               </View>
+             ) : searchResults.length > 0 ? (
+               <FlatList
+                 data={searchResults}
+                 keyExtractor={(item) => item.id}
+                 renderItem={renderSearchResult}
+                 style={styles.enhancedSearchResultsList}
+                 showsVerticalScrollIndicator={false}
+                 keyboardShouldPersistTaps="handled"
+                 nestedScrollEnabled={true}
+               />
+             ) : searchQuery.trim().length >= 2 ? (
+               <View style={styles.enhancedNoSearchResults}>
+                 <Ionicons name="search-outline" size={48} color="#94a3b8" />
+                 <Text style={styles.enhancedNoSearchResultsText}>No users found</Text>
+                 <Text style={styles.enhancedNoSearchResultsSubtext}>Try a different search term</Text>
+               </View>
+             ) : null}
+           </View>
+         )}
+       </LinearGradient>
 
-             <ScrollView 
-         style={styles.scrollContainer}
-         refreshControl={
-           <RefreshControl 
-             refreshing={refreshing} 
-             onRefresh={onRefresh}
-             colors={['#4F46E5']}
-             tintColor="#4F46E5"
-           />
-         }
-         showsVerticalScrollIndicator={false}
-         onScroll={handleScroll}
-         scrollEventThrottle={16}
-       >
-        {/* Modern Profile Header */}
-        <LinearGradient
-          colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.profileHeaderGradient}
-        >
-          <View style={styles.profileHeaderContent}>
-            <View style={styles.avatarSection}>
-              <View style={styles.avatarContainer}>
-                {uploadingPhoto ? (
-                  <View style={styles.avatarLoading}>
-                    <ActivityIndicator size="large" color="#FFFFFF" />
-                  </View>
-                ) : profile.profilePhoto ? (
-                  <Image source={{ uri: profile.profilePhoto }} style={styles.avatar} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
-                  </View>
-                )}
-                <TouchableOpacity 
-                  style={[styles.editAvatarButton, uploadingPhoto && styles.editAvatarButtonDisabled]} 
-                  activeOpacity={0.8}
-                  onPress={handleProfilePhotoUpload}
-                  disabled={uploadingPhoto}
-                >
-                  <View style={styles.editAvatarIcon}>
-                    {uploadingPhoto ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Ionicons name="camera" size={16} color="#fff" />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.profileInfo}>
-                <Text style={styles.name}>{profile.name}</Text>
-                <Text style={styles.email}>{profile.email}</Text>
-                {(profile.course || profile.year) && (
-                  <View style={styles.courseInfo}>
-                    <Ionicons name="school-outline" size={16} color="#FFFFFF" />
-                    <Text style={styles.courseText}>{[profile.course, profile.year].filter(Boolean).join(' • ')}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
+      <ScrollView 
+        style={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            colors={['#262626']}
+            tintColor="#262626"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+                 {/* Enhanced Modern Profile Header */}
+         <LinearGradient
+           colors={['#667eea', '#764ba2', '#f093fb']}
+           start={{ x: 0, y: 0 }}
+           end={{ x: 1, y: 1 }}
+           style={styles.enhancedProfileHeader}
+         >
+           <View style={styles.profileHeaderContent}>
+             {/* Enhanced Avatar Section */}
+             <View style={styles.enhancedAvatarSection}>
+               <View style={styles.enhancedAvatarContainer}>
+                 {uploadingPhoto ? (
+                   <View style={styles.enhancedAvatarLoading}>
+                     <ActivityIndicator size="large" color="#fff" />
+                   </View>
+                 ) : profile.profilePhoto ? (
+                   <Image source={{ uri: profile.profilePhoto }} style={styles.enhancedAvatar} />
+                 ) : (
+                   <LinearGradient
+                     colors={['#ff6b6b', '#ff8e53']}
+                     style={styles.enhancedAvatarPlaceholder}
+                   >
+                     <Text style={styles.enhancedAvatarInitials}>{getInitials(profile.name)}</Text>
+                   </LinearGradient>
+                 )}
+                 <TouchableOpacity 
+                   style={[styles.enhancedEditAvatarButton, uploadingPhoto && styles.editAvatarButtonDisabled]} 
+                   activeOpacity={0.8}
+                   onPress={handleProfilePhotoUpload}
+                   disabled={uploadingPhoto}
+                 >
+                   <LinearGradient
+                     colors={['#4facfe', '#00f2fe']}
+                     style={styles.enhancedEditAvatarIcon}
+                   >
+                     {uploadingPhoto ? (
+                       <ActivityIndicator size="small" color="#fff" />
+                     ) : (
+                       <Ionicons name="camera" size={18} color="#fff" />
+                     )}
+                   </LinearGradient>
+                 </TouchableOpacity>
+               </View>
+               
+                               <View style={styles.enhancedProfileInfo}>
+                  <Text style={styles.enhancedName}>{profile.name}</Text>
+                  <Text style={styles.enhancedEmail}>
+                    {profile?.handle
+                      ? `@${profile.handle}`
+                      : profile?.username
+                      ? `@${profile.username}`
+                      : profile?.name
+                      ? `@${profile.name.replace(/\s+/g, '').toLowerCase()}`
+                      : ''}
+                  </Text>
+                  {(profile.course || profile.year) && (
+                    <View style={styles.enhancedCourseInfo}>
+                      <Ionicons name="school-outline" size={16} color="#fff" />
+                      <Text style={styles.enhancedCourseText}>{[profile.course, profile.year].filter(Boolean).join(' • ')}</Text>
+                    </View>
+                  )}
+                </View>
+             </View>
 
-            {/* Enhanced Stats Cards */}
-            <View style={styles.statsContainer}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{profile._count?.posts || 0}</Text>
-                <Text style={styles.statLabel}>Posts</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{profile._count?.followers || 0}</Text>
-                <Text style={styles.statLabel}>Followers</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{profile._count?.following || 0}</Text>
-                <Text style={styles.statLabel}>Following</Text>
-              </View>
-            </View>
-
-            {/* Enhanced Action Buttons */}
-            <View style={styles.actionSection}>
-              {user?.id !== profile?.id ? (
-                <TouchableOpacity style={styles.followButton} activeOpacity={0.8} onPress={handleFollow}>
-                  <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.followButtonGradient}
-                  >
-                    <Ionicons name="person-add-outline" size={20} color="#fff" />
-                    <Text style={styles.followButtonText}>Follow</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.editProfileButton} activeOpacity={0.8} onPress={handleEditProfile}>
-                  <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.editProfileButtonGradient}
-                  >
-                    <Ionicons name="create-outline" size={20} color="#fff" />
-                    <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </LinearGradient>
+             {/* Enhanced Stats Cards */}
+             <View style={styles.enhancedStatsContainer}>
+               <View style={styles.enhancedStatCard}>
+                 <LinearGradient
+                   colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+                   style={styles.enhancedStatGradient}
+                 >
+                   <Ionicons name="document-text" size={24} color="#fff" />
+                   <Text style={styles.enhancedStatNumber}>{profile._count?.posts || 0}</Text>
+                   <Text style={styles.enhancedStatLabel}>Posts</Text>
+                 </LinearGradient>
+               </View>
+               <View style={styles.enhancedStatCard}>
+                 <LinearGradient
+                   colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+                   style={styles.enhancedStatGradient}
+                 >
+                   <Ionicons name="people" size={24} color="#fff" />
+                   <Text style={styles.enhancedStatNumber}>{profile._count?.followers || 0}</Text>
+                   <Text style={styles.enhancedStatLabel}>Followers</Text>
+                 </LinearGradient>
+               </View>
+               <View style={styles.enhancedStatCard}>
+                 <LinearGradient
+                   colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+                   style={styles.enhancedStatGradient}
+                 >
+                   <Ionicons name="person-add" size={24} color="#fff" />
+                   <Text style={styles.enhancedStatNumber}>{profile._count?.following || 0}</Text>
+                   <Text style={styles.enhancedStatLabel}>Following</Text>
+                 </LinearGradient>
+               </View>
+             </View>
+             
+             
+             
+             {/* Enhanced Action Buttons */}
+             <View style={styles.enhancedActionButtons}>
+               {user?.id !== profile?.id ? (
+                 <TouchableOpacity style={styles.enhancedFollowButton} activeOpacity={0.8} onPress={handleFollow}>
+                   <LinearGradient
+                     colors={['#10B981', '#059669']}
+                     style={styles.enhancedFollowButtonGradient}
+                   >
+                     <Ionicons name="person-add" size={18} color="#fff" />
+                     <Text style={styles.enhancedFollowButtonText}>Follow</Text>
+                   </LinearGradient>
+                 </TouchableOpacity>
+               ) : (
+                 <TouchableOpacity style={styles.enhancedEditButton} activeOpacity={0.8} onPress={handleEditProfile}>
+                   <LinearGradient
+                     colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+                     style={styles.enhancedEditButtonGradient}
+                   >
+                     <Ionicons name="create" size={18} color="#fff" />
+                     <Text style={styles.enhancedEditButtonText}>Edit Profile</Text>
+                   </LinearGradient>
+                 </TouchableOpacity>
+               )}
+               <TouchableOpacity style={styles.enhancedShareButton} onPress={handleShareProfile}>
+                 <LinearGradient
+                   colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+                   style={styles.enhancedShareButtonGradient}
+                 >
+                   <Ionicons name="share-social" size={20} color="#fff" />
+                 </LinearGradient>
+               </TouchableOpacity>
+             </View>
+           </View>
+         </LinearGradient>
 
         {/* Enhanced Bio Section */}
         {profile.bio && (
@@ -655,54 +722,35 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Enhanced Stats Overview */}
-        <View style={styles.statsOverviewSection}>
-          <View style={styles.statsOverviewHeader}>
-            <Ionicons name="analytics" size={20} color="#4F46E5" />
-            <Text style={styles.statsOverviewTitle}>Activity Overview</Text>
+
+
+        {/* Pending Posts Section */}
+        {pendingPosts.length > 0 && (
+          <View style={styles.pendingPostsSection}>
+            <TouchableOpacity 
+              style={styles.pendingPostsHeader}
+              onPress={() => navigation.navigate('pending-posts')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.pendingPostsHeaderLeft}>
+                <LinearGradient
+                  colors={['#F59E0B', '#D97706']}
+                  style={styles.pendingPostsIconContainer}
+                >
+                  <Ionicons name="time-outline" size={20} color="#FFFFFF" />
+                </LinearGradient>
+                <View style={styles.pendingPostsHeaderText}>
+                  <Text style={styles.pendingPostsTitle}>Pending for Review</Text>
+                  <Text style={styles.pendingPostsSubtitle}>{pendingPosts.length} post{pendingPosts.length !== 1 ? 's' : ''} awaiting approval</Text>
+                </View>
+              </View>
+              <View style={styles.pendingPostsBadge}>
+                <Text style={styles.pendingPostsBadgeText}>{pendingPosts.length}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#F59E0B" />
+            </TouchableOpacity>
           </View>
-          
-          <View style={styles.statsOverviewGrid}>
-            <View style={styles.statsOverviewCard}>
-              <LinearGradient
-                colors={['#4F46E5', '#7C3AED']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.statsOverviewGradient}
-              >
-                <Ionicons name="document-text" size={24} color="#FFFFFF" />
-                <Text style={styles.statsOverviewNumber}>{profile._count?.posts || 0}</Text>
-                <Text style={styles.statsOverviewLabel}>Posts</Text>
-              </LinearGradient>
-            </View>
-            
-            <View style={styles.statsOverviewCard}>
-              <LinearGradient
-                colors={['#10B981', '#059669']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.statsOverviewGradient}
-              >
-                <Ionicons name="people" size={24} color="#FFFFFF" />
-                <Text style={styles.statsOverviewNumber}>{profile._count?.followers || 0}</Text>
-                <Text style={styles.statsOverviewLabel}>Followers</Text>
-              </LinearGradient>
-            </View>
-            
-            <View style={styles.statsOverviewCard}>
-              <LinearGradient
-                colors={['#F59E0B', '#D97706']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.statsOverviewGradient}
-              >
-                <Ionicons name="person-add" size={24} color="#FFFFFF" />
-                <Text style={styles.statsOverviewNumber}>{profile._count?.following || 0}</Text>
-                <Text style={styles.statsOverviewLabel}>Following</Text>
-              </LinearGradient>
-            </View>
-          </View>
-        </View>
+        )}
 
         {/* Enhanced Posts Section */}
         <View style={styles.postsSection}>
@@ -776,6 +824,8 @@ export default function ProfileScreen() {
         onClose={() => setCreatePostVisible(false)}
         onPostCreated={handlePostCreated}
       />
+
+
     </View>
   );
 }
@@ -1047,57 +1097,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '500',
   },
-  statsOverviewSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  statsOverviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  statsOverviewTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginLeft: 6,
-  },
-  statsOverviewGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statsOverviewCard: {
-    width: '30%',
-    alignItems: 'center',
-  },
-  statsOverviewGradient: {
-    width: '100%',
-    height: 80,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statsOverviewNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginTop: 6,
-  },
-  statsOverviewLabel: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
+
   postsSection: {
     marginHorizontal: 20,
     marginBottom: 100,
@@ -1562,4 +1562,538 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-}); 
+  // Pending Posts Section Styles
+  pendingPostsSection: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+  },
+  pendingPostsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  pendingPostsHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  pendingPostsIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  pendingPostsHeaderText: {
+    flex: 1,
+  },
+  pendingPostsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  pendingPostsSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  pendingPostsBadge: {
+    backgroundColor: '#F59E0B',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginRight: 12,
+    minWidth: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pendingPostsBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  // Instagram-style search
+  instagramSearchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#dbdbdb',
+  },
+  searchBarContainer: {
+    backgroundColor: '#fafafa',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dbdbdb',
+  },
+  searchContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchIconContainer: {
+    paddingHorizontal: 12,
+  },
+  instagramSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#262626',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+   // Instagram-style profile header
+  instagramProfileHeader: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#dbdbdb',
+  },
+  instagramAvatarContainer: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: '#dbdbdb',
+  },
+  instagramAvatar: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+  },
+  instagramAvatarPlaceholder: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instagramAvatarInitials: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#262626',
+  },
+  instagramProfileInfo: {
+    flex: 1,
+  },
+  instagramUsername: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#262626',
+    marginBottom: 2,
+  },
+  instagramUserHandle: {
+    fontSize: 14,
+    color: '#8e8e93',
+    marginBottom: 12,
+  },
+  instagramStats: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  instagramStatItem: {
+    alignItems: 'center',
+    marginRight: 24,
+  },
+  instagramStatNumber: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#262626',
+  },
+  instagramStatLabel: {
+    fontSize: 12,
+    color: '#8e8e93',
+  },
+  instagramBioContainer: {
+    marginBottom: 12,
+  },
+  instagramBio: {
+    fontSize: 14,
+    color: '#262626',
+    lineHeight: 20,
+  },
+  instagramActionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  instagramEditButton: {
+    flex: 1,
+    backgroundColor: '#fafafa',
+    borderWidth: 1,
+    borderColor: '#dbdbdb',
+    borderRadius: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    alignItems: 'center',
+  },
+  instagramEditButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#262626',
+  },
+  instagramFollowButton: {
+    flex: 1,
+    backgroundColor: '#0095f6',
+    borderRadius: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    alignItems: 'center',
+  },
+  instagramFollowButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+     instagramShareButton: {
+     backgroundColor: '#fafafa',
+     borderWidth: 1,
+     borderColor: '#dbdbdb',
+     borderRadius: 4,
+     padding: 8,
+     alignItems: 'center',
+     justifyContent: 'center',
+   },
+       // Enhanced Profile Styles
+    enhancedProfileHeader: {
+      paddingTop: 30,
+      paddingBottom: 20,
+      paddingHorizontal: 16,
+    },
+       enhancedAvatarSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+   enhancedAvatarContainer: {
+     position: 'relative',
+     marginRight: 20,
+   },
+       enhancedAvatar: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      borderWidth: 3,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+       enhancedAvatarPlaceholder: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+       enhancedAvatarInitials: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+    },
+       enhancedAvatarLoading: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+   enhancedEditAvatarButton: {
+     position: 'absolute',
+     bottom: 0,
+     right: 0,
+   },
+   enhancedEditAvatarIcon: {
+     width: 32,
+     height: 32,
+     borderRadius: 16,
+     justifyContent: 'center',
+     alignItems: 'center',
+     borderWidth: 3,
+     borderColor: '#FFFFFF',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.3,
+     shadowRadius: 4,
+     elevation: 5,
+   },
+   enhancedProfileInfo: {
+     flex: 1,
+   },
+   enhancedName: {
+     fontSize: 28,
+     fontWeight: '700',
+     color: '#FFFFFF',
+     marginBottom: 6,
+     textShadowColor: 'rgba(0, 0, 0, 0.3)',
+     textShadowOffset: { width: 0, height: 1 },
+     textShadowRadius: 2,
+     letterSpacing: 0.5,
+   },
+       enhancedEmail: {
+      fontSize: 16,
+      color: 'rgba(255, 255, 255, 0.9)',
+      marginBottom: 8,
+      fontWeight: '500',
+    },
+    enhancedBioText: {
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.8)',
+      marginBottom: 10,
+      fontWeight: '400',
+      lineHeight: 20,
+      fontStyle: 'italic',
+    },
+   enhancedCourseInfo: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+     paddingHorizontal: 12,
+     paddingVertical: 6,
+     borderRadius: 20,
+   },
+   enhancedCourseText: {
+     fontSize: 14,
+     color: '#FFFFFF',
+     fontWeight: '600',
+     marginLeft: 8,
+   },
+       enhancedStatsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+       enhancedStatCard: {
+      flex: 1,
+      marginHorizontal: 3,
+    },
+       enhancedStatGradient: {
+      padding: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+       enhancedStatNumber: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginTop: 4,
+      marginBottom: 2,
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    },
+       enhancedStatLabel: {
+      fontSize: 9,
+      color: 'rgba(255, 255, 255, 0.9)',
+      fontWeight: '500',
+      textTransform: 'uppercase',
+      letterSpacing: 0.2,
+    },
+   enhancedBioContainer: {
+     marginBottom: 25,
+   },
+   enhancedBioGradient: {
+     padding: 16,
+     borderRadius: 12,
+     borderWidth: 1,
+     borderColor: 'rgba(255, 255, 255, 0.2)',
+   },
+   bioIcon: {
+     marginBottom: 8,
+   },
+   enhancedBio: {
+     fontSize: 16,
+     color: '#FFFFFF',
+     lineHeight: 24,
+     fontWeight: '500',
+     textShadowColor: 'rgba(0, 0, 0, 0.2)',
+     textShadowOffset: { width: 0, height: 1 },
+     textShadowRadius: 1,
+   },
+   enhancedActionButtons: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     gap: 12,
+   },
+   enhancedFollowButton: {
+     flex: 1,
+     borderRadius: 12,
+     overflow: 'hidden',
+     shadowColor: '#10B981',
+     shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.3,
+     shadowRadius: 8,
+     elevation: 6,
+   },
+   enhancedFollowButtonGradient: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingVertical: 14,
+     paddingHorizontal: 20,
+     borderRadius: 12,
+   },
+   enhancedFollowButtonText: {
+     color: '#fff',
+     fontSize: 16,
+     fontWeight: '700',
+     marginLeft: 8,
+     letterSpacing: 0.3,
+   },
+   enhancedEditButton: {
+     flex: 1,
+     borderRadius: 12,
+     overflow: 'hidden',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.2,
+     shadowRadius: 8,
+     elevation: 4,
+   },
+   enhancedEditButtonGradient: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingVertical: 14,
+     paddingHorizontal: 20,
+     borderRadius: 12,
+   },
+   enhancedEditButtonText: {
+     color: '#fff',
+     fontSize: 16,
+     fontWeight: '700',
+     marginLeft: 8,
+     letterSpacing: 0.3,
+   },
+   enhancedShareButton: {
+     borderRadius: 12,
+     overflow: 'hidden',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.2,
+     shadowRadius: 8,
+     elevation: 4,
+   },
+   enhancedShareButtonGradient: {
+     width: 50,
+     height: 50,
+     borderRadius: 12,
+     justifyContent: 'center',
+     alignItems: 'center',
+   },
+   // Enhanced Search Styles
+   enhancedSearchContainer: {
+     paddingHorizontal: 16,
+     paddingVertical: 16,
+     borderBottomWidth: 1,
+     borderBottomColor: 'rgba(0,0,0,0.05)',
+   },
+   enhancedSearchBarContainer: {
+     borderRadius: 16,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.1,
+     shadowRadius: 8,
+     elevation: 4,
+   },
+   enhancedSearchBarGradient: {
+     borderRadius: 16,
+     paddingHorizontal: 16,
+     paddingVertical: 12,
+     borderWidth: 1,
+     borderColor: 'rgba(102, 126, 234, 0.1)',
+   },
+   enhancedSearchContent: {
+     flexDirection: 'row',
+     alignItems: 'center',
+   },
+   enhancedSearchIconContainer: {
+     marginRight: 12,
+   },
+   enhancedSearchInput: {
+     flex: 1,
+     fontSize: 16,
+     color: '#1e293b',
+     paddingVertical: 8,
+   },
+   enhancedClearSearchButton: {
+     marginLeft: 8,
+   },
+   enhancedClearButtonGradient: {
+     width: 24,
+     height: 24,
+     borderRadius: 12,
+     justifyContent: 'center',
+     alignItems: 'center',
+   },
+   enhancedSearchResultsContainer: {
+     position: 'absolute',
+     top: 70,
+     left: 16,
+     right: 16,
+     backgroundColor: '#ffffff',
+     borderRadius: 16,
+     padding: 16,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 8 },
+     shadowOpacity: 0.15,
+     shadowRadius: 16,
+     elevation: 10,
+     zIndex: 9999,
+     maxHeight: 400,
+     borderWidth: 1,
+     borderColor: 'rgba(102, 126, 234, 0.1)',
+   },
+   enhancedSearchResultsList: {
+     maxHeight: 300,
+   },
+   enhancedSearchLoading: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingVertical: 20,
+   },
+   enhancedSearchLoadingText: {
+     marginLeft: 12,
+     color: '#667eea',
+     fontSize: 16,
+     fontWeight: '600',
+   },
+   enhancedNoSearchResults: {
+     alignItems: 'center',
+     padding: 40,
+   },
+   enhancedNoSearchResultsText: {
+     fontSize: 18,
+     color: '#64748b',
+     marginTop: 16,
+     fontWeight: '600',
+   },
+   enhancedNoSearchResultsSubtext: {
+     fontSize: 14,
+     color: '#94a3b8',
+     marginTop: 8,
+     textAlign: 'center',
+   },
+});

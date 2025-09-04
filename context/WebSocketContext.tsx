@@ -7,7 +7,7 @@ interface WebSocketContextType {
   connect: () => void;
   disconnect: () => void;
   registerUser: (userId: string) => void;
-  sendMessage: (message: { content: string; receiverId: string; messageType?: string; fileUrl?: string }) => boolean;
+  sendMessage: (message: { content: string; receiverId: string; messageType?: string; fileUrl?: string; sender?: { id: string; name: string; profilePhoto?: string | null } }) => boolean;
   joinChat: (chatId: string) => void;
   sendTypingIndicator: (chatId: string, isTyping: boolean) => void;
   markMessageAsRead: (readerId: string, otherUserId: string) => void;
@@ -88,7 +88,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     setIsConnected(false);
   };
 
-  const sendMessage = (message: { content: string; receiverId: string; messageType?: string; fileUrl?: string }) => {
+  const sendMessage = (message: { content: string; receiverId: string; messageType?: string; fileUrl?: string; sender?: { id: string; name: string; profilePhoto?: string | null } }) => {
     return webSocketService.sendMessage(message);
   };
 

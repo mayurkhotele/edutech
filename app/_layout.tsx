@@ -115,6 +115,12 @@ function RootNavigator() {
                       title: '', // Remove the title for privacy-policy
                     }}
                 />
+                <Drawer.Screen
+                    name="membership"
+                    options={{
+                      title: '', // Remove the title for membership
+                    }}
+                />
             </Drawer>
         </WalletProvider>
     );

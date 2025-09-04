@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -75,6 +76,9 @@ export default function BattleRoomScreen() {
   const trophyScaleAnim = useRef(new Animated.Value(0)).current;
   const scoreAnim = useRef(new Animated.Value(0)).current;
   const celebrationAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const sparkleAnim = useRef(new Animated.Value(0)).current;
   
   // Animation values for firecrackers
   const firecrackerAnim1 = useRef(new Animated.Value(0)).current;
@@ -637,6 +641,82 @@ const handleMatchEnded = (data: {
     };
   }, [socket, isConnected, matchId, setupSocketListeners, cleanupSocketListeners]);
 
+  // Victory animations effect - Must be at top level to avoid hook order issues
+  useEffect(() => {
+    if (battleState.status === 'finished') {
+      const isWinner = battleState.player1Score > battleState.player2Score;
+      
+      if (isWinner) {
+        // Sequential entrance animations
+        Animated.sequence([
+          // Trophy scale up
+          Animated.spring(trophyScaleAnim, {
+            toValue: 1,
+            tension: 50,
+            friction: 6,
+            useNativeDriver: true,
+          }),
+          // Celebration pulse
+          Animated.timing(celebrationAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]).start();
+
+        // Continuous pulse animation
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.1,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+
+        // Floating animation
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(floatAnim, {
+              toValue: 1,
+              duration: 2000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(floatAnim, {
+              toValue: 0,
+              duration: 2000,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+
+        // Sparkle animation
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(sparkleAnim, {
+              toValue: 1,
+              duration: 1500,
+              useNativeDriver: true,
+            }),
+            Animated.timing(sparkleAnim, {
+              toValue: 0,
+              duration: 1500,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+      }
+    }
+  }, [battleState.status, battleState.player1Score, battleState.player2Score]);
+
+
+
   const startQuestionTimer = (timeLimit: number) => {
     if (questionTimerRef.current) {
       clearInterval(questionTimerRef.current);
@@ -705,9 +785,7 @@ const handleMatchEnded = (data: {
     if (battleState.answers[questionIndex] !== undefined) {
       return 'answered';
     }
-    if (battleState.opponentAnswers[questionIndex]) {
-      return 'opponent-answered';
-    }
+    // Don't show opponent-answered status until user has also answered
     return 'pending';
   };
 
@@ -787,10 +865,13 @@ const handleMatchEnded = (data: {
     const isWinner = battleState.player1Score > battleState.player2Score;
     const isDraw = battleState.player1Score === battleState.player2Score;
     
+
+
     if (isWinner) {
+
       return (
         <LinearGradient 
-          colors={["#6C63FF", "#FF6CAB", "#FFD452"]}
+          colors={["#FFD700", "#FF6B35", "#FF1744", "#9C27B0"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.container}
@@ -826,45 +907,114 @@ const handleMatchEnded = (data: {
             ))}
           </View>
 
+          {/* Enhanced Sparkle Background */}
+          <View style={styles.sparkleBackground}>
+            {[...Array(15)].map((_, i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.sparkle,
+                  {
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                    transform: [{
+                      scale: sparkleAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0.3, 1.2, 0.3],
+                      })
+                    }, {
+                      rotate: sparkleAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      })
+                    }],
+                    opacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.4, 1, 0.4],
+                    })
+                  }
+                ]}
+              >
+                <Text style={styles.sparkleText}>✨</Text>
+              </Animated.View>
+            ))}
+          </View>
+
           <View style={styles.victoryContainer}>
-            {/* Trophy Animation */}
+            {/* Enhanced Trophy Animation */}
             <Animated.View
               style={[
                 styles.trophyContainer,
                 {
-                  transform: [{
-                    scale: trophyScaleAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 1],
-                    })
-                  }]
+                  transform: [
+                    { scale: trophyScaleAnim },
+                    { scale: pulseAnim },
+                    { 
+                      translateY: floatAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -10],
+                      })
+                    }
+                  ]
                 }
               ]}
             >
               <LinearGradient
-                colors={["#FFD452", "#FF6CAB"]}
+                colors={["#FFD700", "#FF8C00", "#FF6B35"]}
                 style={styles.trophyGradient}
               >
                 <Ionicons name="trophy" size={80} color="#fff" />
+                {/* Trophy glow effect */}
+                <View style={styles.trophyGlow} />
               </LinearGradient>
+              
+              {/* Crown above trophy */}
+              <Animated.View 
+                style={[
+                  styles.crownContainer,
+                  {
+                    transform: [{
+                      rotate: celebrationAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['-10deg', '10deg'],
+                      })
+                    }]
+                  }
+                ]}
+              >
+                <Text style={styles.crownEmoji}>👑</Text>
+              </Animated.View>
             </Animated.View>
 
-            {/* Victory Text */}
+            {/* Enhanced Victory Text */}
             <Animated.View
               style={[
                 styles.victoryTextContainer,
                 {
-                  transform: [{
-                    scale: celebrationAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 1.05],
-                    })
-                  }]
+                  transform: [
+                    { scale: celebrationAnim },
+                    { 
+                      translateY: floatAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -5],
+                      })
+                    }
+                  ]
                 }
               ]}
             >
-              <Text style={styles.victoryTitle}>🎓 VICTORY! 🎓</Text>
-              <Text style={styles.victorySubtitle}>Excellent Performance!</Text>
+              <Animated.Text 
+                style={[
+                  styles.victoryTitle,
+                  {
+                    transform: [{ scale: pulseAnim }]
+                  }
+                ]}
+              >
+                🏆 CHAMPION! 🏆
+              </Animated.Text>
+              <Text style={styles.victorySubtitle}>🎊 SPECTACULAR VICTORY! 🎊</Text>
+              <Text style={styles.victoryMotivation}>You're on fire! 🔥 Keep dominating!</Text>
             </Animated.View>
 
             {/* Score Display */}
@@ -892,28 +1042,33 @@ const handleMatchEnded = (data: {
               </LinearGradient>
             </View>
 
-            {/* Action Buttons */}
+            {/* Enhanced Action Buttons */}
             <View style={styles.victoryButtonsContainer}>
-              <TouchableOpacity style={styles.victoryButton}>
-                <LinearGradient
-                  colors={["#6C63FF", "#7366FF"]}
-                  style={styles.victoryButtonGradient}
-                >
-                  <Ionicons name="share" size={20} color="#fff" />
-                  <Text style={styles.victoryButtonText}>Share Victory</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
               <TouchableOpacity 
                 style={styles.victoryButton}
                 onPress={() => router.back()}
               >
                 <LinearGradient
-                  colors={["#FF6CAB", "#EA4335"]}
+                  colors={["#4CAF50", "#45A049", "#2E7D32"]}
                   style={styles.victoryButtonGradient}
                 >
-                  <Ionicons name="home" size={20} color="#fff" />
-                  <Text style={styles.victoryButtonText}>Back to Home</Text>
+                  <Ionicons name="refresh" size={22} color="#fff" />
+                  <Text style={styles.victoryButtonText}>Play Again</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.victoryButton}
+                onPress={() => {
+                  console.log('Share victory!');
+                }}
+              >
+                <LinearGradient
+                  colors={["#FF9800", "#FF6F00", "#E65100"]}
+                  style={styles.victoryButtonGradient}
+                >
+                  <Ionicons name="share-social" size={22} color="#fff" />
+                  <Text style={styles.victoryButtonText}>Share Victory</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -1117,7 +1272,7 @@ const handleMatchEnded = (data: {
     // Draw or Defeat screen
     return (
       <LinearGradient 
-        colors={["#6C63FF", "#FF6CAB", "#FFD452"]}
+        colors={isDraw ? ["#4F46E5", "#7C3AED", "#8B5CF6"] : ["#FF6B6B", "#FF8E53", "#FF6B35"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.container}
@@ -1176,7 +1331,7 @@ const handleMatchEnded = (data: {
           </Animated.View>
           
           <Text style={styles.resultTitle}>
-            {isDraw ? 'Draw!' : '😢 Defeat!'}
+            {isDraw ? '🤝 Draw!' : '💪 Better Luck Next Time!'}
           </Text>
           
           <View style={styles.finalScores}>
@@ -1535,7 +1690,8 @@ const handleMatchEnded = (data: {
       colors={
         battleState.answers[battleState.currentQuestion] === index
           ? ["#4F46E5", "#7C3AED"]
-          : battleState.opponentAnswers[battleState.currentQuestion] === index
+          : battleState.opponentAnswers[battleState.currentQuestion] === index &&
+            battleState.answers[battleState.currentQuestion] !== undefined
           ? ["#FF6B6B", "#FF5252"]
           : ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']
       }
@@ -1573,7 +1729,8 @@ const handleMatchEnded = (data: {
           </View>
         )}
         
-        {battleState.opponentAnswers[battleState.currentQuestion] === index && (
+        {battleState.opponentAnswers[battleState.currentQuestion] === index && 
+         battleState.answers[battleState.currentQuestion] !== undefined && (
           <View style={[styles.answerIndicator, styles.opponentIndicator]}>
             <Text style={styles.answerIndicatorText}>Opponent</Text>
           </View>
@@ -1611,8 +1768,6 @@ const handleMatchEnded = (data: {
               "🎯 Both players answered! Next question loading..."
             ) : battleState.answers[battleState.currentQuestion] !== undefined ? (
               "⏳ Waiting for opponent to answer..."
-            ) : battleState.opponentAnswers[battleState.currentQuestion] !== undefined ? (
-              "⏳ Opponent answered, waiting for you..."
             ) : (
               `⏰ Time remaining: ${battleState.timeLeft}s`
             )}
@@ -2160,22 +2315,25 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   victoryTitle: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#FFFFFF',
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 8,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 6 },
+    textShadowRadius: 12,
+    letterSpacing: 2,
+    marginBottom: 8,
   },
   victorySubtitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'rgba(255,255,255,0.9)',
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.95)',
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 6,
+    letterSpacing: 1,
   },
   victoryScoreContainer: {
     marginBottom: 30,
@@ -2389,5 +2547,172 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -150 }, { translateY: -150 }],
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+  },
+  // Enhanced Trophy Styles
+  trophyContainer: {
+    marginBottom: 40,
+    alignItems: 'center',
+  },
+  trophyGradient: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 15,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  // Enhanced Result Styles
+  resultTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 8,
+    letterSpacing: 1.5,
+    marginBottom: 24,
+  },
+  finishedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+  resultIcon: {
+    marginBottom: 30,
+  },
+  resultIconGradient: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  // Enhanced Final Scores
+  finalScores: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  finalScoreLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.9)',
+    letterSpacing: 0.5,
+  },
+  finalScoreValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  // Enhanced Back Button
+  backButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  backButtonGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  // Enhanced Victory Styles
+  sparkleBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  sparkle: {
+    position: 'absolute',
+    zIndex: 2,
+  },
+  sparkleText: {
+    fontSize: 20,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textShadowColor: 'rgba(255, 215, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  trophyGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 215, 0, 0.3)',
+    top: -10,
+    left: -10,
+    zIndex: -1,
+  },
+  crownContainer: {
+    position: 'absolute',
+    top: -20,
+    alignSelf: 'center',
+    zIndex: 3,
+  },
+  crownEmoji: {
+    fontSize: 32,
+    textShadowColor: 'rgba(255, 215, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  victoryMotivation: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    letterSpacing: 0.5,
+    marginTop: 8,
   },
 });

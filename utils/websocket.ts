@@ -235,6 +235,11 @@ class WebSocketService {
     receiverId: string;
     messageType?: string;
     fileUrl?: string;
+    sender?: {
+      id: string;
+      name: string;
+      profilePhoto?: string | null;
+    };
   }) {
     if (!this.socket?.connected) {
       console.error('WebSocket not connected');
@@ -246,7 +251,8 @@ class WebSocketService {
         content: message.content,
         receiver: { id: message.receiverId },
         messageType: message.messageType || 'text',
-        fileUrl: message.fileUrl
+        fileUrl: message.fileUrl,
+        sender: message.sender || null
       }
     };
 

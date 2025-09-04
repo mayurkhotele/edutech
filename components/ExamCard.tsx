@@ -301,7 +301,6 @@ const ExamCard = ({ exam, navigation }: any) => {
                 <View style={styles.spotsHeader}>
                     <View style={styles.spotsLeftSection}>
                         <Text style={styles.spotsTitle}>Available Spots</Text>
-                        <Text style={styles.spotsSubtitle}>Hurry up! Limited seats remaining</Text>
                     </View>
                     <View style={styles.timerSection}>
                         <View style={styles.timerIconContainer}>

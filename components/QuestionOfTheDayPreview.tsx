@@ -5,6 +5,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Image,
   Modal,
   StyleSheet,
   Text,
@@ -25,6 +26,16 @@ const QuestionOfTheDayPreview = () => {
   const pulseValue = useRef(new Animated.Value(1)).current;
   const progressRing = useRef(new Animated.Value(0)).current;
   const dailyIndicator = useRef(new Animated.Value(0)).current;
+  const sparkleAnim1 = useRef(new Animated.Value(0)).current;
+  const sparkleAnim2 = useRef(new Animated.Value(0)).current;
+  const sparkleAnim3 = useRef(new Animated.Value(0)).current;
+  const sparkleAnim4 = useRef(new Animated.Value(0)).current;
+  const floatingAnim1 = useRef(new Animated.Value(0)).current;
+  const floatingAnim2 = useRef(new Animated.Value(0)).current;
+  const floatingAnim3 = useRef(new Animated.Value(0)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   const openModal = () => {
     setIsModalVisible(true);
@@ -139,6 +150,170 @@ const QuestionOfTheDayPreview = () => {
           }),
         ])
       ).start();
+
+      // Enhanced Sparkle animations
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(sparkleAnim1, {
+            toValue: 1,
+            duration: 1500,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkleAnim1, {
+            toValue: 0,
+            duration: 1500,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(400),
+          Animated.timing(sparkleAnim2, {
+            toValue: 1,
+            duration: 1300,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkleAnim2, {
+            toValue: 0,
+            duration: 1300,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(800),
+          Animated.timing(sparkleAnim3, {
+            toValue: 1,
+            duration: 1700,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkleAnim3, {
+            toValue: 0,
+            duration: 1700,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(1200),
+          Animated.timing(sparkleAnim4, {
+            toValue: 1,
+            duration: 1600,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkleAnim4, {
+            toValue: 0,
+            duration: 1600,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Enhanced Floating particles
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(floatingAnim1, {
+            toValue: 1,
+            duration: 4000,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatingAnim1, {
+            toValue: 0,
+            duration: 4000,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(1000),
+          Animated.timing(floatingAnim2, {
+            toValue: 1,
+            duration: 3500,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatingAnim2, {
+            toValue: 0,
+            duration: 3500,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(2000),
+          Animated.timing(floatingAnim3, {
+            toValue: 1,
+            duration: 3000,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatingAnim3, {
+            toValue: 0,
+            duration: 3000,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Continuous rotation
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 6000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+
+      // Glow pulse effect
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: 2000,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0,
+            duration: 2000,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Shimmer sweep effect
+      Animated.loop(
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 3000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
     };
 
     startAnimations();
@@ -154,7 +329,7 @@ const QuestionOfTheDayPreview = () => {
           end={{ x: 1, y: 1 }}
           style={styles.previewGradient}
         >
-          {/* Animated Background Pattern */}
+          {/* Enhanced Animated Background Pattern */}
           <View style={styles.backgroundPattern}>
             <Animated.View 
               style={[
@@ -195,81 +370,236 @@ const QuestionOfTheDayPreview = () => {
                 }
               ]} 
             />
+
+            {/* Enhanced Sparkle Elements */}
+            <Animated.View 
+              style={[
+                styles.sparkleElement1,
+                {
+                  opacity: sparkleAnim1,
+                  transform: [{
+                    scale: sparkleAnim1.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.5, 1.5],
+                    })
+                  }]
+                }
+              ]} 
+            />
+            <Animated.View 
+              style={[
+                styles.sparkleElement2,
+                {
+                  opacity: sparkleAnim2,
+                  transform: [{
+                    scale: sparkleAnim2.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.3, 1.2],
+                    })
+                  }]
+                }
+              ]} 
+            />
+            <Animated.View 
+              style={[
+                styles.sparkleElement3,
+                {
+                  opacity: sparkleAnim3,
+                  transform: [{
+                    scale: sparkleAnim3.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.6, 1.4],
+                    })
+                  }]
+                }
+              ]} 
+            />
+            <Animated.View 
+              style={[
+                styles.sparkleElement4,
+                {
+                  opacity: sparkleAnim4,
+                  transform: [{
+                    scale: sparkleAnim4.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.4, 1.3],
+                    })
+                  }]
+                }
+              ]} 
+            />
+
+            {/* Enhanced Floating Particles */}
+            <Animated.View 
+              style={[
+                styles.floatingParticle1,
+                {
+                  opacity: floatingAnim1.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0, 1, 0],
+                  }),
+                  transform: [
+                    {
+                      translateY: floatingAnim1.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -40],
+                      })
+                    },
+                    {
+                      translateX: floatingAnim1.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 20],
+                      })
+                    }
+                  ]
+                }
+              ]} 
+            />
+            <Animated.View 
+              style={[
+                styles.floatingParticle2,
+                {
+                  opacity: floatingAnim2.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0, 1, 0],
+                  }),
+                  transform: [
+                    {
+                      translateY: floatingAnim2.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -35],
+                      })
+                    },
+                    {
+                      translateX: floatingAnim2.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -15],
+                      })
+                    }
+                  ]
+                }
+              ]} 
+            />
+            <Animated.View 
+              style={[
+                styles.floatingParticle3,
+                {
+                  opacity: floatingAnim3.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0, 1, 0],
+                  }),
+                  transform: [
+                    {
+                      translateY: floatingAnim3.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -30],
+                      })
+                    },
+                    {
+                      translateX: floatingAnim3.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 25],
+                      })
+                    }
+                  ]
+                }
+              ]} 
+            />
+
+            {/* Rotating Ring */}
+            <Animated.View 
+              style={[
+                styles.rotatingRing,
+                {
+                  transform: [{
+                    rotate: rotateAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
+                    })
+                  }]
+                }
+              ]} 
+            />
+
+            {/* Glowing Orbs */}
+            <Animated.View 
+              style={[
+                styles.glowOrb1,
+                {
+                  opacity: glowAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.3, 1, 0.3],
+                  }),
+                  transform: [{
+                    scale: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1.2],
+                    })
+                  }]
+                }
+              ]} 
+            />
+            <Animated.View 
+              style={[
+                styles.glowOrb2,
+                {
+                  opacity: glowAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.2, 0.8, 0.2],
+                  }),
+                  transform: [{
+                    scale: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1.2, 0.8],
+                    })
+                  }]
+                }
+              ]} 
+            />
+
+            {/* Shimmer Effect */}
+            <Animated.View 
+              style={[
+                styles.shimmerBar,
+                {
+                  transform: [{
+                    translateX: shimmerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-150, 500],
+                    })
+                  }]
+                }
+              ]} 
+            />
+
             <View style={styles.patternDots} />
           </View>
 
           <View style={styles.previewContent}>
+            <View style={styles.largeImageContainer}>
+              <Image 
+                source={require('../assets/images/icons/question-girl.png')}
+                style={styles.largeQuestionGirlIcon}
+                resizeMode="contain"
+              />
+            </View>
             <View style={styles.previewLeft}>
-              <View style={styles.iconWrapper}>
-                {/* Progress Ring */}
-                <Animated.View 
-                  style={[
-                    styles.progressRing,
-                    {
-                      transform: [{
-                        rotate: progressRing.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0deg', '360deg'],
-                        })
-                      }],
-                      opacity: progressRing.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [0.3, 1, 0.3],
-                      })
-                    }
-                  ]}
-                />
-                <Animated.View 
-                  style={[
-                    styles.iconContainer,
-                    {
-                      transform: [{ scale: pulseValue }]
-                    }
-                  ]}
-                >
-                  <LinearGradient
-                    colors={['#FFD700', '#FF6B6B']}
-                    style={styles.iconGradient}
-                  >
-                    <Ionicons name="bulb" size={22} color="#FFFFFF" />
-                  </LinearGradient>
-                  {/* Daily indicator dot */}
-                  <Animated.View 
-                    style={[
-                      styles.dailyDot,
-                      {
-                        opacity: dailyIndicator,
-                      }
-                    ]}
-                  />
-                </Animated.View>
-              </View>
               <View style={styles.previewTextContainer}>
-                <View style={styles.titleRow}>
+                <View style={styles.titleWithButtonRow}>
                   <Text style={styles.previewTitle}>Question of the Day</Text>
-                  <Animated.View style={[styles.dailyBadge, {
-                    transform: [{
-                      scale: pulseValue.interpolate({
-                        inputRange: [1, 1.1],
-                        outputRange: [1, 1.05],
-                      })
-                    }]
-                  }]}>
-                    <Text style={styles.dailyBadgeText}>TODAY</Text>
-                  </Animated.View>
+                  <TouchableOpacity style={styles.rightViewButton} onPress={openModal}>
+                    <LinearGradient
+                      colors={['#FF6B6B', '#FF8E53']}
+                      style={styles.rightViewButtonGradient}
+                    >
+                      <Text style={styles.viewButtonText}>View</Text>
+                      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
                 <Text style={styles.previewSubtitle}>Test your knowledge daily!</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.viewButton} onPress={openModal}>
-              <LinearGradient
-                colors={['#FF6B6B', '#FF8E53']}
-                style={styles.viewButtonGradient}
-              >
-                <Text style={styles.viewButtonText}>View</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-              </LinearGradient>
-            </TouchableOpacity>
           </View>
         </LinearGradient>
       </View>
@@ -329,6 +659,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 10,
+    overflow: 'visible',
+    position: 'relative',
   },
   previewGradient: {
     borderRadius: 18,
@@ -342,7 +674,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: 0.12,
+    opacity: 0.6,
   },
   patternCircle1: {
     position: 'absolute',
@@ -436,8 +768,44 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  largeImageContainer: {
+    position: 'absolute',
+    left: -60,
+    top: -30,
+    zIndex: 10,
+  },
+  largeQuestionGirlIcon: {
+    width: 180,
+    height: 180,
+  },
   previewTextContainer: {
     flex: 1,
+    justifyContent: 'flex-start',
+    paddingTop: 10,
+    marginLeft: 70,
+  },
+  titleWithButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  rightViewButton: {
+    marginLeft: 16,
+    marginTop: 8,
+  },
+  rightViewButtonGradient: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   titleRow: {
     flexDirection: 'row',
@@ -630,6 +998,154 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 20,
     paddingHorizontal: 20,
+  },
+  // Enhanced Animation Elements
+  sparkleElement1: {
+    position: 'absolute',
+    top: 25,
+    left: 40,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  sparkleElement2: {
+    position: 'absolute',
+    top: 60,
+    right: 50,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  sparkleElement3: {
+    position: 'absolute',
+    bottom: 40,
+    left: 60,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 9,
+    elevation: 9,
+  },
+  sparkleElement4: {
+    position: 'absolute',
+    bottom: 25,
+    right: 80,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 7,
+    elevation: 7,
+  },
+  floatingParticle1: {
+    position: 'absolute',
+    top: 35,
+    left: 80,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  floatingParticle2: {
+    position: 'absolute',
+    bottom: 50,
+    right: 40,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  floatingParticle3: {
+    position: 'absolute',
+    top: 50,
+    right: 100,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.85,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  rotatingRing: {
+    position: 'absolute',
+    top: 40,
+    left: 120,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderTopColor: '#FFFFFF',
+    borderRightColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  glowOrb1: {
+    position: 'absolute',
+    top: 30,
+    right: 30,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  glowOrb2: {
+    position: 'absolute',
+    bottom: 35,
+    left: 30,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  shimmerBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 120,
+    height: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    transform: [{ skewX: '-20deg' }],
   },
 });
 

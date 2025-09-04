@@ -4,17 +4,19 @@ import { useToast } from '@/context/ToastContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    Easing,
+    Image,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import RefreshableScrollView from '../../components/RefreshableScrollView';
 
@@ -47,10 +49,141 @@ const PracticeExamScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Animation values
+  const sparkleAnim1 = useRef(new Animated.Value(0)).current;
+  const sparkleAnim2 = useRef(new Animated.Value(0)).current;
+  const sparkleAnim3 = useRef(new Animated.Value(0)).current;
+  const floatingAnim1 = useRef(new Animated.Value(0)).current;
+  const floatingAnim2 = useRef(new Animated.Value(0)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
 
   useEffect(() => {
     fetchPracticeExams();
+    startAnimations();
   }, []);
+
+  // Start header animations
+  const startAnimations = () => {
+    // Sparkle animations
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparkleAnim1, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleAnim1, {
+          toValue: 0,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(500),
+        Animated.timing(sparkleAnim2, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleAnim2, {
+          toValue: 0,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(1000),
+        Animated.timing(sparkleAnim3, {
+          toValue: 1,
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleAnim3, {
+          toValue: 0,
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Floating animations
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatingAnim1, {
+          toValue: 1,
+          duration: 3000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatingAnim1, {
+          toValue: 0,
+          duration: 3000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(1500),
+        Animated.timing(floatingAnim2, {
+          toValue: 1,
+          duration: 2500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatingAnim2, {
+          toValue: 0,
+          duration: 2500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Rotation animation
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 8000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // Pulse animation for image
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
 
   // Refresh data when screen comes into focus
   useFocusEffect(
@@ -155,16 +288,122 @@ const PracticeExamScreen = () => {
     
     return (
       <LinearGradient
-        colors={['#8B5CF6', '#A855F7', '#C084FC']}
+        colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
       >
-        {/* Background Pattern */}
+        {/* Enhanced Background Pattern */}
         <View style={styles.headerPattern}>
-          <View style={styles.patternCircle1} />
-          <View style={styles.patternCircle2} />
-          <View style={styles.patternCircle3} />
+          <Animated.View 
+            style={[
+              styles.patternCircle1,
+              {
+                opacity: sparkleAnim1,
+                transform: [{
+                  scale: sparkleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1.2],
+                  })
+                }]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.patternCircle2,
+              {
+                opacity: sparkleAnim2,
+                transform: [{
+                  scale: sparkleAnim2.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1.1],
+                  })
+                }]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.patternCircle3,
+              {
+                opacity: sparkleAnim3,
+                transform: [{
+                  scale: sparkleAnim3.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.7, 1.3],
+                  })
+                }]
+              }
+            ]} 
+          />
+
+          {/* Additional animated elements */}
+          <Animated.View 
+            style={[
+              styles.floatingElement1,
+              {
+                opacity: floatingAnim1.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0, 1, 0],
+                }),
+                transform: [
+                  {
+                    translateY: floatingAnim1.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -20],
+                    })
+                  },
+                  {
+                    translateX: floatingAnim1.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 15],
+                    })
+                  }
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingElement2,
+              {
+                opacity: floatingAnim2.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0, 1, 0],
+                }),
+                transform: [
+                  {
+                    translateY: floatingAnim2.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -25],
+                    })
+                  },
+                  {
+                    translateX: floatingAnim2.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -10],
+                    })
+                  }
+                ]
+              }
+            ]} 
+          />
+
+          {/* Rotating element */}
+          <Animated.View 
+            style={[
+              styles.rotatingElement,
+              {
+                transform: [{
+                  rotate: rotateAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  })
+                }]
+              }
+            ]} 
+          />
         </View>
         
         <View style={styles.headerContent}>
@@ -176,13 +415,19 @@ const PracticeExamScreen = () => {
             </Text>
           </View>
           
-          {/* Header Image */}
+          {/* Animated Header Image */}
           <View style={styles.decorationContainer}>
-            <Image 
-              source={require('../../assets/images/practise-header.png')}
-              style={styles.headerImage}
-              resizeMode="contain"
-            />
+            <Animated.View
+              style={{
+                transform: [{ scale: pulseAnim }]
+              }}
+            >
+              <Image 
+                source={require('../../assets/images/icons/practise-girl.png')}
+                style={styles.headerImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
           </View>
         </View>
       </LinearGradient>
@@ -363,10 +608,10 @@ const styles = StyleSheet.create({
   },
   // Header Styles
   headerGradient: {
-    height: 200,
+    height: 160,
     paddingTop: 0,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 15,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderBottomLeftRadius: 24,
@@ -382,7 +627,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: 0.15,
+    opacity: 0.4,
   },
   patternCircle1: {
     position: 'absolute',
@@ -391,7 +636,12 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 8,
   },
   patternCircle2: {
     position: 'absolute',
@@ -400,7 +650,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 6,
+    elevation: 6,
   },
   patternCircle3: {
     position: 'absolute',
@@ -409,19 +664,66 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  floatingElement1: {
+    position: 'absolute',
+    top: 30,
+    left: 80,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  floatingElement2: {
+    position: 'absolute',
+    bottom: 30,
+    right: 60,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  rotatingElement: {
+    position: 'absolute',
+    top: 40,
+    left: 100,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    borderTopColor: 'rgba(255, 255, 255, 0.4)',
+    borderRightColor: 'rgba(255, 255, 255, 0.6)',
   },
   headerContent: {
     position: 'relative',
     zIndex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginTop: 0,
-    paddingTop: 20,
+    paddingTop: 15,
+    height: '100%',
   },
   headerTitleContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 24,
@@ -441,11 +743,15 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   decorationContainer: {
+    position: 'absolute',
+    right: -40,
+    top: 0,
     alignItems: 'flex-end',
+    justifyContent: 'flex-end',
   },
   headerImage: {
-    width: 120,
-    height: 120,
+    width: 160,
+    height: 160,
   },
   // Stats Section
   statsSection: {
