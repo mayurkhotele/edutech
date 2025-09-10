@@ -94,6 +94,20 @@ export default function TabLayout() {
           href: null, // Hide from tab bar
         }}
       />
+      <Tabs.Screen
+        name="spy-game"
+        options={{
+          title: 'Spy Game',
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="spy-room"
+        options={{
+          title: 'Spy Room',
+          href: null,
+        }}
+      />
     </Tabs>
   );
 } 

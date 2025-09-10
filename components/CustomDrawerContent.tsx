@@ -47,6 +47,12 @@ const CustomDrawerContent = (props: any) => {
         navigation.closeDrawer();
     };
 
+    const navigateToSpyGame = () => {
+        setActiveMenu('spy-game');
+        navigation.navigate('(tabs)', { screen: 'spy-game' });
+        navigation.closeDrawer();
+    };
+
     const navigateToMessages = () => {
         setActiveMenu('messages');
         navigation.navigate('(tabs)', { screen: 'messages' });
@@ -55,6 +61,13 @@ const CustomDrawerContent = (props: any) => {
 
     const navigateToPrivacyPolicy = () => {
         setActiveMenu('privacy-policy');
+        navigation.navigate('privacy-policy');
+        navigation.closeDrawer();
+    };
+
+    const navigateToTerms = () => {
+        setActiveMenu('terms');
+        // Reuse the same screen for now; can be split later if needed
         navigation.navigate('privacy-policy');
         navigation.closeDrawer();
     };
@@ -72,7 +85,8 @@ const CustomDrawerContent = (props: any) => {
 
     const handleLeaderboardPress = () => {
         setActiveMenu('leaderboard');
-        // Add navigation logic for leaderboard if needed
+        navigation.navigate('(tabs)', { screen: 'weekly-leaderboard' });
+        navigation.closeDrawer();
     };
 
     const handleSupportPress = () => {
@@ -116,37 +130,7 @@ const CustomDrawerContent = (props: any) => {
                         </View>
                     </LinearGradient>
 
-                    {/* Enhanced User Profile Section */}
-                    <View style={styles.profileSection}>
-                        <LinearGradient
-                            colors={['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.7)']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.profileContainer}
-                        >
-                            {user?.profilePhoto ? (
-                                <Image
-                                    source={{ uri: user.profilePhoto }}
-                                    style={styles.profileImage}
-                                />
-                            ) : (
-                                <LinearGradient
-                                    colors={['#8B5CF6', '#A855F7', '#C084FC']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.profileImagePlaceholder}
-                                >
-                                    <Text style={styles.profileImageInitials}>
-                                        {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
-                                    </Text>
-                                </LinearGradient>
-                            )}
-                            <View style={styles.profileInfo}>
-                                <Text style={styles.profileName}>{user?.name || 'MAYUR KJ'}</Text>
-                                <Text style={styles.profileEmail}>Student</Text>
-                            </View>
-                        </LinearGradient>
-                    </View>
+                    {/* User Profile Section removed as requested */}
 
                     {/* Enhanced Main Menu Items */}
                     <View style={styles.menuContainer}>
@@ -154,13 +138,13 @@ const CustomDrawerContent = (props: any) => {
                         <DrawerItem icon="document-text-outline" label="My Exams" onPress={navigateToMyExams} isActive={activeMenu === 'my-exams'} iconColor="#2ED573" />
                         <DrawerItem icon="school-outline" label="Practice Exam" onPress={navigateToPracticeExam} isActive={activeMenu === 'practice-exam'} iconColor="#1E90FF" />
                         <DrawerItem icon="game-controller-outline" label="Battle Quiz" onPress={navigateToBattleQuiz} isActive={activeMenu === 'quiz'} iconColor="#96CEB4" />
+                        <DrawerItem icon="eye-outline" label="Spy Game" onPress={navigateToSpyGame} isActive={activeMenu === 'spy-game'} iconColor="#F59E0B" />
                         <DrawerItem icon="chatbubbles-outline" label="Messages" onPress={navigateToMessages} isActive={activeMenu === 'messages'} iconColor="#667eea" />
                         <DrawerItem icon="stats-chart-outline" label="Leaderboard" onPress={handleLeaderboardPress} isActive={activeMenu === 'leaderboard'} iconColor="#FF6348" />
                         <DrawerItem icon="calendar-outline" label="My Timetable" onPress={navigateToTimetable} isActive={activeMenu === 'timetable'} iconColor="#9C88FF" />
                         <DrawerItem icon="person-add-outline" label="Refer & Earn" onPress={navigateToRefer} isActive={activeMenu === 'refer'} iconColor="#FF9FF3" />
                         <DrawerItem icon="diamond-outline" label="Membership" onPress={navigateToMembership} isActive={activeMenu === 'membership'} iconColor="#FFD700" />
                         <DrawerItem icon="headset-outline" label="24/7 Support" onPress={handleSupportPress} isActive={activeMenu === 'support'} iconColor="#54A0FF" />
-                        <DrawerItem icon="shield-checkmark-outline" label="Privacy Policy" onPress={navigateToPrivacyPolicy} isActive={activeMenu === 'privacy-policy'} iconColor="#FFC048" />
                     </View>
 
                     {/* Logout Section - Fixed at Bottom */}
@@ -195,6 +179,18 @@ const CustomDrawerContent = (props: any) => {
                                 <View style={styles.linkedinIconContainer}>
                                     <Ionicons name="logo-linkedin" size={20} color="#FFFFFF" />
                                 </View>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                    {/* Privacy Policy moved below Follow Us - simple text link */}
+                    <View style={{ paddingHorizontal: 16, paddingBottom: 6 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                            <TouchableOpacity onPress={navigateToPrivacyPolicy}>
+                                <Text style={{ color: '#1F2937', fontSize: 14, fontWeight: '600' }}>Privacy Policy</Text>
+                            </TouchableOpacity>
+                            <Text style={{ color: '#9CA3AF', marginHorizontal: 8 }}>|</Text>
+                            <TouchableOpacity onPress={navigateToTerms}>
+                                <Text style={{ color: '#1F2937', fontSize: 14, fontWeight: '600' }}>Terms & Conditions</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

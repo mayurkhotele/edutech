@@ -8,9 +8,10 @@ import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity,
 import ExamCard from '../../../components/ExamCard';
 
 const ExamDetailScreen = () => {
-    const { id } = useLocalSearchParams();
+    const { id, from, status } = useLocalSearchParams();
     const router = useRouter();
     const { user } = useAuth();
+    
     
     const [exam, setExam] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -71,6 +72,10 @@ const ExamDetailScreen = () => {
     };
 
     useEffect(() => {
+        checkParticipantStatus();
+    }, [user?.token, id]);
+
+    useEffect(() => {
         const fetchLeaderboardData = async () => {
             if (!user?.token || !id) return;
             try {
@@ -128,7 +133,6 @@ const ExamDetailScreen = () => {
 
     useEffect(() => {
         const fetchExamDetails = async () => {
-            // Reset all data when the ID changes to force a full reload
             setExam(null);
             setWinnings([]);
             setLeaderboard([]);
@@ -137,24 +141,51 @@ const ExamDetailScreen = () => {
             setIsParticipant(false);
 
             if (!user?.token || !id) return;
-            
+
+            const idStr = String(id);
             setLoading(true);
             try {
+                // Try generic exams list first
                 const response = await apiFetchAuth('/student/exams', user.token);
-                if (response.ok) {
-                    const examData = response.data.find((e: any) => e.id === id);
-                    if (examData) {
-                        setExam(examData);
-                        // Check participant status after exam is loaded
-                        checkParticipantStatus();
+                let examData: any | null = null;
+                if (response.ok && Array.isArray(response.data)) {
+                    examData = response.data.find((e: any) => String(e?.id) === idStr);
+                }
+
+                // Fallback to live exam details if not found
+                if (!examData) {
+                    // Prefer a direct exam endpoint; if it fails, try list fallback
+                    let liveRes = await apiFetchAuth(`/student/live-exams/${idStr}`, user.token);
+                    if (liveRes.ok && liveRes.data) {
+                        examData = liveRes.data;
                     } else {
-                        setError('Exam not found.');
+                        liveRes = await apiFetchAuth('/student/live-exams', user.token);
+                        if (liveRes.ok && Array.isArray(liveRes.data)) {
+                            examData = liveRes.data.find((e: any) => String(e?.id) === idStr || String(e?.examId) === idStr);
+                        }
                     }
+                }
+
+                if (examData) {
+                    // Normalize minimal fields used by this screen
+                    const normalized = {
+                        ...examData,
+                        id: examData.id ?? examData.examId ?? idStr,
+                        duration: examData.duration ?? examData.timeLimit ?? 0,
+                        questions: examData.questions ?? [],
+                        entryFee: examData.entryFee ?? examData.fee ?? 0,
+                        createdBy: examData.createdBy ?? examData.author ?? { name: 'Admin' },
+                        startTime: examData.startTime ?? examData.start_date ?? new Date().toISOString(),
+                        spots: examData.spots ?? examData.totalSpots ?? 0,
+                        spotsLeft: examData.spotsLeft ?? examData.remainingSpots ?? 0,
+                    };
+                    setExam(normalized);
+                    checkParticipantStatus();
                 } else {
-                    setError('Failed to load exam details.');
+                    setError('Exam not found.');
                 }
             } catch (e: any) {
-                setError(e.data?.message || 'An error occurred.');
+                setError(e?.data?.message || 'An error occurred.');
             } finally {
                 setLoading(false);
             }
@@ -182,7 +213,7 @@ const ExamDetailScreen = () => {
                 data={[{ key: 'content' }]}
                 renderItem={() => (
                     <>
-                        <ExamCard exam={exam} />
+                        <ExamCard exam={exam} hideAttemptButton={String(from) === 'my-exams'} />
 
                         <View style={styles.tabContainer}>
                             {['Info', 'Leaderboard', 'Winnings'].map(tabName => (

@@ -60,33 +60,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const login = async (email: string, password: string) => {
         console.log('AuthContext login called with email:', email);
         console.log('API URL:', '/auth/login');
-        
-        try {
-            console.log('Making API call to login...');
-            const response = await apiFetch('/auth/login', {
-                method: 'POST',
-                body: { email, password },
-            });
 
-            console.log('API response received:', response);
+        const trimmedEmail = (email || '').trim();
+        const trimmedPassword = (password || '').trim();
+        const looksLikePhone = /^\+?\d{10,15}$/.test(trimmedEmail);
 
-            if (response.ok) {
-                const { token, user: userData } = response.data;
-                const userWithToken = { ...userData, token };
-                console.log('Login successful - New user data:', userWithToken);
-                setUser(userWithToken);
-                await storeAuthData(token, userData);
-                return userWithToken;
-            } else {
-                console.log('Login failed - response not ok:', response);
-                // Throw the entire response data so it can be properly handled
-                throw response.data;
-            }
-        } catch (error) {
-            console.error('Login failed with error:', error);
-            // Re-throw the error so it can be caught by the login screen
-            throw error;
+        const candidateBodies: Array<{ label: string; body: any }> = [];
+        // Primary guess based on input format
+        if (looksLikePhone) {
+            candidateBodies.push({ label: 'phoneNumber', body: { phoneNumber: trimmedEmail, password: trimmedPassword } });
+            candidateBodies.push({ label: 'emailOrPhone', body: { emailOrPhone: trimmedEmail, password: trimmedPassword } });
+        } else {
+            candidateBodies.push({ label: 'email', body: { email: trimmedEmail, password: trimmedPassword } });
+            candidateBodies.push({ label: 'identifier', body: { identifier: trimmedEmail, password: trimmedPassword } });
+            candidateBodies.push({ label: 'username', body: { username: trimmedEmail, password: trimmedPassword } });
+            candidateBodies.push({ label: 'emailOrPhone', body: { emailOrPhone: trimmedEmail, password: trimmedPassword } });
         }
+
+        let lastError: any = null;
+        for (const attempt of candidateBodies) {
+            try {
+                console.log('Making API call to login with payload shape:', attempt.label);
+                const response = await apiFetch('/auth/login', {
+                    method: 'POST',
+                    body: attempt.body,
+                });
+
+                console.log('API response received:', response?.status);
+
+                if (response.ok) {
+                    const { token, user: userData } = response.data;
+                    const userWithToken = { ...userData, token } as any;
+                    console.log('Login successful - New user data:', userWithToken);
+                    setUser(userWithToken);
+                    await storeAuthData(token, userData);
+                    return userWithToken;
+                } else {
+                    console.log('Login failed - response not ok for payload shape:', attempt.label, response);
+                    lastError = response.data || response;
+                }
+            } catch (error: any) {
+                console.error('Login attempt failed for payload shape:', attempt.label, error);
+                lastError = error;
+            }
+        }
+
+        console.error('All login attempts failed. Last error:', lastError);
+        throw lastError || { message: 'Login failed. Please try again.' };
     };
 
     const register = async (userData: { name: string; email: string; password: string; phoneNumber: string; referralCode?: string }) => {

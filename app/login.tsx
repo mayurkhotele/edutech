@@ -5,7 +5,8 @@ import { AntDesign, FontAwesome, Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import * as Haptics from 'expo-haptics'
+import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native'
 
 const login = () => {
     const auth = useAuth();
@@ -17,8 +18,11 @@ const login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [secureTextEntry, setSecureTextEntry] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleLogin = async () => {
+        if (isSubmitting) return;
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium) } catch {}
         console.log('Login attempt started');
         console.log('Email:', email);
         console.log('Password length:', password.length);
@@ -29,6 +33,7 @@ const login = () => {
         }
         
         console.log('Calling login function...');
+        setIsSubmitting(true);
         try {
             const result = await auth.login(email, password);
             console.log('Login successful:', result);
@@ -60,16 +65,24 @@ const login = () => {
             } else {
                 showError(errorMessage);
             }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
         <LinearGradient
-            colors={["#6C63FF", "#FF6CAB", "#FFD452"]}
+            colors={["#4c1d95", "#7c3aed", "#a855f7"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.container}
         >
+            {/* Soft decorative blobs */}
+            <View style={styles.bgDecor} pointerEvents="none">
+                <LinearGradient colors={[ 'rgba(124,58,237,0.35)', 'rgba(168,85,247,0.15)' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bgBlob, { top: -40, left: -80, width: 220, height: 220 }]} />
+                <LinearGradient colors={[ 'rgba(168,85,247,0.30)', 'rgba(124,58,237,0.12)' ]} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={[styles.bgBlob, { top: 140, right: -90, width: 240, height: 240 }]} />
+                <LinearGradient colors={[ 'rgba(0,0,0,0.08)', 'transparent' ]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={[styles.bgBlob, { bottom: 80, left: 20, width: 160, height: 160 }]} />
+            </View>
           
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                 <Ionicons name="arrow-back" size={24} color={AppColors.white} />
@@ -113,14 +126,21 @@ const login = () => {
                         </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity onPress={handleLogin} activeOpacity={0.85}>
+                    <TouchableOpacity onPress={handleLogin} activeOpacity={0.9} disabled={isSubmitting}>
                         <LinearGradient
-                            colors={["#FF6CAB", "#7366FF"]}
+                            colors={["#f59e0b", "#f97316"]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
-                            style={styles.loginButton}
+                            style={[styles.loginButton, isSubmitting && { opacity: 0.7 }]}
                         >
-                            <Text style={styles.loginButtonText}>Log In</Text>
+                            {isSubmitting ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <ActivityIndicator color="#fff" size="small" />
+                                    <Text style={[styles.loginButtonText, { marginLeft: 8 }]}>Logging in…</Text>
+                                </View>
+                            ) : (
+                                <Text style={styles.loginButtonText}>Log In</Text>
+                            )}
                         </LinearGradient>
                     </TouchableOpacity>
 
@@ -153,6 +173,19 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    bgDecor: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: -1,
+    },
+    bgBlob: {
+        position: 'absolute',
+        borderRadius: 999,
+        opacity: 1,
+    },
     backButton: {
         position: 'absolute',
         top: Platform.OS === 'ios' ? 60 : 40,
@@ -168,15 +201,15 @@ const styles = StyleSheet.create({
     },
     glassCard: {
         width: '100%',
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255,255,255,0.95)',
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
-        padding: 28,
+        padding: 24,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -8 },
-        shadowOpacity: 0.18,
-        shadowRadius: 24,
-        elevation: 8,
+        shadowOpacity: 0.14,
+        shadowRadius: 18,
+        elevation: 6,
         alignItems: 'center',
         minHeight: '70%',
     },
@@ -196,13 +229,13 @@ const styles = StyleSheet.create({
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.85)',
+        backgroundColor: 'rgba(255,255,255,0.9)',
         borderRadius: 12,
-        marginBottom: 18,
+        marginBottom: 14,
         paddingHorizontal: 12,
         width: '100%',
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: '#e5e7eb',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.06,
@@ -227,7 +260,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         width: '100%',
-        marginBottom: 24,
+        marginBottom: 16,
     },
     rememberMe: {
         color: '#333',
@@ -241,14 +274,14 @@ const styles = StyleSheet.create({
     },
     loginButton: {
         borderRadius: 12,
-        padding: 16,
+        padding: 14,
         alignItems: 'center',
-        marginBottom: 18,
-        width: 180,
+        marginBottom: 16,
+        width: 200,
         alignSelf: 'center',
-        shadowColor: '#FF6CAB',
+        shadowColor: '#f59e0b',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.18,
+        shadowOpacity: 0.2,
         shadowRadius: 12,
         elevation: 4,
     },

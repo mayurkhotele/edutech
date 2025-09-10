@@ -3,20 +3,20 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { apiFetchAuth, uploadFile } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
@@ -213,9 +213,9 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-                 {/* Enhanced Header with Premium Gradient */}
+                 {/* Enhanced Header with App Style Gradient */}
          <LinearGradient
-           colors={['#667eea', '#764ba2', '#f093fb', '#f5576c', '#ff6b6b']}
+           colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
            style={styles.header}
            start={{ x: 0, y: 0 }}
            end={{ x: 1, y: 1 }}
@@ -263,18 +263,13 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                ]}
              >
                <View style={styles.titleContainer}>
-                 <LinearGradient
-                   colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
-                   style={styles.titleBackground}
-                 >
-                   <Text style={styles.headerTitle}>✨ Create Post</Text>
-                 </LinearGradient>
+                 <Text style={styles.headerTitle}>✨ Create Amazing Post</Text>
                </View>
                
                <View style={styles.subtitleContainer}>
-                 <Ionicons name="sparkles" size={16} color="rgba(255,255,255,0.8)" />
+                 <Ionicons name="sparkles" size={16} color="rgba(255,255,255,0.9)" />
                  <Text style={styles.headerSubtitle}>Share your thoughts with the community</Text>
-                 <Ionicons name="sparkles" size={16} color="rgba(255,255,255,0.8)" />
+                 <Ionicons name="sparkles" size={16} color="rgba(255,255,255,0.9)" />
                </View>
                
                {/* Progress Indicator */}
@@ -291,7 +286,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                    />
                  </View>
                  <Text style={styles.progressText}>
-                   {content.length > 0 ? `${Math.round((content.length / 1000) * 100)}% Complete` : 'Start writing...'}
+                   {content.length > 0 ? `${Math.round((content.length / 1000) * 100)}% Complete` : ''}
                  </Text>
                </View>
              </Animated.View>
@@ -307,7 +302,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
             }}
           >
             <LinearGradient
-              colors={['#667eea', '#764ba2']}
+              colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
               style={styles.userInfoGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -349,12 +344,12 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
           >
             <View style={styles.inputHeader}>
               <LinearGradient
-                colors={['#667eea', '#764ba2']}
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                 style={styles.inputIconContainer}
               >
                 <Ionicons name="create-outline" size={20} color="#fff" />
               </LinearGradient>
-              <Text style={styles.inputLabel}>What's on your mind?</Text>
+              <Text style={styles.inputLabel}>💭 What's on your mind?</Text>
             </View>
             <LinearGradient
               colors={['#ffffff', '#f8fafc']}
@@ -362,7 +357,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
             >
               <TextInput
                 style={styles.contentInput}
-                placeholder="Share your thoughts, ideas, or experiences..."
+                placeholder="✨ Share your thoughts, ideas, or experiences..."
                 placeholderTextColor="#94a3b8"
                 value={content}
                 onChangeText={setContent}
@@ -373,10 +368,10 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
             </LinearGradient>
             <View style={styles.charCountContainer}>
               <LinearGradient
-                colors={['#667eea', '#764ba2']}
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                 style={styles.charCountGradient}
               >
-                <Text style={styles.charCount}>{content.length}/1000</Text>
+                <Text style={styles.charCount}>📝 {content.length}/1000</Text>
               </LinearGradient>
             </View>
           </Animated.View>
@@ -393,16 +388,16 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
            >
              <View style={styles.sectionHeader}>
                <LinearGradient
-                 colors={['#667eea', '#764ba2']}
+                 colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                  style={styles.iconContainer}
                >
                  <Ionicons name="image-outline" size={18} color="#fff" />
                </LinearGradient>
-               <Text style={styles.sectionTitle}>Add Photo</Text>
+               <Text style={styles.sectionTitle}>📸 Add Photo</Text>
              </View>
              <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
                <LinearGradient
-                 colors={['#ffffff', '#f8fafc']}
+                 colors={['#ffffff', '#f8fafc', '#f1f5f9']}
                  style={styles.addPhotoButtonGradient}
                >
                  <Ionicons name="camera-outline" size={32} color="#667eea" />
@@ -457,20 +452,20 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
           >
             <View style={styles.sectionHeader}>
               <LinearGradient
-                colors={['#10B981', '#059669']}
+                colors={['#10B981', '#059669', '#047857']}
                 style={styles.iconContainer}
               >
                 <Ionicons name="pricetag" size={18} color="#fff" />
               </LinearGradient>
-              <Text style={styles.sectionTitle}>Hashtags</Text>
+              <Text style={styles.sectionTitle}>🏷️ Hashtags</Text>
             </View>
             <LinearGradient
-              colors={['#ffffff', '#f8fafc']}
+              colors={['#ffffff', '#f8fafc', '#f1f5f9']}
               style={styles.hashtagsInputContainer}
             >
               <TextInput
                 style={styles.hashtagsInput}
-                placeholder="Enter hashtags separated by commas (e.g., study, math, exam)"
+                placeholder="🏷️ Enter hashtags separated by commas (e.g., study, math, exam)"
                 placeholderTextColor="#94a3b8"
                 value={hashtags}
                 onChangeText={setHashtags}
@@ -484,10 +479,10 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                     return (
                       <LinearGradient
                         key={index}
-                        colors={['#667eea', '#764ba2']}
+                        colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                         style={styles.hashtagChip}
                       >
-                        <Text style={styles.hashtagText}>#{cleanTag}</Text>
+                        <Text style={styles.hashtagText}>🏷️ #{cleanTag}</Text>
                       </LinearGradient>
                     );
                   }
@@ -509,15 +504,15 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
           >
             <View style={styles.sectionHeader}>
               <LinearGradient
-                colors={['#F59E0B', '#D97706']}
+                colors={['#F59E0B', '#D97706', '#B45309']}
                 style={styles.iconContainer}
               >
                 <Ionicons name="shield" size={18} color="#fff" />
               </LinearGradient>
-              <Text style={styles.sectionTitle}>Privacy Settings</Text>
+              <Text style={styles.sectionTitle}>🔒 Privacy Settings</Text>
             </View>
             <LinearGradient
-              colors={['#ffffff', '#f8fafc']}
+              colors={['#ffffff', '#f8fafc', '#f1f5f9']}
               style={styles.privacyToggleContainer}
             >
               <TouchableOpacity
@@ -564,7 +559,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
            >
              {loading ? (
                <LinearGradient
-                 colors={['#667eea', '#764ba2']}
+                 colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                  style={styles.actionButtonGradient}
                  start={{ x: 0, y: 0 }}
                  end={{ x: 1, y: 0 }}
@@ -574,7 +569,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                </LinearGradient>
              ) : (
                <LinearGradient
-                 colors={content.trim() ? ['#10B981', '#059669'] : ['#667eea', '#764ba2']}
+                 colors={content.trim() ? ['#4F46E5', '#7C3AED', '#8B5CF6'] : ['#4F46E5', '#7C3AED', '#8B5CF6']}
                  style={styles.actionButtonGradient}
                  start={{ x: 0, y: 0 }}
                  end={{ x: 1, y: 0 }}
@@ -593,11 +588,11 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8fafc',
   },
      header: {
-     paddingTop: Platform.OS === 'ios' ? 50 : 16,
-     paddingBottom: 20,
+     paddingTop: Platform.OS === 'ios' ? 40 : 12,
+     paddingBottom: 12,
      position: 'relative',
      overflow: 'hidden',
    },
@@ -640,6 +635,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
+    paddingVertical: 8,
   },
   headerButton: {
     borderRadius: 25,
@@ -671,59 +667,54 @@ const styles = StyleSheet.create({
      marginHorizontal: 20,
    },
    titleContainer: {
-     marginBottom: 8,
-     borderRadius: 20,
-     overflow: 'hidden',
-     shadowColor: '#000',
-     shadowOffset: { width: 0, height: 4 },
-     shadowOpacity: 0.3,
-     shadowRadius: 8,
-     elevation: 6,
+     marginBottom: 4,
    },
    titleBackground: {
-     paddingHorizontal: 20,
-     paddingVertical: 8,
+     paddingHorizontal: 16,
+     paddingVertical: 6,
      borderRadius: 20,
    },
    subtitleContainer: {
      flexDirection: 'row',
      alignItems: 'center',
-     marginBottom: 12,
+     marginBottom: 8,
    },
    progressContainer: {
      alignItems: 'center',
      width: '100%',
+     marginTop: 4,
    },
    progressBar: {
-     width: '80%',
-     height: 4,
+     width: '70%',
+     height: 2,
      backgroundColor: 'rgba(255,255,255,0.3)',
-     borderRadius: 2,
-     marginBottom: 6,
+     borderRadius: 1,
+     marginBottom: 2,
      overflow: 'hidden',
    },
    progressFill: {
      height: '100%',
      backgroundColor: 'rgba(255,255,255,0.8)',
-     borderRadius: 2,
+     borderRadius: 1,
    },
       progressText: {
-     fontSize: 12,
-     color: 'rgba(255,255,255,0.9)',
-     fontWeight: '500',
+     fontSize: 11,
+     color: 'rgba(255,255,255,0.95)',
+     fontWeight: '600',
    },
    headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 1,
+    fontWeight: '500',
   },
   postButton: {
     borderRadius: 25,
@@ -786,10 +777,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    color: '#1f2937',
+    marginBottom: 5,
   },
   privacyIndicator: {
     flexDirection: 'row',
@@ -797,8 +788,8 @@ const styles = StyleSheet.create({
   },
   privacyText: {
     marginLeft: 8,
-    fontSize: 14,
-    color: '#666',
+    fontSize: 15,
+    color: '#6b7280',
     fontWeight: '500',
   },
      contentSection: {
@@ -825,27 +816,28 @@ const styles = StyleSheet.create({
      paddingHorizontal: 16,
      backgroundColor: 'transparent',
    },
-   addPhotoText: {
-     fontSize: 16,
-     fontWeight: 'bold',
-     color: '#667eea',
-     marginTop: 8,
-     marginBottom: 4,
-   },
-   addPhotoSubtext: {
-     fontSize: 14,
-     color: '#94a3b8',
-   },
+  addPhotoText: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#667eea',
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  addPhotoSubtext: {
+    fontSize: 15,
+    color: '#94a3b8',
+    fontWeight: '500',
+  },
    inputHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 8,
+    color: '#1f2937',
+    marginLeft: 10,
   },
   inputIconContainer: {
     width: 36,
@@ -867,12 +859,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(102, 126, 234, 0.1)',
   },
   contentInput: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-    minHeight: 120,
-    padding: 16,
+    fontSize: 17,
+    lineHeight: 26,
+    color: '#1f2937',
+    minHeight: 130,
+    padding: 18,
     backgroundColor: 'transparent', // Make background transparent for gradient effect
+    fontWeight: '400',
   },
   charCountContainer: {
     alignItems: 'flex-end',
@@ -884,7 +877,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   charCount: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#fff',
     fontWeight: 'bold',
   },
@@ -945,9 +938,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1f2937',
   },
   hashtagsInputContainer: {
     borderRadius: 16,
@@ -961,10 +954,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(102, 126, 234, 0.1)',
   },
   hashtagsInput: {
-    fontSize: 14,
-    color: '#333',
-    padding: 16,
+    fontSize: 15,
+    color: '#1f2937',
+    padding: 18,
     backgroundColor: 'transparent', // Make background transparent for gradient effect
+    fontWeight: '400',
   },
   hashtagsPreview: {
     flexDirection: 'row',
@@ -985,7 +979,7 @@ const styles = StyleSheet.create({
   },
   hashtagText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 'bold',
   },
   privacyContainer: {
@@ -1018,14 +1012,15 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   privacyToggleText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 2,
+    color: '#1f2937',
+    marginBottom: 3,
   },
   privacyDescription: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 15,
+    color: '#6b7280',
+    fontWeight: '500',
   },
   toggleSwitch: {
     width: 56,
@@ -1080,9 +1075,9 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   sendIcon: {
     marginRight: 6,
@@ -1100,8 +1095,8 @@ const styles = StyleSheet.create({
   },
   uploadingText: {
     color: '#fff',
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: 12,
+    fontSize: 17,
     fontWeight: 'bold',
   },
 }); 

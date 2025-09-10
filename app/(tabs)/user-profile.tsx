@@ -583,101 +583,146 @@ export default function UserProfileScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Instagram-Style Header */}
+      <View style={styles.instagramHeader}>
+        <View style={styles.headerTop}>
+          {/* Left Side - Back Button */}
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+
+          {/* Center - User Name */}
+          <Text style={styles.headerTitle}>{profile.name}</Text>
+
+          {/* Right Side - Action Buttons */}
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerActionButton}>
+              <Ionicons name="share-outline" size={24} color="#000" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.headerActionButton}
+              onPress={() => {
+                setShowFollowRequests(true);
+                fetchFollowRequests();
+              }}
+            >
+              <Ionicons name="menu" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
       <ScrollView 
         style={styles.scrollView}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh}
-            colors={['#1877f2']}
-            tintColor="#1877f2"
+            colors={['#4F46E5']}
+            tintColor="#4F46E5"
           />
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Professional Header with Clean Design */}
-        <View style={styles.headerContainer}>
-          {/* Profile Info Section */}
-          <View style={styles.profileInfoContainer}>
-            <View style={styles.profileAvatarContainer}>
-              <View style={styles.profileAvatar}>
-                {profile.profilePhoto ? (
-                  <Image source={{ uri: profile.profilePhoto }} style={styles.avatarImage} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
+        {/* Enhanced Profile Section */}
+        <View style={styles.enhancedProfileSection}>
+          <LinearGradient
+            colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+            style={styles.profileGradient}
+          >
+            <View style={styles.profileInfoContainer}>
+              <View style={styles.profileAvatarContainer}>
+                <View style={styles.profileAvatarRing}>
+                  <View style={styles.profileAvatar}>
+                    {profile.profilePhoto ? (
+                      <Image source={{ uri: profile.profilePhoto }} style={styles.avatarImage} />
+                    ) : (
+                      <View style={styles.avatarPlaceholder}>
+                        <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
-            </View>
-            
-            <View style={styles.profileDetails}>
-              <Text style={styles.profileName}>{profile.name}</Text>
-              <Text style={styles.profileEmail}>
-                {profile?.handle
-                  ? `@${profile.handle}`
-                  : profile?.username
-                  ? `@${profile.username}`
-                  : profile?.name
-                  ? `@${profile.name.replace(/\s+/g, '').toLowerCase()}`
-                  : ''}
-              </Text>
-              {(profile.course || profile.year) && (
-                <View style={styles.profileCourseInfo}>
-                  <Ionicons name="school-outline" size={16} color="#65676b" />
-                  <Text style={styles.profileCourseText}>
-                    {[profile.course, profile.year].filter(Boolean).join(' • ')}
-                  </Text>
                 </View>
-              )}
-            </View>
-
-            {/* Notification Button */}
-            <TouchableOpacity 
-              style={styles.notificationButton}
-              onPress={() => {
-                setShowFollowRequests(true);
-                fetchFollowRequests();
-              }}
-            >
-              <View style={styles.notificationIconContainer}>
-                <Ionicons name="notifications" size={20} color="#1877f2" />
-                {followRequests.length > 0 && (
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>{followRequests.length}</Text>
+              </View>
+              
+              <View style={styles.profileDetails}>
+                <Text style={styles.profileName}>{profile.name}</Text>
+                <Text style={styles.profileEmail}>
+                  {profile?.handle
+                    ? `@${profile.handle}`
+                    : profile?.username
+                    ? `@${profile.username}`
+                    : profile?.name
+                    ? `@${profile.name.replace(/\s+/g, '').toLowerCase()}`
+                    : ''}
+                </Text>
+                {(profile.course || profile.year) && (
+                  <View style={styles.profileCourseInfo}>
+                    <Ionicons name="school-outline" size={16} color="#fff" />
+                    <Text style={styles.profileCourseText}>
+                      {[profile.course, profile.year].filter(Boolean).join(' • ')}
+                    </Text>
                   </View>
                 )}
               </View>
-            </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Enhanced Stats Section */}
+        <View style={styles.enhancedStatsSection}>
+          <View style={styles.statsCard}>
+            <View style={styles.statsContainer}>
+              <TouchableOpacity style={styles.statItem}>
+                <LinearGradient
+                  colors={['#4F46E5', '#7C3AED']}
+                  style={styles.statIconGradient}
+                >
+                  <Ionicons name="grid-outline" size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.statNumber}>{profile._count?.posts || 0}</Text>
+                <Text style={styles.statLabel}>Posts</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.statItem}>
+                <LinearGradient
+                  colors={['#7C3AED', '#8B5CF6']}
+                  style={styles.statIconGradient}
+                >
+                  <Ionicons name="people-outline" size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.statNumber}>{profile._count?.followers || 0}</Text>
+                <Text style={styles.statLabel}>Followers</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.statItem}>
+                <LinearGradient
+                  colors={['#8B5CF6', '#A855F7']}
+                  style={styles.statIconGradient}
+                >
+                  <Ionicons name="person-add-outline" size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.statNumber}>{profile._count?.following || 0}</Text>
+                <Text style={styles.statLabel}>Following</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        {/* Professional Stats Section */}
-        <View style={styles.statsSection}>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile._count?.posts || 0}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile._count?.followers || 0}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile._count?.following || 0}</Text>
-              <Text style={styles.statLabel}>Following</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Professional Bio Section */}
+        {/* Enhanced Bio Section */}
         {profile.bio && (
-          <View style={styles.bioSection}>
+          <View style={styles.enhancedBioSection}>
             <View style={styles.bioCard}>
               <View style={styles.bioHeader}>
-                <Ionicons name="information-circle-outline" size={20} color="#1877f2" />
+                <LinearGradient
+                  colors={['#4F46E5', '#7C3AED']}
+                  style={styles.bioIconGradient}
+                >
+                  <Ionicons name="information-circle-outline" size={20} color="#fff" />
+                </LinearGradient>
                 <Text style={styles.bioTitle}>About</Text>
               </View>
               <Text style={styles.bioText}>{profile.bio}</Text>
@@ -685,138 +730,200 @@ export default function UserProfileScreen() {
           </View>
         )}
 
-        {/* Enhanced Action Buttons Section */}
+        {/* Enhanced Action Buttons */}
         <View style={styles.enhancedActionSection}>
-          <LinearGradient
-            colors={['rgba(255,255,255,0.95)', 'rgba(248,250,252,0.95)']}
-            style={styles.enhancedActionCard}
-          >
-            <View style={styles.enhancedActionHeader}>
-              <Ionicons name="person-circle-outline" size={20} color="#667eea" />
-              <Text style={styles.enhancedActionTitle}>Connect</Text>
-            </View>
+          <View style={styles.actionButtonsContainer}>
+            {/* Follow Button */}
+            <TouchableOpacity 
+              style={styles.enhancedFollowButtonWrapper}
+              activeOpacity={0.8} 
+              onPress={handleFollow}
+            >
+              <LinearGradient
+                colors={
+                  isFollowing ? ['#ff6b6b', '#ee5a52'] :
+                  profile?.followRequestStatus === 'PENDING' ? ['#ff9f43', '#f39c12'] :
+                  ['#4F46E5', '#7C3AED']
+                }
+                style={styles.enhancedFollowButtonGradient}
+              >
+                <Ionicons 
+                  name={
+                    isFollowing ? "person-remove-outline" : 
+                    profile?.followRequestStatus === 'PENDING' ? "time-outline" : 
+                    "person-add-outline"
+                  } 
+                  size={20} 
+                  color="#fff" 
+                />
+                <Text style={styles.enhancedFollowButtonText}>
+                  {isFollowing ? 'Following' : 
+                   profile?.followRequestStatus === 'PENDING' ? 'Requested' : 
+                   'Follow'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
             
-            <View style={styles.enhancedActionButtonsContainer}>
-              {/* Enhanced Follow Button */}
-              <TouchableOpacity 
-                style={styles.enhancedFollowButtonWrapper}
-                activeOpacity={0.8} 
-                onPress={handleFollow}
+            {/* Message Button */}
+            {canMessageUser() && (
+              <TouchableOpacity
+                style={styles.enhancedMessageButtonWrapper}
+                onPress={() => {
+                  console.log('🔍 Message button clicked!');
+                  router.push({
+                    pathname: '/chat-screen',
+                    params: {
+                      userId: profile?.id || '',
+                      userName: profile?.name || 'User',
+                      userProfilePhoto: profile?.profilePhoto || '',
+                      isFollowing: isFollowing.toString()
+                    }
+                  });
+                }}
               >
                 <LinearGradient
-                  colors={
-                    isFollowing ? ['#ff6b6b', '#ee5a52'] :
-                    profile?.followRequestStatus === 'PENDING' ? ['#ff9f43', '#f39c12'] :
-                    ['#667eea', '#764ba2']
-                  }
-                  style={styles.enhancedFollowButtonGradient}
+                  colors={['#7C3AED', '#8B5CF6']}
+                  style={styles.enhancedMessageButtonGradient}
                 >
-                  <Ionicons 
-                    name={
-                      isFollowing ? "person-remove-outline" : 
-                      profile?.followRequestStatus === 'PENDING' ? "time-outline" : 
-                      "person-add-outline"
-                    } 
-                    size={20} 
-                    color="#fff" 
-                  />
-                  <Text style={styles.enhancedFollowButtonText}>
-                    {isFollowing ? 'Unfollow' : 
-                     profile?.followRequestStatus === 'PENDING' ? 'Request Sent' : 
-                     'Follow'}
-                  </Text>
+                  <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
+                  <Text style={styles.enhancedMessageButtonText}>Message</Text>
                 </LinearGradient>
               </TouchableOpacity>
-              
-              {/* Enhanced Message Button */}
-              {canMessageUser() && (
-                <TouchableOpacity
-                  style={styles.enhancedMessageButtonWrapper}
-                  onPress={() => {
-                    console.log('🔍 Message button clicked!');
-                    console.log('🔍 Profile data being passed:', {
-                      userId: profile?.id,
-                      userName: profile?.name,
-                      userProfilePhoto: profile?.profilePhoto,
-                      isFollowing: isFollowing
-                    });
-                    router.push({
-                      pathname: '/chat-screen',
-                      params: {
-                        userId: profile?.id || '',
-                        userName: profile?.name || 'User',
-                        userProfilePhoto: profile?.profilePhoto || '',
-                        isFollowing: isFollowing.toString()
-                      }
-                    });
-                  }}
-                >
-                  <LinearGradient
-                    colors={['#4facfe', '#00f2fe']}
-                    style={styles.enhancedMessageButtonGradient}
-                  >
-                    <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
-                    <Text style={styles.enhancedMessageButtonText}>Message</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-            </View>
-            
-            {/* Enhanced Status Indicators */}
-            <View style={styles.enhancedStatusContainer}>
-              {isFollowing && (
-                <View style={styles.enhancedStatusItem}>
-                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                  <Text style={styles.enhancedStatusText}>Following</Text>
-                </View>
-              )}
-              {profile?.followRequestStatus === 'PENDING' && (
-                <View style={styles.enhancedStatusItem}>
-                  <Ionicons name="time-outline" size={16} color="#F59E0B" />
-                  <Text style={styles.enhancedStatusText}>Request Pending</Text>
-                </View>
-              )}
-              {profile?.isPrivate && (
-                <View style={styles.enhancedStatusItem}>
-                  <Ionicons name="lock-closed" size={16} color="#EF4444" />
-                  <Text style={styles.enhancedStatusText}>Private Account</Text>
-                </View>
-              )}
-            </View>
-          </LinearGradient>
+            )}
+          </View>
         </View>
 
-        {/* Professional Posts Section */}
-        <View style={styles.postsSection}>
-          <View style={styles.postsHeader}>
-            <View style={styles.postsHeaderContent}>
-              <Ionicons name="create-outline" size={20} color="#1877f2" />
-              <Text style={styles.postsTitle}>Posts</Text>
-              <View style={styles.postsCount}>
-                <Text style={styles.postsCountText}>{userPosts.length}</Text>
+        {/* Enhanced Posts Section */}
+        <View style={styles.enhancedPostsSection}>
+          {/* Enhanced Navigation Tabs */}
+          <View style={styles.enhancedNavigationTabs}>
+            <TouchableOpacity style={styles.enhancedTabButton}>
+              <LinearGradient
+                colors={['#4F46E5', '#7C3AED']}
+                style={styles.tabIconGradient}
+              >
+                <Ionicons name="grid-outline" size={24} color="#fff" />
+              </LinearGradient>
+              <Text style={styles.tabLabel}>Posts</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.enhancedTabButton}>
+              <View style={styles.tabIconContainer}>
+                <Ionicons name="play-outline" size={24} color="#8e8e93" />
               </View>
-            </View>
+              <Text style={styles.tabLabelInactive}>Reels</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.enhancedTabButton}>
+              <View style={styles.tabIconContainer}>
+                <Ionicons name="bookmark-outline" size={24} color="#8e8e93" />
+              </View>
+              <Text style={styles.tabLabelInactive}>Saved</Text>
+            </TouchableOpacity>
           </View>
 
           {postsLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#1877f2" />
+              <ActivityIndicator size="large" color="#4F46E5" />
               <Text style={styles.loadingText}>Loading posts...</Text>
             </View>
           ) : userPosts.length > 0 ? (
-            <View style={styles.postsList}>
+            <View style={styles.enhancedPostsList}>
               {userPosts.map((item, index) => (
-                <View key={item.id} style={styles.postCard}>
-                  {renderUserPost({ item })}
+                <View key={item.id} style={styles.enhancedPostCard}>
+                  {/* Enhanced Post Header */}
+                  <View style={styles.enhancedPostHeader}>
+                    <View style={styles.postAuthorSection}>
+                      <View style={styles.postAuthorAvatarRing}>
+                        <View style={styles.postAuthorAvatar}>
+                          {profile.profilePhoto ? (
+                            <Image source={{ uri: profile.profilePhoto }} style={styles.postAuthorAvatarImage} />
+                          ) : (
+                            <View style={styles.postAuthorAvatarPlaceholder}>
+                              <Text style={styles.postAuthorAvatarInitials}>{getInitials(profile.name)}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <View style={styles.postAuthorInfo}>
+                        <Text style={styles.postAuthorName}>{profile.name}</Text>
+                        <Text style={styles.postTime}>{timeAgo(item.createdAt)}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity style={styles.postMoreButton}>
+                      <LinearGradient
+                        colors={['#f0f2f5', '#e9ecef']}
+                        style={styles.moreButtonGradient}
+                      >
+                        <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Enhanced Post Content */}
+                  <View style={styles.enhancedPostContentContainer}>
+                    <Text style={styles.enhancedPostContent}>{item.content}</Text>
+                  </View>
+
+                  {/* Enhanced Post Image */}
+                  {item.imageUrl && (
+                    <View style={styles.enhancedPostImageContainer}>
+                      <Image source={{ uri: item.imageUrl }} style={styles.enhancedPostImage} />
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0.1)', 'transparent']}
+                        style={styles.imageOverlay}
+                      />
+                    </View>
+                  )}
+
+                  {/* Enhanced Post Actions */}
+                  <View style={styles.enhancedPostActions}>
+                    <TouchableOpacity style={styles.enhancedPostActionButton}>
+                      <LinearGradient
+                        colors={['#ff6b6b', '#ff8e53']}
+                        style={styles.actionIconGradient}
+                      >
+                        <Ionicons name="heart-outline" size={20} color="#fff" />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.enhancedPostActionButton}>
+                      <LinearGradient
+                        colors={['#4facfe', '#00f2fe']}
+                        style={styles.actionIconGradient}
+                      >
+                        <Ionicons name="chatbubble-outline" size={20} color="#fff" />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.enhancedPostActionButton}>
+                      <LinearGradient
+                        colors={['#f093fb', '#f5576c']}
+                        style={styles.actionIconGradient}
+                      >
+                        <Ionicons name="share-outline" size={20} color="#fff" />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.enhancedPostActionButton}>
+                      <LinearGradient
+                        colors={['#667eea', '#764ba2']}
+                        style={styles.actionIconGradient}
+                      >
+                        <Ionicons name="bookmark-outline" size={20} color="#fff" />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Enhanced Post Stats */}
+                  <View style={styles.enhancedPostStats}>
+                    <Text style={styles.enhancedPostLikes}>{item._count?.likes || 0} likes</Text>
+                    <Text style={styles.enhancedPostComments}>{item._count?.comments || 0} comments</Text>
+                  </View>
                 </View>
               ))}
             </View>
           ) : (
             <View style={styles.emptyPostsContainer}>
               <View style={styles.emptyPostsCard}>
-                <Ionicons name="create-outline" size={48} color="#bdc3c7" />
+                <Ionicons name="camera-outline" size={48} color="#8e8e93" />
                 <Text style={styles.emptyPostsTitle}>No posts yet</Text>
-                <Text style={styles.emptyPostsSubtitle}>This user hasn't shared any posts yet</Text>
+                <Text style={styles.emptyPostsSubtitle}>When {profile.name} shares photos and videos, you'll see them here.</Text>
               </View>
             </View>
           )}
@@ -874,7 +981,408 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fff',
+  },
+  // Instagram-Style Header
+  instagramHeader: {
+    paddingTop: 50,
+    paddingBottom: 15,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#dbdbdb',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerActionButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  // Enhanced Profile Section
+  enhancedProfileSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  profileGradient: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  profileAvatarRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    padding: 4,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Enhanced Stats Section
+  enhancedStatsSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  statsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  statIconGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  // Enhanced Bio Section
+  enhancedBioSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  bioIconGradient: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bioTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginLeft: 8,
+  },
+  // Enhanced Action Section
+  enhancedActionSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  enhancedFollowButtonWrapper: {
+    flex: 1,
+    borderRadius: 25,
+    overflow: 'hidden',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  enhancedFollowButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+  },
+  enhancedFollowButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  enhancedMessageButtonWrapper: {
+    flex: 1,
+    borderRadius: 25,
+    overflow: 'hidden',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  enhancedMessageButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+  },
+  enhancedMessageButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  // Enhanced Posts Section
+  enhancedPostsSection: {
+    backgroundColor: '#fff',
+    marginTop: 16,
+  },
+  enhancedNavigationTabs: {
+    flexDirection: 'row',
+    borderTopWidth: 0.5,
+    borderTopColor: '#dbdbdb',
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+  },
+  enhancedTabButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  tabIconGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  tabIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  tabLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4F46E5',
+  },
+  tabLabelInactive: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8e8e93',
+  },
+  // Instagram-Style Navigation Tabs
+  navigationTabs: {
+    flexDirection: 'row',
+    borderTopWidth: 0.5,
+    borderTopColor: '#dbdbdb',
+    backgroundColor: '#fff',
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'transparent',
+  },
+  // Enhanced Posts List
+  enhancedPostsList: {
+    backgroundColor: '#fff',
+  },
+  enhancedPostCard: {
+    backgroundColor: '#fff',
+    marginBottom: 8,
+    marginHorizontal: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  // Enhanced Post Header Styles
+  enhancedPostHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  postAuthorAvatarRing: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    padding: 2,
+    backgroundColor: '#4F46E5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moreButtonGradient: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Enhanced Post Content Styles
+  enhancedPostContentContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  enhancedPostContent: {
+    fontSize: 15,
+    color: '#000',
+    lineHeight: 22,
+    fontWeight: '400',
+  },
+  // Enhanced Post Image Styles
+  enhancedPostImageContainer: {
+    backgroundColor: '#fff',
+    position: 'relative',
+  },
+  enhancedPostImage: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  // Enhanced Post Actions Styles
+  enhancedPostActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 16,
+  },
+  enhancedPostActionButton: {
+    padding: 4,
+  },
+  actionIconGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Enhanced Post Stats Styles
+  enhancedPostStats: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  enhancedPostLikes: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  enhancedPostComments: {
+    fontSize: 15,
+    color: '#8e8e93',
+  },
+  // Post Header Styles
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  postAuthorSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  postAuthorAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  postAuthorAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  postAuthorAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0095f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  postAuthorAvatarInitials: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  postAuthorInfo: {
+    flex: 1,
+  },
+  postAuthorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  postTime: {
+    fontSize: 12,
+    color: '#8e8e93',
+  },
+  postMoreButton: {
+    padding: 4,
+  },
+  // Post Content Styles
+  postContentContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  postContent: {
+    fontSize: 14,
+    color: '#000',
+    lineHeight: 20,
+  },
+  // Post Image Styles
+  postImageContainer: {
+    backgroundColor: '#fff',
+  },
+  postImage: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  // Post Actions Styles
+  postActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 16,
+  },
+  postActionButton: {
+    padding: 4,
+  },
+  // Post Stats Styles
+  postStats: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  postLikes: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  postComments: {
+    fontSize: 14,
+    color: '#8e8e93',
   },
   scrollView: {
     flex: 1,
@@ -2583,15 +3091,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
   },
   profileAvatarContainer: {
     marginRight: 16,
   },
   profileAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     overflow: 'hidden',
   },
   profileDetails: {
@@ -2599,14 +3106,15 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
+    fontWeight: '700',
+    color: '#fff',
     marginBottom: 4,
   },
   profileEmail: {
     fontSize: 16,
-    color: '#666',
+    color: '#fff',
     marginBottom: 8,
+    opacity: 0.9,
   },
   profileCourseInfo: {
     flexDirection: 'row',
@@ -2614,8 +3122,9 @@ const styles = StyleSheet.create({
   },
   profileCourseText: {
     fontSize: 14,
-    color: '#65676b',
+    color: '#fff',
     marginLeft: 8,
+    opacity: 0.9,
   },
   notificationIconContainer: {
     position: 'relative',
@@ -2630,26 +3139,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
   },
   statLabel: {
     fontSize: 14,
-    color: '#65676b',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#f0f0f0',
+    color: '#8e8e93',
   },
   bioSection: {
     backgroundColor: '#fff',
@@ -2672,9 +3175,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   bioText: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 24,
+    fontSize: 14,
+    color: '#000',
+    lineHeight: 20,
   },
   actionSection: {
     backgroundColor: '#fff',
@@ -2686,35 +3189,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    gap: 12,
+    gap: 8,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 6,
     flex: 1,
+    borderWidth: 1,
+    borderColor: '#dbdbdb',
   },
   followButton: {
-    backgroundColor: '#1877f2',
+    backgroundColor: '#0095f6',
+    borderColor: '#0095f6',
   },
   unfollowButton: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: '#fff',
+    borderColor: '#dbdbdb',
   },
   pendingButton: {
-    backgroundColor: '#f39c12',
+    backgroundColor: '#fff',
+    borderColor: '#dbdbdb',
   },
   messageButton: {
-    backgroundColor: '#42a5f5',
+    backgroundColor: '#fff',
+    borderColor: '#dbdbdb',
   },
   actionButtonText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
-    marginLeft: 8,
   },
   postsSection: {
     backgroundColor: '#fff',

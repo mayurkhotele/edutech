@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const ExamCard = ({ exam, navigation }: any) => {
+const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
     const router = useRouter();
     const { user } = useAuth();
     const [remainingTime, setRemainingTime] = useState('');
@@ -339,17 +339,19 @@ const ExamCard = ({ exam, navigation }: any) => {
                     <Text style={styles.prizePoolSubtext}>*Up to this amount</Text>
                 </View>
                 
-                <TouchableOpacity style={styles.attemptButton} onPress={handleAttemptLiveExam}>
-                    <LinearGradient
-                        colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
-                        style={styles.attemptButtonGradient}
-                    >
-                        <Text style={styles.attemptButtonText}>Attempt Now</Text>
-                        <View style={styles.attemptButtonIcon}>
-                            <Ionicons name="arrow-forward" size={16} color="#fff" />
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity>
+                {!hideAttemptButton && (
+                    <TouchableOpacity style={styles.attemptButton} onPress={handleAttemptLiveExam}>
+                        <LinearGradient
+                            colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
+                            style={styles.attemptButtonGradient}
+                        >
+                            <Text style={styles.attemptButtonText}>Attempt Now</Text>
+                            <View style={styles.attemptButtonIcon}>
+                                <Ionicons name="arrow-forward" size={16} color="#fff" />
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                )}
             </View>
         </TouchableOpacity>
         

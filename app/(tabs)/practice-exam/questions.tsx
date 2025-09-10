@@ -351,81 +351,131 @@ const PracticeExamQuestionsScreen = () => {
         </View>
       )}
 
-      {/* Advanced Submit Confirmation Modal */}
+      {/* Enhanced Submit Confirmation Modal */}
       <Modal
         visible={showSubmitModal}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowSubmitModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSubmitModal(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalContainer}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <LinearGradient
-              colors={['#667eea', '#764ba2']}
+              colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
               style={styles.modalHeader}
             >
               <View style={styles.modalIconContainer}>
-                <Ionicons name="checkmark-circle" size={40} color="#fff" />
+                <Ionicons name="checkmark-circle" size={32} color="#fff" />
               </View>
-              <Text style={styles.modalTitle}>Submit Exam</Text>
-              <Text style={styles.modalSubtitle}>Are you sure you want to submit your exam?</Text>
+              <View style={styles.modalTitleContainer}>
+                <Text style={styles.modalTitle}>Submit Exam</Text>
+                <Text style={styles.modalSubtitle}>Review your answers before final submission</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => setShowSubmitModal(false)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="close-circle" size={24} color="#fff" />
+              </TouchableOpacity>
             </LinearGradient>
 
-            <View style={styles.modalContent}>
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
               <View style={styles.summarySection}>
-                <Text style={styles.summaryTitle}>Exam Summary</Text>
+                <View style={styles.summaryHeader}>
+                  <Ionicons name="analytics" size={24} color="#8B5CF6" />
+                  <Text style={styles.summaryTitle}>Exam Summary</Text>
+                </View>
                 <View style={styles.summaryGrid}>
                   <View style={styles.summaryItem}>
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.summaryLabel}>Answered</Text>
-                    <Text style={styles.summaryValue}>{answered}</Text>
+                    <View style={styles.summaryIconContainer}>
+                      <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                    </View>
+                    <View style={styles.summaryTextContainer}>
+                      <Text style={styles.summaryLabel}>Answered</Text>
+                      <Text style={styles.summaryValue}>{answered}</Text>
+                    </View>
                   </View>
                   <View style={styles.summaryItem}>
-                    <Ionicons name="close-circle" size={20} color="#F44336" />
-                    <Text style={styles.summaryLabel}>Unanswered</Text>
-                    <Text style={styles.summaryValue}>{questions.length - answered}</Text>
+                    <View style={styles.summaryIconContainer}>
+                      <Ionicons name="close-circle" size={20} color="#EF4444" />
+                    </View>
+                    <View style={styles.summaryTextContainer}>
+                      <Text style={styles.summaryLabel}>Unanswered</Text>
+                      <Text style={styles.summaryValue}>{questions.length - answered}</Text>
+                    </View>
                   </View>
                   <View style={styles.summaryItem}>
-                    <Ionicons name="bookmark" size={20} color="#FFC107" />
-                    <Text style={styles.summaryLabel}>Marked</Text>
-                    <Text style={styles.summaryValue}>{marked}</Text>
+                    <View style={styles.summaryIconContainer}>
+                      <Ionicons name="bookmark" size={20} color="#F59E0B" />
+                    </View>
+                    <View style={styles.summaryTextContainer}>
+                      <Text style={styles.summaryLabel}>Marked</Text>
+                      <Text style={styles.summaryValue}>{marked}</Text>
+                    </View>
                   </View>
                 </View>
               </View>
 
               <View style={styles.warningSection}>
-                <Ionicons name="warning" size={24} color="#FF9800" />
-                <Text style={styles.warningText}>
-                  Once submitted, you cannot change your answers. Please review all questions before proceeding.
-                </Text>
+                <View style={styles.warningIconContainer}>
+                  <Ionicons name="warning" size={24} color="#F59E0B" />
+                </View>
+                <View style={styles.warningTextContainer}>
+                  <Text style={styles.warningTitle}>Important Notice</Text>
+                  <Text style={styles.warningText}>
+                    Once submitted, you cannot change your answers. Please review all questions before proceeding.
+                  </Text>
+                </View>
               </View>
-            </View>
+            </ScrollView>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => setShowSubmitModal(false)}
                 disabled={submitting}
+                activeOpacity={0.8}
               >
-                <Text style={styles.cancelButtonText}>Review More</Text>
+                <View style={styles.cancelButtonContent}>
+                  <Ionicons name="arrow-back" size={18} color="#6B7280" />
+                  <Text style={styles.cancelButtonText}>Review More</Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.submitConfirmButton}
                 onPress={confirmSubmit}
                 disabled={submitting}
+                activeOpacity={0.8}
               >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="send" size={20} color="#fff" />
-                    <Text style={styles.submitConfirmButtonText}>Submit Exam</Text>
-                  </>
-                )}
+                <LinearGradient
+                  colors={submitting ? ['#9CA3AF', '#6B7280'] : ['#8B5CF6', '#7C3AED']}
+                  style={styles.submitButtonGradient}
+                >
+                  {submitting ? (
+                    <View style={styles.submitButtonContent}>
+                      <ActivityIndicator size="small" color="#fff" />
+                      <Text style={styles.submitConfirmButtonText}>Submitting...</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.submitButtonContent}>
+                      <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                      <Text style={styles.submitConfirmButtonText}>Submit Exam</Text>
+                    </View>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -817,21 +867,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)'
   },
   modalContainer: {
-    width: '80%',
+    width: '90%',
+    maxHeight: '70%',
     backgroundColor: '#fff',
-    borderRadius: 15,
+    borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.3,
+    shadowRadius: 25,
+    elevation: 15,
   },
   modalHeader: {
     padding: 20,
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee'
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
   },
   modalIconContainer: {
     width: 80,
@@ -856,7 +916,62 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     padding: 20,
-    paddingBottom: 10
+    paddingBottom: 10,
+    maxHeight: 300,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  summaryIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  summaryTextContainer: {
+    flex: 1,
+  },
+  warningIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  warningTextContainer: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  cancelButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 6,
+  },
+  submitButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   summarySection: {
     marginBottom: 20
@@ -904,40 +1019,55 @@ const styles = StyleSheet.create({
   },
   modalActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     padding: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
     borderTopWidth: 1,
-    borderTopColor: '#eee'
+    borderTopColor: '#F3F4F6',
+    gap: 16,
   },
   cancelButton: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     flex: 1,
-    marginRight: 10
+    marginRight: 8,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cancelButtonText: {
-    color: AppColors.primary,
-    fontWeight: 'bold',
-    textAlign: 'center'
+    color: '#6B7280',
+    fontWeight: '600',
+    fontSize: 14,
+    marginLeft: 6,
   },
   submitConfirmButton: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    marginLeft: 10
+    flex: 2,
+    marginLeft: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitConfirmButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
-    marginLeft: 5
+    fontSize: 14,
+    marginLeft: 6,
   }
 });
 

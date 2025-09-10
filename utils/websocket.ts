@@ -44,6 +44,8 @@ interface WebSocketEvents {
   onQuestionEnded?: (data: any) => void;
   onBattleEnded?: (data: any) => void;
   onTimeUpdate?: (data: any) => void;
+  // Allow arbitrary event handlers (e.g., spy_game_created)
+  [eventName: string]: any;
 }
 
 class WebSocketService {
@@ -204,6 +206,19 @@ class WebSocketService {
     this.socket.on(WEBSOCKET_CONFIG.EVENTS.TIME_UPDATE, (data: any) => {
       console.log('⏰ Time update:', data);
       this.events.onTimeUpdate?.(data);
+    });
+
+    // Generic passthrough for arbitrary server events (e.g., spy game events)
+    this.socket.onAny((event: string, ...args: any[]) => {
+      const handler = this.events[event];
+      if (typeof handler === 'function') {
+        try {
+          // Convention: pass first arg payload if present
+          handler(args && args.length > 0 ? args[0] : undefined);
+        } catch (err) {
+          console.error(`❌ Error in handler for event "${event}":`, err);
+        }
+      }
     });
   }
 

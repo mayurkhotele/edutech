@@ -1,16 +1,44 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 
 const Welcome = () => {
     const router = useRouter();
+    const glow = useRef(new Animated.Value(0)).current;
+    const float1 = useRef(new Animated.Value(0)).current;
+    const float2 = useRef(new Animated.Value(0)).current;
+    const float3 = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(glow, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+                Animated.timing(glow, { toValue: 0, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
+            ])
+        ).start();
+        const mkFloat = (val: Animated.Value, duration: number) =>
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(val, { toValue: 1, duration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+                    Animated.timing(val, { toValue: 0, duration, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
+                ])
+            ).start();
+        mkFloat(float1, 2600);
+        mkFloat(float2, 3000);
+        mkFloat(float3, 2200);
+    }, [glow]);
+
+    const handleLogin = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}; router.push('/login'); };
+    const handleRegister = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}; router.push('/register'); };
+    
 
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={[ '#4c1d95', '#7c3aed' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.container}>
         {/* Background with Abstract Shapes */}
         <View style={styles.backgroundContainer}>
             {/* Purple Blob Shapes */}
@@ -81,54 +109,84 @@ const Welcome = () => {
             <View style={[styles.smallDot, styles.dot3]} />
             <View style={[styles.smallDot, styles.dot4]} />
             <View style={[styles.smallDot, styles.dot5]} />
+
+            {/* Study-themed animated icons */}
+            <Animated.View style={[styles.studyIcon, {
+                top: height * 0.22,
+                left: width * 0.12,
+                transform: [
+                    { translateY: float1.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) },
+                    { rotate: float1.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '6deg'] }) }
+                ]
+            }]}>
+                <Ionicons name="book-outline" size={26} color="#ffffff" />
+            </Animated.View>
+            <Animated.View style={[styles.studyIcon, {
+                top: height * 0.55,
+                right: width * 0.18,
+                transform: [
+                    { translateY: float2.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+                    { rotate: float2.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-8deg'] }) }
+                ]
+            }]}>
+                <Ionicons name="pencil-outline" size={24} color="#ffffff" />
+            </Animated.View>
+            <Animated.View style={[styles.studyIcon, {
+                bottom: height * 0.18,
+                left: width * 0.2,
+                transform: [
+                    { translateY: float3.interpolate({ inputRange: [0, 1], outputRange: [0, -7] }) },
+                    { rotate: float3.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '5deg'] }) }
+                ]
+            }]}>
+                <Ionicons name="school-outline" size={24} color="#ffffff" />
+            </Animated.View>
         </View>
 
         {/* Main Content */}
         <View style={styles.contentContainer}>
-            {/* Central Yottascore Text */}
-            <View style={styles.titleContainer}>
-                <Text style={styles.titleText}>YOTTA</Text>
-                <Text style={styles.titleText}>SCORE</Text>
+            {/* Logo + Title */}
+            <Animated.View style={[styles.logoWrap, {
+                transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }],
+                opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] })
+            }]}>
+                <View style={styles.logoBadge}>
+                    <Ionicons name="school" size={26} color="#fff" />
+                </View>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.brandLine}>YOTTA</Text>
+                    <Text style={styles.brandLine}>SCORE</Text>
+                </View>
+            </Animated.View>
+            {/* Tagline */}
+            <View style={styles.taglineChip}>
+                <Ionicons name="sparkles" size={14} color="#a78bfa" />
+                <Text style={styles.taglineText}>Smart Learning Platform</Text>
             </View>
-            
-            {/* Subtitle */}
-            <Text style={styles.subtitleText}>Smart Learning Platform</Text>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={() => router.push('/login')} activeOpacity={0.85}>
-                <LinearGradient
-                    colors={["#667eea", "#764ba2"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.button}
-                >
-                    <Text style={styles.buttonText}>Login</Text>
+            <TouchableOpacity onPress={handleLogin} activeOpacity={0.9} style={styles.primaryBtn}>
+                <LinearGradient colors={[ '#f59e0b', '#f97316' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnBg}>
+                    <Text style={styles.primaryBtnText}>Login</Text>
                 </LinearGradient>
             </TouchableOpacity>
-            
             <View style={styles.separator} />
-            
-            <TouchableOpacity onPress={() => router.push('/register')} activeOpacity={0.85}>
-                <LinearGradient
-                    colors={["#764ba2", "#667eea"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.button}
-                >
-                    <Text style={styles.buttonText}>Register</Text>
+            <TouchableOpacity onPress={handleRegister} activeOpacity={0.9} style={styles.primaryBtn}>
+                <LinearGradient colors={[ '#fb923c', '#f59e0b' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnBg}>
+                    <Text style={styles.primaryBtnText}>Register</Text>
                 </LinearGradient>
             </TouchableOpacity>
         </View>
-    </View>
+    </LinearGradient>
   )
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff', // White background like DT QUIZ
+        backgroundColor: '#4c1d95',
     },
     backgroundContainer: {
         position: 'absolute',
@@ -265,6 +323,10 @@ const styles = StyleSheet.create({
         bottom: height * 0.7,
         right: width * 0.6,
     },
+    studyIcon: {
+        position: 'absolute',
+        opacity: 0.25,
+    },
     smallDot: {
         position: 'absolute',
         width: 8,
@@ -297,30 +359,31 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingTop: 100,
+        paddingTop: 80,
     },
     titleContainer: {
         alignItems: 'center',
         marginBottom: 20,
     },
-    titleText: {
-        fontSize: 48,
-        fontWeight: 'bold',
-        color: '#fff',
-        textAlign: 'center',
-        textShadowColor: '#667eea',
-        textShadowOffset: { width: 2, height: 2 },
-        textShadowRadius: 4,
-        // Stitched effect with dashed border
-        borderWidth: 3,
-        borderColor: '#667eea',
-        borderStyle: 'dashed',
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        marginVertical: 5,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 8,
-        overflow: 'hidden',
+    brandLine: {
+        fontSize: 46,
+        fontWeight: '900',
+        color: '#ffffff',
+        letterSpacing: 2,
+    },
+    logoWrap: {
+        alignItems: 'center',
+    },
+    logoBadge: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.25)'
     },
     subtitleText: {
         fontSize: 18,
@@ -333,38 +396,55 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 2,
     },
+    taglineChip: {
+        marginTop: 8,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 999,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    taglineText: {
+        color: '#e9d5ff',
+        fontWeight: '700'
+    },
     buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 40,
-        paddingBottom: 50,
+        paddingHorizontal: 32,
+        paddingBottom: 100,
         gap: 20,
     },
-    button: {
-        flex: 1,
-        paddingVertical: 16,
-        paddingHorizontal: 32,
-        borderRadius: 25,
+    primaryBtn: { flex: 1, borderRadius: 26, overflow: 'hidden' },
+    primaryBtnBg: {
+        paddingVertical: 14,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
+        borderRadius: 26,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8,
     },
-    buttonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 2,
+    primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
+    ghostBtn: {
+        flex: 1,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.7)',
+        borderRadius: 26,
+        paddingVertical: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
     },
+    ghostBtnText: { color: 'white', fontSize: 18, fontWeight: '800' },
     separator: {
         width: 20,
     },
+    guestLinkWrap: { alignItems: 'center', paddingBottom: 20 },
+    guestLink: { color: '#e9d5ff', fontWeight: '700' },
 });
 
 export default Welcome; 

@@ -160,8 +160,36 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 
   const loadMorePosts = () => {
     if (!loadingMore && hasMorePosts) {
-      setPage(prev => prev + 1);
-      fetchPosts();
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchPostsWithPage(nextPage);
+    }
+  };
+
+  const fetchPostsWithPage = async (pageNumber: number) => {
+    setLoadingMore(true);
+    setError('');
+    try {
+      const res = await apiFetchAuth(`/student/posts?page=${pageNumber}&limit=10`, user?.token || '');
+      if (res.ok) {
+        const newPosts = res.data.posts || res.data;
+        
+        if (newPosts.length < 10) {
+          setHasMorePosts(false);
+        }
+        
+        setPosts(prev => {
+          const existingIds = new Set(prev.map(post => post.id));
+          const uniqueNewPosts = newPosts.filter(post => !existingIds.has(post.id));
+          return [...prev, ...uniqueNewPosts];
+        });
+      } else {
+        setError('Failed to load posts');
+      }
+    } catch (e) {
+      setError('Failed to load posts');
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -864,78 +892,56 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 
   const renderStories = () => {
     return (
-      <View style={styles.enhancedStoriesContainer}>
-        <LinearGradient
-          colors={['rgba(255,255,255,0.95)', 'rgba(248,250,252,0.95)']}
-          style={styles.storiesGradient}
-        >
-          <View style={styles.enhancedStoriesHeader}>
-            <View style={styles.storiesTitleContainer}>
-              <Ionicons name="sparkles" size={20} color="#667eea" />
-              <Text style={styles.enhancedStoriesTitle}>Today's Stories</Text>
-            </View>
-            <TouchableOpacity style={styles.enhancedViewAllButton}>
-              <LinearGradient
-                colors={['#667eea', '#764ba2']}
-                style={styles.viewAllButtonGradient}
+      <View style={styles.instagramStoriesContainer}>
+        <FlatList
+          data={stories}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.storiesList}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => {
+            return (
+              <TouchableOpacity 
+                style={styles.storyItem} 
+                activeOpacity={0.8}
+                onPress={() => item.isAdd ? handleAddStory() : handleStoryPress(index)}
               >
-                <Text style={styles.enhancedViewAllText}>View All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={stories}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.enhancedStoriesList}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item, index }) => {
-              return (
-                <TouchableOpacity 
-                  style={styles.enhancedStoryItem} 
-                  activeOpacity={0.8}
-                  onPress={() => item.isAdd ? handleAddStory() : handleStoryPress(index)}
-                >
-                  <View style={styles.enhancedStoryWrapper}>
-                    <LinearGradient
-                      colors={
-                        item.isAdd ? ['#667eea', '#764ba2'] :
-                        item.hasStory && !item.viewed ? ['#ff6b6b', '#ee5a52'] :
-                        ['#e0e0e0', '#d0d0d0']
-                      }
-                      style={styles.enhancedStoryRing}
-                    >
-                      {typeof item.image === 'string' ? (
-                        <Image source={{ uri: item.image }} style={styles.enhancedStoryImage} />
-                      ) : (
-                        <Image source={item.image} style={styles.enhancedStoryImage} />
-                      )}
-                      {item.isAdd && (
-                        <View style={styles.enhancedAddStoryIcon}>
-                          <Ionicons name="add" size={18} color="#fff" />
-                        </View>
-                      )}
-                      {item.hasStory && !item.viewed && (
-                        <View style={styles.enhancedStoryIndicator}>
-                          <View style={styles.enhancedStoryDot} />
-                        </View>
-                      )}
-                    </LinearGradient>
-                    <View style={styles.enhancedStoryInfo}>
-                      <Text style={styles.enhancedStoryUsername} numberOfLines={1}>
-                        {item.username}
-                      </Text>
-                      {item.isAdd && (
-                        <Text style={styles.enhancedAddStoryText}>Add Story</Text>
-                      )}
-                    </View>
+                <View style={styles.storyWrapper}>
+                  <View style={[
+                    styles.storyRing,
+                    item.isAdd && styles.addStoryRing,
+                    item.hasStory && !item.viewed && styles.unviewedStoryRing,
+                    item.hasStory && item.viewed && styles.viewedStoryRing
+                  ]}>
+                    {typeof item.image === 'string' ? (
+                      <Image source={{ uri: item.image }} style={styles.storyImage} />
+                    ) : (
+                      <Image source={item.image} style={styles.storyImage} />
+                    )}
+                    {item.isAdd && (
+                      <View style={styles.addStoryIcon}>
+                        <Ionicons name="add" size={18} color="#fff" />
+                      </View>
+                    )}
+                    {item.hasStory && !item.viewed && (
+                      <View style={styles.storyIndicator}>
+                        <View style={styles.storyDot} />
+                      </View>
+                    )}
                   </View>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        </LinearGradient>
+                  <View style={styles.storyInfo}>
+                    <Text style={styles.storyUsername} numberOfLines={1}>
+                      {item.username}
+                    </Text>
+                    {item.isAdd && (
+                      <Text style={styles.addStoryText}>Add Story</Text>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+        />
       </View>
     );
   };
@@ -1018,26 +1024,54 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 
   return (
     <View style={styles.container}>
-      
-      {/* Enhanced Header with Gradient */}
-      <LinearGradient
-        colors={['#667eea', '#764ba2', '#f093fb', '#f5576c']}
-        style={styles.enhancedHeader}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>✨ Social Feed</Text>
-            <Text style={styles.headerSubtitle}>Connect with your community</Text>
+      {/* Instagram/Facebook Style Header with Left Search */}
+      <View style={styles.instagramHeader}>
+        <View style={styles.headerTop}>
+          {/* Left Side - Search Bar */}
+          <View style={styles.leftSearchContainer}>
+            <View style={styles.compactSearchContainer}>
+              <Ionicons name="search" size={16} color="#8e8e93" style={styles.compactSearchIcon} />
+              <TextInput
+                style={styles.compactSearchInput}
+                placeholder="Search"
+                placeholderTextColor="#8e8e93"
+                value={searchQuery}
+                onChangeText={handleSearch}
+                onFocus={() => {
+                  console.log('🔍 Search bar focused');
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowSearchResults(false);
+                  }, 200);
+                }}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity 
+                  style={styles.compactClearButton}
+                  onPress={() => {
+                    console.log('🔍 Clear button pressed, clearing search...');
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setShowSearchResults(false);
+                  }}
+                >
+                  <Ionicons name="close-circle" size={16} color="#8e8e93" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-          <View style={styles.headerRight}>
+
+          {/* Center - Title */}
+          <Text style={styles.headerTitle}>Social</Text>
+
+          {/* Right Side - Action Buttons */}
+          <View style={styles.headerActions}>
             {/* Follow Requests Button */}
             <TouchableOpacity 
-              style={styles.followRequestsButton}
+              style={styles.headerActionButton}
               onPress={() => {
                 console.log('🔍 Follow requests button clicked!');
-                // Navigate to dedicated follow requests page
                 if (navigation) {
                   navigation.navigate('follow-requests' as never);
                 } else {
@@ -1045,65 +1079,23 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
                 }
               }}
             >
-              <Ionicons name="people-outline" size={24} color="#fff" />
+              <Ionicons name="people-outline" size={24} color="#000" />
               {followRequests.length > 0 && (
-                <View style={styles.followRequestsBadge}>
-                  <Text style={styles.followRequestsBadgeText}>{followRequests.length}</Text>
+                <View style={styles.headerBadge}>
+                  <Text style={styles.headerBadgeText}>{followRequests.length}</Text>
                 </View>
               )}
             </TouchableOpacity>
             
             {/* Notification Button */}
-            <TouchableOpacity style={styles.notificationButton}>
-              <Ionicons name="notifications-outline" size={24} color="#fff" />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>3</Text>
+            <TouchableOpacity style={styles.headerActionButton}>
+              <Ionicons name="notifications-outline" size={24} color="#000" />
+              <View style={styles.headerBadge}>
+                <Text style={styles.headerBadgeText}>3</Text>
               </View>
             </TouchableOpacity>
           </View>
         </View>
-      </LinearGradient>
-
-      {/* Enhanced Search Bar */}
-      <View style={styles.enhancedSearchContainer}>
-        <LinearGradient
-          colors={['rgba(255,255,255,0.9)', 'rgba(248,250,252,0.9)']}
-          style={styles.searchBarGradient}
-        >
-          <View style={styles.searchContent}>
-            <View style={styles.searchIconContainer}>
-              <Ionicons name="search" size={20} color="#667eea" />
-            </View>
-            <TextInput
-              style={styles.enhancedSearchInput}
-              placeholder="🔍 Search users, posts, hashtags..."
-              placeholderTextColor="#94a3b8"
-              value={searchQuery}
-              onChangeText={handleSearch}
-              onFocus={() => {
-                console.log('🔍 Search bar focused');
-              }}
-              onBlur={() => {
-                setTimeout(() => {
-                  setShowSearchResults(false);
-                }, 200);
-              }}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity 
-                style={styles.clearSearchButton}
-                onPress={() => {
-                  console.log('🔍 Clear button pressed, clearing search...');
-                  setSearchQuery('');
-                  setSearchResults([]);
-                  setShowSearchResults(false);
-                }}
-              >
-                <Ionicons name="close-circle" size={20} color="#94a3b8" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </LinearGradient>
       </View>
 
       {/* Enhanced Search Results */}
@@ -1292,14 +1284,113 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fafafa',
   },
-  // Instagram-style header
+  // Instagram/Facebook Style Header
   instagramHeader: {
-    paddingTop: 50,
-    paddingBottom: 15,
+    paddingTop: 30,
+    paddingBottom: 6,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 0.5,
     borderBottomColor: '#dbdbdb',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  leftSearchContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+    textAlign: 'center',
+    flex: 0,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 0,
+  },
+  compactSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#dbdbdb',
+    flex: 1,
+    minWidth: 200,
+    maxWidth: 250,
+  },
+  compactSearchIcon: {
+    marginRight: 6,
+  },
+  compactSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#262626',
+    paddingVertical: 4,
+    fontWeight: '400',
+  },
+  compactClearButton: {
+    marginLeft: 4,
+    padding: 2,
+  },
+  headerActionButton: {
+    position: 'relative',
+    marginLeft: 8,
+    padding: 8,
+  },
+  headerBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#ff6b6b',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  headerBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  // Instagram/Facebook Style Search
+  instagramSearchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#dbdbdb',
+  },
+  searchBarContainer: {
+    backgroundColor: '#fafafa',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dbdbdb',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  instagramSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#262626',
+    paddingVertical: 0,
   },
   headerSubtitleContainer: {
     flexDirection: 'row',
@@ -1334,13 +1425,122 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
   },
-  // Instagram-style stories
+  // Instagram/Facebook Style Stories
   instagramStoriesContainer: {
     paddingHorizontal: 16,
     paddingVertical: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 0.5,
     borderBottomColor: '#dbdbdb',
+  },
+  storiesList: {
+    flexDirection: 'row',
+  },
+  storyItem: {
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  storyWrapper: {
+    alignItems: 'center',
+  },
+  storyRing: {
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
+    padding: 2.5,
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addStoryRing: {
+    backgroundColor: '#667eea',
+    shadowColor: '#667eea',
+    shadowOpacity: 0.3,
+  },
+  unviewedStoryRing: {
+    backgroundColor: '#ff6b6b',
+    shadowColor: '#ff6b6b',
+    shadowOpacity: 0.3,
+  },
+  viewedStoryRing: {
+    backgroundColor: '#e0e0e0',
+  },
+  storyImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  addStoryIcon: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#667eea',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  storyInfo: {
+    alignItems: 'center',
+  },
+  storyUsername: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  addStoryText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#667eea',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  storyIndicator: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  storyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ff6b6b',
   },
   // Instagram-style posts
   instagramPostCard: {

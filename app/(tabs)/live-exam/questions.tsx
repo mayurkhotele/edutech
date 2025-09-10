@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -321,7 +321,6 @@ const LiveExamQuestionsScreen = () => {
           </TouchableOpacity>
           
           <View style={styles.headerCenter}>
-            <Text style={styles.examTitle}>Live Exam</Text>
             <Text style={styles.questionProgress}>Question {current + 1} of {questions.length}</Text>
             
             {/* Progress Bar */}
@@ -339,7 +338,7 @@ const LiveExamQuestionsScreen = () => {
           </View>
           
           <View style={styles.timerContainer}>
-            <Ionicons name="time" size={20} color="#fff" style={styles.timerIcon} />
+            <Ionicons name="time" size={18} color="#fff" style={styles.timerIcon} />
             <Text style={[styles.timerText, timer <= 300 && styles.timerTextWarning]}>
               {formatTime(timer)}
             </Text>
@@ -348,7 +347,8 @@ const LiveExamQuestionsScreen = () => {
       </LinearGradient>
 
       {/* Main Content Area */}
-      <ScrollView style={styles.mainContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.mainContent} contentContainerStyle={styles.mainContentContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.contentCenter}>
         <View 
           style={[
             styles.questionCard,
@@ -363,40 +363,26 @@ const LiveExamQuestionsScreen = () => {
         >
           {/* Question Header */}
           <View style={styles.questionHeader}>
-            <LinearGradient
-              colors={['#4F46E5', '#7C3AED']}
-              style={styles.questionNumberBadge}
-            >
-              <Text style={styles.questionNumber}>Q{current + 1}</Text>
-            </LinearGradient>
-            
-            {/* Question Type Badge */}
-            <View style={styles.questionTypeContainer}>
-              <View style={[
-                styles.questionTypeBadge,
-                questions[current]?.type === "TRUE_FALSE" 
-                  ? styles.trueFalseBadge 
-                  : styles.mcqBadge
-              ]}>
-                <Text style={[
-                  styles.questionTypeText,
-                  questions[current]?.type === "TRUE_FALSE" 
-                    ? styles.trueFalseText 
-                    : styles.mcqText
-                ]}>
-                  {questions[current]?.type === "TRUE_FALSE" ? "True/False" : "MCQ"}
-                </Text>
-              </View>
+            <View style={styles.headerLeft}>
+              <LinearGradient
+                colors={['#4F46E5', '#7C3AED']}
+                style={styles.questionNumberBadge}
+              >
+                <Text style={styles.questionNumber}>Q{current + 1}</Text>
+              </LinearGradient>
             </View>
-            
             <View style={styles.questionMarks}>
               <Ionicons name="star" size={16} color="#FFD700" />
               <Text style={styles.marksText}>{questions[current]?.marks || 1} mark</Text>
             </View>
           </View>
 
-          {/* Question Text */}
-          <Text style={styles.questionText}>{questions[current]?.text}</Text>
+          {/* Question Text - Below Header */}
+          <View style={styles.questionTextSection}>
+            <Text style={styles.questionTitleInline}>
+              {questions[current]?.text}
+            </Text>
+          </View>
 
           {/* Options */}
           <View style={styles.optionsContainer}>
@@ -429,7 +415,7 @@ const LiveExamQuestionsScreen = () => {
                       </Text>
                     </View>
                     {(currentSelection === idx || statuses[current]?.selectedOption === idx) && (
-                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -462,7 +448,7 @@ const LiveExamQuestionsScreen = () => {
                     </Text>
                   </View>
                   {(currentSelection === idx || statuses[current]?.selectedOption === idx) && (
-                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
                   )}
                 </TouchableOpacity>
               ))
@@ -481,7 +467,7 @@ const LiveExamQuestionsScreen = () => {
               >
                 <Ionicons 
                   name={statuses[current]?.marked ? 'bookmark' : 'bookmark-outline'} 
-                  size={18} 
+                  size={16} 
                   color={statuses[current]?.marked ? '#fff' : '#4F46E5'} 
                 />
                 <Text style={[
@@ -533,61 +519,70 @@ const LiveExamQuestionsScreen = () => {
               colors={['#FF6B6B', '#FF5252', '#FF1744']}
               style={styles.submitButtonGradient}
             >
-              <Ionicons name="checkmark-circle" size={24} color="#fff" />
+              <Ionicons name="checkmark-circle" size={26} color="#fff" />
               <Text style={styles.submitButtonText}>Submit Test</Text>
             </LinearGradient>
           </TouchableOpacity>
+        </View>
         </View>
       </ScrollView>
 
       {/* Side Panel */}
       {showSidePanel && (
-        <View style={styles.sidePanel}>
+        <View style={[styles.sidePanel, { width: Math.min(width * 0.9, 320) }]}>
           <ScrollView style={styles.sidePanelScroll} showsVerticalScrollIndicator={false}>
-            {/* User Profile Section */}
-            <View style={styles.sidePanelSection}>
-              <LinearGradient
-                colors={['#4F46E5', '#7C3AED']}
-                style={styles.userProfileCard}
-              >
-                <View style={styles.userProfileContent}>
-                  <View style={styles.userAvatar}>
-                    <Ionicons name="person" size={24} color="#fff" />
-                  </View>
-                  <View style={styles.userInfo}>
-                    <Text style={styles.userName}>{user?.name || 'User'}</Text>
-                    <Text style={styles.userStatus}>Live Exam</Text>
-                  </View>
-                </View>
-              </LinearGradient>
-            </View>
+            
 
             {/* Progress Summary */}
             <View style={styles.sidePanelSection}>
-              <Text style={styles.sidePanelTitle}>Progress Summary</Text>
+              <View style={styles.sidePanelTitleRow}>
+                <Ionicons name="stats-chart" size={18} color="#374151" style={styles.sidePanelTitleIcon} />
+                <Text style={styles.sidePanelTitle}>Progress Summary</Text>
+              </View>
+              <View style={styles.progressBarWrap}>
+                <View style={styles.progressBarOuter}>
+                  <LinearGradient
+                    colors={['#4F46E5', '#7C3AED']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.progressBarInner,
+                      { width: `${Math.min(100, (answered / Math.max(1, questions.length)) * 100)}%` }
+                    ]}
+                  />
+                </View>
+                <Text style={styles.progressBarText}>{answered}/{questions.length} completed</Text>
+              </View>
               <View style={styles.progressGrid}>
-                <View style={[styles.progressCard, { backgroundColor: '#4CAF50' }]}>
-                  <Text style={styles.progressNumber}>{answered}</Text>
-                  <Text style={styles.progressLabel}>Answered</Text>
+                <View style={[styles.progressCard, styles.progressCardGreen]}>
+                  <Ionicons name="checkmark-circle" size={16} color="#059669" style={styles.progressCardIcon} />
+                  <Text style={[styles.progressNumber, styles.progressNumberGreen]}>{answered}</Text>
+                  <Text style={[styles.progressLabel, styles.progressLabelGreen]}>Answered</Text>
                 </View>
-                <View style={[styles.progressCard, { backgroundColor: '#FFC107' }]}>
-                  <Text style={styles.progressNumber}>{marked}</Text>
-                  <Text style={styles.progressLabel}>Marked</Text>
+                <View style={[styles.progressCard, styles.progressCardAmber]}>
+                  <Ionicons name="bookmark" size={16} color="#B45309" style={styles.progressCardIcon} />
+                  <Text style={[styles.progressNumber, styles.progressNumberAmber]}>{marked}</Text>
+                  <Text style={[styles.progressLabel, styles.progressLabelAmber]}>Marked</Text>
                 </View>
-                <View style={[styles.progressCard, { backgroundColor: '#9E9E9E' }]}>
-                  <Text style={styles.progressNumber}>{notVisited}</Text>
-                  <Text style={styles.progressLabel}>Not Visited</Text>
+                <View style={[styles.progressCard, styles.progressCardGray]}>
+                  <Ionicons name="eye-off" size={16} color="#4B5563" style={styles.progressCardIcon} />
+                  <Text style={[styles.progressNumber, styles.progressNumberGray]}>{notVisited}</Text>
+                  <Text style={[styles.progressLabel, styles.progressLabelGray]}>Not Visited</Text>
                 </View>
-                <View style={[styles.progressCard, { backgroundColor: '#F44336' }]}>
-                  <Text style={styles.progressNumber}>{notAnswered}</Text>
-                  <Text style={styles.progressLabel}>Not Answered</Text>
+                <View style={[styles.progressCard, styles.progressCardRed]}>
+                  <Ionicons name="close-circle" size={16} color="#B91C1C" style={styles.progressCardIcon} />
+                  <Text style={[styles.progressNumber, styles.progressNumberRed]}>{notAnswered}</Text>
+                  <Text style={[styles.progressLabel, styles.progressLabelRed]}>Not Answered</Text>
                 </View>
               </View>
             </View>
 
             {/* Question Navigation */}
             <View style={styles.sidePanelSection}>
-              <Text style={styles.sidePanelTitle}>Question Navigation</Text>
+              <View style={styles.sidePanelTitleRow}>
+                <Ionicons name="grid" size={18} color="#374151" style={styles.sidePanelTitleIcon} />
+                <Text style={styles.sidePanelTitle}>Question Navigation</Text>
+              </View>
               <View style={styles.questionNavigationGrid}>
                 {questions.map((q, idx) => {
                   let statusColor = '#E0E0E0';
@@ -682,8 +677,8 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)'
   },
   headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 8 : 4,
+    paddingBottom: 6,
     paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -697,7 +692,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   sidePanelToggle: {
-    padding: 12,
+    padding: 8,
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1,
@@ -708,10 +703,10 @@ const styles = StyleSheet.create({
     flex: 1
   },
   examTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 4
+    marginBottom: 2
   },
   securityIndicator: {
     flexDirection: 'row',
@@ -729,14 +724,17 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   questionProgress: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)'
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    marginTop: 2
   },
   progressBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 200,
-    gap: 10
+    width: 180,
+    gap: 8
   },
   progressBarBackground: {
     flex: 1,
@@ -758,34 +756,42 @@ const styles = StyleSheet.create({
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)'
+    borderColor: '#DC2626'
   },
   timerIcon: {
-    marginRight: 8
+    marginRight: 4
   },
   timerText: { 
-    fontSize: 16, 
+    fontSize: 14, 
     fontWeight: 'bold', 
     color: '#fff'
   },
   timerTextWarning: {
-    color: '#FFD700'
+    color: '#fff'
   },
   mainContent: {
     flex: 1,
     paddingHorizontal: 16
   },
+  mainContentContent: {
+    paddingBottom: 24,
+  },
+  contentCenter: {
+    maxWidth: 720,
+    width: '100%',
+    alignSelf: 'center',
+  },
   questionCard: { 
     backgroundColor: '#fff', 
     borderRadius: 20, 
-    marginTop: 16,
+    marginTop: 0,
     marginBottom: 20,
-    padding: 24, 
+    padding: 20, 
     shadowColor: '#000', 
     shadowOffset: { width: 0, height: 4 }, 
     shadowOpacity: 0.1, 
@@ -797,11 +803,21 @@ const styles = StyleSheet.create({
   questionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0'
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    gap: 12,
+  },
+  questionTextSection: {
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
   questionNumberBadge: {
     paddingHorizontal: 16,
@@ -827,25 +843,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#D97706'
   },
-  questionText: { 
-    fontSize: 22, 
-    lineHeight: 32,
-    color: '#1F2937', 
-    marginBottom: 32,
-    fontWeight: '700',
-    letterSpacing: 0.5
+  questionTitleInline: { 
+    fontSize: 15, 
+    lineHeight: 22,
+    color: '#111827', 
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    textAlign: 'left'
   },
   optionsContainer: { 
-    marginBottom: 32
+    marginBottom: 16
   },
   optionButton: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between',
     backgroundColor: '#F8FAFC', 
-    borderRadius: 20, 
-    padding: 24, 
-    marginBottom: 16,
+    borderRadius: 16, 
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
     borderWidth: 2,
     borderColor: 'transparent',
     shadowColor: '#4F46E5',
@@ -870,12 +887,12 @@ const styles = StyleSheet.create({
     flex: 1
   },
   radioButton: { 
-    width: 28, 
-    height: 28, 
-    borderRadius: 14, 
+    width: 20, 
+    height: 20, 
+    borderRadius: 10, 
     borderWidth: 2, 
     borderColor: '#CBD5E1', 
-    marginRight: 20, 
+    marginRight: 12, 
     alignItems: 'center', 
     justifyContent: 'center', 
     backgroundColor: '#fff',
@@ -895,9 +912,9 @@ const styles = StyleSheet.create({
     elevation: 4
   },
   radioButtonInner: { 
-    width: 16, 
-    height: 16, 
-    borderRadius: 8, 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
     backgroundColor: '#fff',
     shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 2 },
@@ -906,11 +923,12 @@ const styles = StyleSheet.create({
     elevation: 2
   },
   optionText: { 
-    fontSize: 18, 
-    color: '#374151',
+    fontSize: 15, 
+    color: '#1F2937',
     flex: 1,
-    lineHeight: 26,
-    fontWeight: '600'
+    lineHeight: 22,
+    fontWeight: '600',
+    letterSpacing: 0.2
   },
   optionTextSelected: {
     color: '#1F2937',
@@ -920,8 +938,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    marginTop: 20,
-    paddingTop: 24,
+    marginTop: 12,
+    paddingTop: 14,
     borderTopWidth: 2,
     borderTopColor: '#E0E7FF'
   },
@@ -933,16 +951,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center', 
     backgroundColor: '#F3F4F6', 
-    borderRadius: 16, 
-    paddingVertical: 16, 
-    paddingHorizontal: 20,
+    borderRadius: 14, 
+    paddingVertical: 10, 
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2
   },
   markButtonActive: {
     backgroundColor: '#4F46E5',
@@ -956,24 +974,25 @@ const styles = StyleSheet.create({
   markButtonText: { 
     color: '#4F46E5', 
     fontWeight: '700', 
-    marginLeft: 12,
-    fontSize: 16
+    marginLeft: 8,
+    fontSize: 14
   },
   markButtonTextActive: {
     color: '#fff'
   },
   navigationActions: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: 10
   },
   saveNextButton: {
-    borderRadius: 20,
+    borderRadius: 18,
     overflow: 'hidden',
     shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 10
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8
   },
   saveNextButtonDisabled: {
     shadowColor: '#CBD5E1',
@@ -983,35 +1002,35 @@ const styles = StyleSheet.create({
   saveNextButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 28,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     gap: 12
   },
   saveNextButtonText: {
     color: '#fff',
     fontWeight: '800',
-    fontSize: 17
+    fontSize: 14
   },
   nextButton: {
-    borderRadius: 20,
+    borderRadius: 18,
     overflow: 'hidden',
     shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 10
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8
   },
   nextButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     gap: 8
   },
   submitContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 24,
-    marginTop: 8
+    paddingBottom: 16,
+    marginTop: 4
   },
   submitButton: {
     borderRadius: 24,
@@ -1026,14 +1045,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 40,
-    gap: 16
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    gap: 10
   },
   submitButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 22
+    fontSize: 18
   },
   // ✅ Question Type Badge Styles
 questionTypeContainer: {
@@ -1073,7 +1092,7 @@ trueFalseButton: {
   justifyContent: 'space-between',
   backgroundColor: '#F8FAFC',
   borderRadius: 24,
-  padding: 28,
+  padding: 22,
   borderWidth: 2,
   borderColor: 'transparent',
   shadowColor: '#4F46E5',
@@ -1098,10 +1117,10 @@ trueFalseContent: {
   flex: 1,
 },
 trueFalseText: {
-  fontSize: 20,
+  fontSize: 18,
   color: '#374151',
   fontWeight: '700',
-  marginLeft: 20,
+  marginLeft: 16,
   letterSpacing: 0.4
 },
 trueFalseTextSelected: {
@@ -1132,11 +1151,19 @@ trueFalseTextSelected: {
   sidePanelSection: {
     marginBottom: 24
   },
+  sidePanelTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sidePanelTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 16
+    marginBottom: 0
+  },
+  sidePanelTitleIcon: {
+    marginRight: 8,
   },
   userProfileCard: {
     borderRadius: 16,
@@ -1172,40 +1199,93 @@ trueFalseTextSelected: {
   progressGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12
+    gap: 10
+  },
+  progressBarWrap: {
+    marginBottom: 12,
+  },
+  progressBarOuter: {
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  progressBarInner: {
+    height: '100%',
+    backgroundColor: '#10B981',
+  },
+  progressBarText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '600',
   },
   progressCard: { 
     flex: 1,
     minWidth: '45%',
-    borderRadius: 12, 
-    padding: 16, 
+    borderRadius: 10, 
+    padding: 12, 
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+    borderWidth: 1,
+  },
+  progressSub: {
+    marginTop: 2,
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: '600'
+  },
+  progressCardIcon: {
+    marginBottom: 6,
+  },
+  progressCardGreen: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  progressCardAmber: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+  },
+  progressCardGray: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+  },
+  progressCardRed: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
   },
   progressNumber: { 
-    color: '#fff', 
+    color: '#111827', 
     fontWeight: 'bold', 
-    fontSize: 24,
-    marginBottom: 4
+    fontSize: 20,
+    marginBottom: 2
   },
+  progressNumberGreen: { color: '#065F46' },
+  progressNumberAmber: { color: '#92400E' },
+  progressNumberGray: { color: '#374151' },
+  progressNumberRed: { color: '#991B1B' },
   progressLabel: { 
-    color: '#fff', 
-    fontSize: 12,
+    color: '#374151', 
+    fontSize: 11,
     fontWeight: '500'
   },
+  progressLabelGreen: { color: '#047857' },
+  progressLabelAmber: { color: '#B45309' },
+  progressLabelGray: { color: '#4B5563' },
+  progressLabelRed: { color: '#B91C1C' },
   questionNavigationGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8
+    gap: 6
   },
   questionNavButton: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
+    width: 40, 
+    height: 40, 
+    borderRadius: 20, 
     borderWidth: 2, 
     alignItems: 'center', 
     justifyContent: 'center', 
@@ -1222,7 +1302,7 @@ trueFalseTextSelected: {
   },
   questionNavText: { 
     fontWeight: 'bold', 
-    fontSize: 16
+    fontSize: 14
   },
   checkmarkBadge: {
     position: 'absolute',

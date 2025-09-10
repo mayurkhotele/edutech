@@ -111,7 +111,7 @@ const PracticeExamDetailsScreen = () => {
             console.log('Results tab clicked, fetching result data...');
             console.log('Exam attempted:', exam?.attempted);
             setResultLoading(true);
-            apiFetchAuth(`/student/practice-exams/${id}/result`, user.token)
+            apiFetchAuth(`/student/practice-exams/${id}/submit`, user.token, { method: 'POST' })
                 .then(res => {
                     console.log('Result API response:', res);
                     if (res.ok) {
@@ -326,27 +326,37 @@ const PracticeExamDetailsScreen = () => {
                 transparent={true}
                 onRequestClose={() => setShowInstructionsModal(false)}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.enhancedModalContent}>
+                <TouchableOpacity 
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowInstructionsModal(false)}
+                >
+                    <TouchableOpacity 
+                        style={styles.enhancedModalContent}
+                        activeOpacity={1}
+                        onPress={(e) => e.stopPropagation()}
+                    >
+                        {/* Enhanced Header with Purple Theme */}
                         <LinearGradient
-                            colors={['#667eea', '#764ba2', '#f093fb']}
+                            colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
                             style={styles.modalHeaderGradient}
                         >
                             <View style={styles.enhancedModalHeader}>
                                 <View style={styles.modalTitleContainer}>
                                     <View style={styles.modalIconContainer}>
-                                        <Ionicons name="school" size={32} color="#fff" />
+                                        <Ionicons name="book" size={28} color="#fff" />
                                     </View>
                                     <View style={styles.modalTitleWrapper}>
-                                        <Text style={styles.enhancedModalTitle}>Exam Instructions</Text>
-                                        <Text style={styles.modalSubtitle}>Please read carefully before starting</Text>
+                                        <Text style={styles.enhancedModalTitle}>Practice Exam Instructions</Text>
+                                        <Text style={styles.modalSubtitle}>Get ready to start your exam</Text>
                                     </View>
                                 </View>
                                 <TouchableOpacity 
                                     style={styles.enhancedCloseButton}
                                     onPress={() => setShowInstructionsModal(false)}
+                                    activeOpacity={0.8}
                                 >
-                                    <Ionicons name="close" size={24} color="#fff" />
+                                    <Ionicons name="close-circle" size={28} color="#fff" />
                                 </TouchableOpacity>
                             </View>
                         </LinearGradient>
@@ -354,134 +364,118 @@ const PracticeExamDetailsScreen = () => {
                         <View style={styles.modalBodyContainer}>
                             <ScrollView 
                                 style={styles.enhancedInstructionsScroll} 
-                                showsVerticalScrollIndicator={false}
+                                showsVerticalScrollIndicator={true}
                                 contentContainerStyle={styles.scrollContentContainer}
+                                scrollEnabled={true}
+                                nestedScrollEnabled={true}
+                                bounces={true}
                             >
-                                {/* Instructions List */}
-                                <View style={styles.enhancedInstructionsSection}>
+                                {/* Instructions Section */}
+                                <View style={styles.instructionsSection}>
                                     <View style={styles.instructionsHeader}>
-                                        <Ionicons name="list-circle" size={24} color="#667eea" />
-                                        <Text style={styles.enhancedInstructionsTitle}>
-                                            Important Instructions
-                                        </Text>
+                                        <Ionicons name="list-circle" size={24} color="#8B5CF6" />
+                                        <Text style={styles.instructionsTitle}>Important Instructions</Text>
                                     </View>
-                                    {instructions.length > 0 ? (
-                                        instructions.map((instruction, index) => (
-                                            <View key={index} style={styles.enhancedInstructionItem}>
-                                                <View style={styles.instructionNumberBadge}>
-                                                    <Text style={styles.instructionNumberText}>{index + 1}</Text>
-                                                </View>
-                                                <Text style={styles.enhancedInstructionText}>{instruction}</Text>
+                                    
+                                    <View style={styles.instructionsCard}>
+                                        <View style={styles.instructionItem}>
+                                            <View style={styles.instructionNumber}>
+                                                <Text style={styles.instructionNumberText}>1</Text>
                                             </View>
-                                        ))
-                                    ) : (
-                                        <View style={styles.defaultInstructionsContainer}>
-                                            <View style={styles.enhancedInstructionItem}>
-                                                <View style={styles.instructionNumberBadge}>
-                                                    <Text style={styles.instructionNumberText}>1</Text>
-                                                </View>
-                                                <Text style={styles.enhancedInstructionText}>Read each question carefully and understand the requirements before selecting your answer</Text>
-                                            </View>
-                                            <View style={styles.enhancedInstructionItem}>
-                                                <View style={styles.instructionNumberBadge}>
-                                                    <Text style={styles.instructionNumberText}>2</Text>
-                                                </View>
-                                                <Text style={styles.enhancedInstructionText}>Use the navigation buttons to move between questions and review your answers</Text>
-                                            </View>
-                                            <View style={styles.enhancedInstructionItem}>
-                                                <View style={styles.instructionNumberBadge}>
-                                                    <Text style={styles.instructionNumberText}>3</Text>
-                                                </View>
-                                                <Text style={styles.enhancedInstructionText}>Once you submit an answer, it cannot be changed - choose wisely</Text>
-                                            </View>
-                                            <View style={styles.enhancedInstructionItem}>
-                                                <View style={styles.instructionNumberBadge}>
-                                                    <Text style={styles.instructionNumberText}>4</Text>
-                                                </View>
-                                                <Text style={styles.enhancedInstructionText}>Ensure you have a stable internet connection throughout the exam</Text>
-                                            </View>
-                                            <View style={styles.enhancedInstructionItem}>
-                                                <View style={styles.instructionNumberBadge}>
-                                                    <Text style={styles.instructionNumberText}>5</Text>
-                                                </View>
-                                                <Text style={styles.enhancedInstructionText}>Do not refresh the page or close the browser during the exam</Text>
-                                            </View>
-                                            <View style={styles.enhancedInstructionItem}>
-                                                <View style={styles.instructionNumberBadge}>
-                                                    <Text style={styles.instructionNumberText}>6</Text>
-                                                </View>
-                                                <Text style={styles.enhancedInstructionText}>Complete all questions within the allocated time limit</Text>
-                                            </View>
+                                            <Text style={styles.instructionText}>Read each question carefully and understand the requirements before selecting your answer</Text>
                                         </View>
-                                    )}
+                                        
+                                        <View style={styles.instructionItem}>
+                                            <View style={styles.instructionNumber}>
+                                                <Text style={styles.instructionNumberText}>2</Text>
+                                            </View>
+                                            <Text style={styles.instructionText}>Use the navigation buttons to move between questions and review your answers</Text>
+                                        </View>
+                                        
+                                        <View style={styles.instructionItem}>
+                                            <View style={styles.instructionNumber}>
+                                                <Text style={styles.instructionNumberText}>3</Text>
+                                            </View>
+                                            <Text style={styles.instructionText}>Ensure you have a stable internet connection throughout the exam</Text>
+                                        </View>
+                                    </View>
                                 </View>
 
-                                {/* Declaration */}
-                                <View style={styles.enhancedDeclarationSection}>
-                                    <View style={styles.declarationHeader}>
-                                        <Ionicons name="shield-checkmark" size={24} color="#667eea" />
-                                        <Text style={styles.enhancedDeclarationTitle}>
-                                            Academic Integrity Declaration
-                                        </Text>
+                                {/* Quick Tips Section */}
+                                <View style={styles.tipsSection}>
+                                    <View style={styles.tipsHeader}>
+                                        <Ionicons name="bulb" size={24} color="#F59E0B" />
+                                        <Text style={styles.tipsTitle}>Quick Tips</Text>
                                     </View>
-                                    <View style={styles.declarationCard}>
-                                        <Text style={styles.enhancedDeclarationText}>
-                                            I hereby declare that I will attempt this examination honestly and independently. I understand that any form of academic dishonesty, including but not limited to cheating, plagiarism, or unauthorized assistance, will result in immediate disqualification and may have serious academic consequences.
-                                        </Text>
-                                        
-                                        <TouchableOpacity 
-                                            style={styles.enhancedCheckboxContainer}
-                                            onPress={() => setDeclarationChecked(!declarationChecked)}
-                                        >
-                                            <View style={[styles.enhancedCheckbox, declarationChecked && styles.enhancedCheckboxChecked]}>
-                                                {declarationChecked && (
-                                                    <Ionicons name="checkmark" size={18} color="#fff" />
-                                                )}
+                                    
+                                    <View style={styles.tipsCard}>
+                                        <View style={styles.tipItem}>
+                                            <View style={styles.tipIcon}>
+                                                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
                                             </View>
-                                            <Text style={styles.enhancedCheckboxText}>
-                                                I acknowledge and agree to abide by all examination rules and academic integrity policies
-                                            </Text>
-                                        </TouchableOpacity>
+                                            <Text style={styles.tipText}>Read each question carefully before answering</Text>
+                                        </View>
+                                        
+                                        <View style={styles.tipItem}>
+                                            <View style={styles.tipIcon}>
+                                                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                                            </View>
+                                            <Text style={styles.tipText}>Use navigation buttons to review your answers</Text>
+                                        </View>
+                                        
+                                        <View style={styles.tipItem}>
+                                            <View style={styles.tipIcon}>
+                                                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                                            </View>
+                                            <Text style={styles.tipText}>Ensure stable internet connection throughout</Text>
+                                        </View>
                                     </View>
                                 </View>
                             </ScrollView>
                         </View>
 
-                        {/* Action Buttons */}
+                        {/* Enhanced Action Buttons */}
                         <View style={styles.enhancedModalActions}>
                             <TouchableOpacity 
                                 style={styles.enhancedCancelButton}
                                 onPress={() => setShowInstructionsModal(false)}
+                                activeOpacity={0.8}
                             >
-                                <Ionicons name="close-circle" size={20} color="#667eea" />
-                                <Text style={styles.enhancedCancelButtonText}>Cancel</Text>
+                                <View style={styles.cancelButtonContent}>
+                                    <Ionicons name="close" size={20} color="#6B7280" />
+                                    <Text style={styles.enhancedCancelButtonText}>Cancel</Text>
+                                </View>
                             </TouchableOpacity>
                             
                             <TouchableOpacity 
                                 style={[
                                     styles.enhancedBeginButton,
-                                    (!declarationChecked || joiningExam) && styles.enhancedBeginButtonDisabled
+                                    joiningExam && styles.enhancedBeginButtonDisabled
                                 ]}
                                 onPress={handleBeginExam}
-                                disabled={!declarationChecked || joiningExam}
+                                disabled={joiningExam}
+                                activeOpacity={0.8}
                             >
                                 <LinearGradient
-                                    colors={(!declarationChecked || joiningExam) ? ['#ccc', '#999'] : ['#667eea', '#764ba2']}
+                                    colors={joiningExam ? ['#9CA3AF', '#6B7280'] : ['#8B5CF6', '#7C3AED']}
                                     style={styles.beginButtonGradient}
                                 >
                                     {joiningExam ? (
-                                        <ActivityIndicator size="small" color="#fff" />
+                                        <View style={styles.loadingContent}>
+                                            <ActivityIndicator size="small" color="#fff" />
+                                            <Text style={styles.enhancedBeginButtonText}>Starting...</Text>
+                                        </View>
                                     ) : (
-                                        <>
-                                            <Ionicons name="play-circle" size={24} color="#fff" />
+                                        <View style={styles.beginButtonContent}>
+                                            <Ionicons name="play" size={20} color="#fff" />
                                             <Text style={styles.enhancedBeginButtonText}>Begin Exam</Text>
-                                        </>
+                                        </View>
                                     )}
                                 </LinearGradient>
                             </TouchableOpacity>
                         </View>
-                    </View>
-                </View>
+                    </TouchableOpacity>
+                </TouchableOpacity>
             </Modal>
 
             {/* Enhanced Header Section - Like Live Exam */}
@@ -573,40 +567,6 @@ const PracticeExamDetailsScreen = () => {
                         </LinearGradient>
                     </View>
 
-                    {/* Progress Dots - Like Live Exam */}
-                    <View style={styles.headerProgressSection}>
-                        <LinearGradient
-                            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.12)']}
-                            style={styles.progressSectionGradient}
-                        >
-                            <View style={styles.progressDotsContainer}>
-                                <View style={styles.progressDot}>
-                                    <LinearGradient
-                                        colors={exam?.attempted ? ["#10B981", "#059669"] : ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.2)']}
-                                        style={styles.progressDotGradient}
-                                    >
-                                        <Text style={styles.progressText}>1</Text>
-                                    </LinearGradient>
-                                </View>
-                                <View style={styles.progressDot}>
-                                    <LinearGradient
-                                        colors={exam?.attempted ? ["#10B981", "#059669"] : ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.2)']}
-                                        style={styles.progressDotGradient}
-                                    >
-                                        <Text style={styles.progressText}>2</Text>
-                                    </LinearGradient>
-                                </View>
-                                <View style={styles.progressDot}>
-                                    <LinearGradient
-                                        colors={exam?.attempted ? ["#10B981", "#059669"] : ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.2)']}
-                                        style={styles.progressDotGradient}
-                                    >
-                                        <Text style={styles.progressText}>3</Text>
-                                    </LinearGradient>
-                                </View>
-                            </View>
-                        </LinearGradient>
-                    </View>
                 </View>
             </LinearGradient>
 
@@ -631,18 +591,6 @@ const PracticeExamDetailsScreen = () => {
                 <View style={styles.contentContainer}>
                   {activeTab === 'Info' && (
                     <View style={styles.infoContainer}>
-                      {/* Exam Description */}
-                      {exam.description && (
-                        <View style={styles.enhancedOverviewCard}>
-                          <View style={styles.cardHeader}>
-                            <View style={styles.iconContainer}>
-                              <Ionicons name="document-text" size={24} color="#667eea" />
-                            </View>
-                            <Text style={styles.enhancedOverviewTitle}>Description</Text>
-                          </View>
-                          <Text style={styles.enhancedDescriptionText}>{exam.description}</Text>
-                        </View>
-                      )}
 
                       {/* Exam Details */}
                       <View style={styles.enhancedOverviewCard}>
@@ -653,6 +601,15 @@ const PracticeExamDetailsScreen = () => {
                           <Text style={styles.enhancedOverviewTitle}>Exam Details</Text>
                         </View>
                         <View style={styles.enhancedDetailsGrid}>
+                          {exam.description && (
+                            <View style={styles.descriptionItem}>
+                              <Ionicons name="document-text" size={20} color="#667eea" />
+                              <View style={styles.descriptionContainer}>
+                                <Text style={styles.detailLabel}>Description</Text>
+                                <Text style={styles.detailValue}>{exam.description}</Text>
+                              </View>
+                            </View>
+                          )}
                           <View style={styles.detailItem}>
                             <Ionicons name="folder-outline" size={20} color="#667eea" />
                             <View>
@@ -709,7 +666,7 @@ const PracticeExamDetailsScreen = () => {
                         onPress={exam.attempted ? handleReviewExam : handleStartExam}
                       >
                         <LinearGradient
-                          colors={exam.attempted ? ['#ff6b6b', '#ee5a52'] : ['#667eea', '#764ba2']}
+                          colors={exam.attempted ? ['#ff6b6b', '#ee5a52'] : ['#8B5CF6', '#7C3AED']}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 1 }}
                           style={styles.actionButtonGradient}
@@ -743,23 +700,24 @@ const PracticeExamDetailsScreen = () => {
                           {/* Enhanced Header Section */}
                           <View style={styles.enhancedLeaderboardHeader}>
                             <LinearGradient
-                              colors={['#667eea', '#764ba2']}
+                              colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
                               style={styles.headerGradient}
                             >
                               <View style={styles.headerContent}>
                                 <View style={styles.headerLeft}>
-                                  <Ionicons name="trophy" size={32} color="#FFD700" />
-                                  <View style={styles.headerTextContainer}>
-                                    <Text style={styles.enhancedLeaderboardTitle}>🏆 Leaderboard</Text>
-                                    <Text style={styles.enhancedLeaderboardSubtitle}>
-                                      {leaderboard.length} participant{leaderboard.length !== 1 ? 's' : ''} • Live Rankings
-                                    </Text>
+                                  <View style={styles.trophyIconContainer}>
+                                    <LinearGradient
+                                      colors={['#FFD700', '#FFA500']}
+                                      style={styles.trophyGradient}
+                                    >
+                                      <Ionicons name="trophy" size={32} color="#FFFFFF" />
+                                    </LinearGradient>
                                   </View>
-                                </View>
-                                <View style={styles.headerRight}>
-                                  <View style={styles.statsBadge}>
-                                    <Text style={styles.statsNumber}>{leaderboard.length}</Text>
-                                    <Text style={styles.statsLabel}>Total</Text>
+                                  <View style={styles.headerTextContainer}>
+                                    <Text style={styles.leaderboardTitle}>🏆 Practice Exam Leaderboard</Text>
+                                    <Text style={styles.leaderboardSubtitle}>
+                                      {leaderboard.length} participant{leaderboard.length !== 1 ? 's' : ''} • Real-time Rankings
+                                    </Text>
                                   </View>
                                 </View>
                               </View>
@@ -770,23 +728,40 @@ const PracticeExamDetailsScreen = () => {
                           {currentUser && (
                             <View style={styles.enhancedCurrentUserCard}>
                               <LinearGradient
-                                colors={['#FFD700', '#FFA500']}
+                                colors={['#10B981', '#059669']}
                                 style={styles.currentUserGradient}
                               >
                                 <View style={styles.currentUserContent}>
                                   <View style={styles.currentUserLeft}>
-                                    <View style={styles.currentUserRankBadge}>
-                                      <Ionicons name="star" size={24} color="#fff" />
-                                      <Text style={styles.currentUserRankNumber}>#{currentUser.rank}</Text>
+                                    <View style={styles.rankBadge}>
+                                      <LinearGradient
+                                        colors={['#FFFFFF', 'rgba(255,255,255,0.8)']}
+                                        style={styles.rankBadgeGradient}
+                                      >
+                                        <Ionicons name="star" size={20} color="#10B981" />
+                                        <Text style={styles.rankNumber}>#{currentUser.rank}</Text>
+                                      </LinearGradient>
                                     </View>
                                     <View style={styles.currentUserInfo}>
                                       <Text style={styles.currentUserName}>{currentUser.name}</Text>
                                       <Text style={styles.currentUserScoreLabel}>Your Performance</Text>
+                                      <View style={styles.currentUserBadges}>
+                                        <View style={styles.performanceBadge}>
+                                          <Ionicons name="checkmark-circle" size={12} color="#FFFFFF" />
+                                          <Text style={styles.badgeText}>Completed</Text>
+                                        </View>
+                                      </View>
                                     </View>
                                   </View>
                                   <View style={styles.currentUserRight}>
-                                    <Text style={styles.currentUserScore}>{currentUser.score} pts</Text>
-                                    <Text style={styles.currentUserTime}>{currentUser.timeTaken || 0}s</Text>
+                                    <View style={styles.scoreContainer}>
+                                      <Text style={styles.currentUserScore}>{currentUser.score}</Text>
+                                      <Text style={styles.scoreLabel}>points</Text>
+                                    </View>
+                                    <View style={styles.timeContainer}>
+                                      <Ionicons name="time" size={14} color="rgba(255,255,255,0.8)" />
+                                      <Text style={styles.currentUserTime}>{currentUser.timeTaken || 0}s</Text>
+                                    </View>
                                   </View>
                                 </View>
                               </LinearGradient>
@@ -796,10 +771,23 @@ const PracticeExamDetailsScreen = () => {
                           {/* Enhanced Participants List */}
                           <View style={styles.enhancedParticipantsList}>
                             <View style={styles.participantsHeader}>
-                              <Text style={styles.participantsTitle}>📊 All Participants</Text>
+                              <View style={styles.participantsTitleContainer}>
+                                <View style={styles.titleIconContainer}>
+                                  <Ionicons name="analytics" size={20} color="#8B5CF6" />
+                                </View>
+                                <View style={styles.titleTextContainer}>
+                                  <Text style={styles.participantsTitle}>All Participants</Text>
+                                  <Text style={styles.participantsSubtitle}>Ranked by performance score</Text>
+                                </View>
+                              </View>
                               <View style={styles.participantsFilter}>
-                                <Ionicons name="filter" size={16} color="#667eea" />
-                                <Text style={styles.filterText}>Ranked by Score</Text>
+                                <LinearGradient
+                                  colors={['rgba(139, 92, 246, 0.1)', 'rgba(124, 58, 237, 0.05)']}
+                                  style={styles.filterGradient}
+                                >
+                                  <Ionicons name="trending-up" size={16} color="#8B5CF6" />
+                                  <Text style={styles.filterText}>Score Ranking</Text>
+                                </LinearGradient>
                               </View>
                             </View>
                             
@@ -879,44 +867,122 @@ const PracticeExamDetailsScreen = () => {
                           <Text style={styles.loadingText}>Loading Results...</Text>
                         </View>
                       ) : result ? (
-                        <View style={styles.enhancedResultCard}>
+                        <View style={styles.superEnhancedResultCard}>
                           <LinearGradient
-                            colors={['#667eea', '#764ba2']}
-                            style={styles.resultHeaderGradient}
+                            colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
+                            style={styles.superResultHeaderGradient}
                           >
-                            <View style={styles.resultHeader}>
-                              <Ionicons name="trophy" size={48} color="#FFD700" />
-                              <Text style={styles.resultTitle}>Practice Exam Results</Text>
-                              <Text style={styles.resultScore}>Score: <Text style={{ color: '#FFD700' }}>{result.score}</Text> / {result.totalQuestions}</Text>
+                            <View style={styles.superResultHeader}>
+                              <View style={styles.trophyIconContainer}>
+                                <LinearGradient
+                                  colors={['#FFD700', '#FFA500']}
+                                  style={styles.resultTrophyGradient}
+                                >
+                                  <Ionicons name="trophy" size={40} color="#FFFFFF" />
+                                </LinearGradient>
+                              </View>
+                              <View style={styles.superResultTitleContainer}>
+                                <Text style={styles.superResultTitle}>Practice Exam Results</Text>
+                                <Text style={styles.superResultSubtitle}>Exam completed successfully</Text>
+                                <View style={styles.resultStatsRow}>
+                                  <View style={styles.resultStatItem}>
+                                    <Text style={styles.resultStatValue}>{result.score}</Text>
+                                    <Text style={styles.resultStatLabel}>Score</Text>
+                                  </View>
+                                  <View style={styles.resultStatDivider} />
+                                  <View style={styles.resultStatItem}>
+                                    <Text style={styles.resultStatValue}>{result.totalQuestions}</Text>
+                                    <Text style={styles.resultStatLabel}>Questions</Text>
+                                  </View>
+                                  <View style={styles.resultStatDivider} />
+                                  <View style={styles.resultStatItem}>
+                                    <Text style={styles.resultStatValue}>{result.earnedMarks || result.score}</Text>
+                                    <Text style={styles.resultStatLabel}>Marks</Text>
+                                  </View>
+                                </View>
+                              </View>
                             </View>
                           </LinearGradient>
-                          <View style={styles.enhancedSummaryGrid}>
-                            <View style={[styles.enhancedSummaryCard, { backgroundColor: '#e8f5e8' }]}> 
-                              <Ionicons name="checkmark-circle" size={32} color="#28a745" />
-                              <Text style={[styles.enhancedSummaryValue, { color: '#28a745' }]}>{result.correctAnswers}</Text>
-                              <Text style={styles.enhancedSummaryLabel}>Correct</Text>
+                          
+                          <View style={styles.superEnhancedSummaryGrid}>
+                            <View style={styles.superSummaryCard}>
+                              <LinearGradient
+                                colors={['rgba(16, 185, 129, 0.6)', 'rgba(5, 150, 105, 0.5)']}
+                                style={styles.summaryCardGradient}
+                              >
+                                <View style={styles.summaryIconContainer}>
+                                  <Ionicons name="checkmark-circle" size={28} color="#FFFFFF" />
+                                </View>
+                                <Text style={styles.superSummaryValue}>{result.correctAnswers}</Text>
+                                <Text style={styles.superSummaryLabel}>Correct</Text>
+                              </LinearGradient>
                             </View>
-                            <View style={[styles.enhancedSummaryCard, { backgroundColor: '#ffeaea' }]}> 
-                              <Ionicons name="close-circle" size={32} color="#dc3545" />
-                              <Text style={[styles.enhancedSummaryValue, { color: '#dc3545' }]}>{result.wrongAnswers}</Text>
-                              <Text style={styles.enhancedSummaryLabel}>Incorrect</Text>
+                            <View style={styles.superSummaryCard}>
+                              <LinearGradient
+                                colors={['rgba(239, 68, 68, 0.6)', 'rgba(220, 38, 38, 0.5)']}
+                                style={styles.summaryCardGradient}
+                              >
+                                <View style={styles.summaryIconContainer}>
+                                  <Ionicons name="close-circle" size={28} color="#FFFFFF" />
+                                </View>
+                                <Text style={styles.superSummaryValue}>{result.wrongAnswers}</Text>
+                                <Text style={styles.superSummaryLabel}>Incorrect</Text>
+                              </LinearGradient>
                             </View>
-                            <View style={[styles.enhancedSummaryCard, { backgroundColor: '#f0f0f0' }]}> 
-                              <Ionicons name="remove-circle" size={32} color="#6c757d" />
-                              <Text style={[styles.enhancedSummaryValue, { color: '#6c757d' }]}>{result.unattempted}</Text>
-                              <Text style={styles.enhancedSummaryLabel}>Unattempted</Text>
+                            <View style={styles.superSummaryCard}>
+                              <LinearGradient
+                                colors={['rgba(168, 85, 247, 0.6)', 'rgba(147, 51, 234, 0.5)']}
+                                style={styles.summaryCardGradient}
+                              >
+                                <View style={styles.summaryIconContainer}>
+                                  <Ionicons name="remove-circle" size={28} color="#FFFFFF" />
+                                </View>
+                                <Text style={styles.superSummaryValue}>{result.unattempted}</Text>
+                                <Text style={styles.superSummaryLabel}>Unattempted</Text>
+                              </LinearGradient>
                             </View>
                           </View>
+
+                          <View style={styles.resultDetailsSection}>
+                            <View style={styles.resultDetailsHeader}>
+                              <Ionicons name="analytics" size={20} color="#8B5CF6" />
+                              <Text style={styles.resultDetailsTitle}>Exam Details</Text>
+                            </View>
+                            <View style={styles.resultDetailsGrid}>
+                              <View style={styles.resultDetailItem}>
+                                <Text style={styles.resultDetailLabel}>Total Marks</Text>
+                                <Text style={styles.resultDetailValue}>{result.totalMarks || result.totalQuestions}</Text>
+                              </View>
+                              <View style={styles.resultDetailItem}>
+                                <Text style={styles.resultDetailLabel}>Earned Marks</Text>
+                                <Text style={styles.resultDetailValue}>{result.earnedMarks || result.score}</Text>
+                              </View>
+                              <View style={styles.resultDetailItem}>
+                                <Text style={styles.resultDetailLabel}>Completion Time</Text>
+                                <Text style={styles.resultDetailValue}>
+                                  {result.completedAt ? new Date(result.completedAt).toLocaleString() : 'N/A'}
+                                </Text>
+                              </View>
+                              <View style={styles.resultDetailItem}>
+                                <Text style={styles.resultDetailLabel}>Accuracy</Text>
+                                <Text style={styles.resultDetailValue}>
+                                  {result.totalQuestions > 0 ? ((result.correctAnswers / result.totalQuestions) * 100).toFixed(1) : 0}%
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+
                           <TouchableOpacity 
-                            style={styles.enhancedAnalysisButton}
+                            style={styles.superEnhancedAnalysisButton}
                             onPress={() => router.push({ pathname: '/(tabs)/practice-exam/result/[id]', params: { id } })}
                           >
                             <LinearGradient
-                              colors={['#667eea', '#764ba2']}
-                              style={styles.analysisButtonGradient}
+                              colors={['#8B5CF6', '#7C3AED']}
+                              style={styles.superAnalysisButtonGradient}
                             >
-                              <Ionicons name="analytics-outline" size={20} color="#fff" />
-                              <Text style={styles.enhancedAnalysisButtonText}>View Detailed Analysis</Text>
+                              <Ionicons name="analytics-outline" size={24} color="#fff" />
+                              <Text style={styles.superEnhancedAnalysisButtonText}>View Detailed Analysis</Text>
+                              <Ionicons name="arrow-forward" size={20} color="#fff" />
                             </LinearGradient>
                           </TouchableOpacity>
                         </View>
@@ -1383,9 +1449,7 @@ const styles = StyleSheet.create({
     },
     leaderboardContainer: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: 50,
+        gap: 20,
     },
     leaderboardTitle: {
         fontSize: 18,
@@ -2150,6 +2214,422 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 6,
     },
+    superEnhancedLeaderboardHeader: {
+        marginBottom: 20,
+        borderRadius: 20,
+        overflow: 'hidden',
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        elevation: 8,
+    },
+    superHeaderGradient: {
+        padding: 24,
+    },
+    superHeaderContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    superHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    trophyIconContainer: {
+        marginRight: 16,
+    },
+    trophyGradient: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    superHeaderTextContainer: {
+        flex: 1,
+    },
+    superEnhancedLeaderboardTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 4,
+    },
+    superEnhancedLeaderboardSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginBottom: 8,
+    },
+    headerStatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerStatItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    headerStatText: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginLeft: 4,
+        fontWeight: '500',
+    },
+    headerStatDivider: {
+        width: 1,
+        height: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        marginRight: 16,
+    },
+    superEnhancedCurrentUserCard: {
+        marginBottom: 20,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    superCurrentUserGradient: {
+        padding: 20,
+    },
+    superCurrentUserContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    superCurrentUserLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    superCurrentUserRankBadge: {
+        marginRight: 16,
+    },
+    rankBadgeGradient: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+    },
+    superCurrentUserRankNumber: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#10B981',
+        marginLeft: 4,
+    },
+    superCurrentUserInfo: {
+        flex: 1,
+    },
+    superCurrentUserName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 2,
+    },
+    superCurrentUserScoreLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginBottom: 8,
+    },
+    currentUserBadges: {
+        flexDirection: 'row',
+    },
+    performanceBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+    },
+    badgeText: {
+        fontSize: 10,
+        color: '#FFFFFF',
+        marginLeft: 4,
+        fontWeight: '500',
+    },
+    superCurrentUserRight: {
+        alignItems: 'flex-end',
+    },
+    scoreContainer: {
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    superCurrentUserScore: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+    },
+    scoreLabel: {
+        fontSize: 10,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginTop: 2,
+    },
+    timeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    superCurrentUserTime: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginLeft: 4,
+        fontWeight: '500',
+    },
+    superEnhancedParticipantsList: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    superParticipantsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+        paddingBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    superParticipantsTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    titleIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    titleTextContainer: {
+        flex: 1,
+    },
+    superParticipantsTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginBottom: 2,
+    },
+    superParticipantsSubtitle: {
+        fontSize: 12,
+        color: '#6B7280',
+    },
+    superParticipantsFilter: {
+        marginLeft: 16,
+    },
+    filterGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    superFilterText: {
+        fontSize: 12,
+        color: '#8B5CF6',
+        marginLeft: 6,
+        fontWeight: '500',
+    },
+    superEnhancedResultCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        marginHorizontal: 18,
+        marginBottom: 20,
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
+        overflow: 'hidden',
+    },
+    superResultHeaderGradient: {
+        padding: 24,
+    },
+    superResultHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    resultTrophyGradient: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    superResultTitleContainer: {
+        flex: 1,
+        marginLeft: 16,
+    },
+    superResultTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 4,
+    },
+    superResultSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginBottom: 12,
+    },
+    resultStatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    resultStatItem: {
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    resultStatValue: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 2,
+    },
+    resultStatLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+    },
+    resultStatDivider: {
+        width: 1,
+        height: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        marginRight: 16,
+    },
+    superEnhancedSummaryGrid: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: 20,
+        gap: 12,
+    },
+    superSummaryCard: {
+        flex: 1,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    summaryCardGradient: {
+        padding: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    summaryIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    superSummaryValue: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 4,
+    },
+    superSummaryLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: '500',
+    },
+    resultDetailsSection: {
+        backgroundColor: '#F8FAFC',
+        marginHorizontal: 20,
+        marginBottom: 20,
+        borderRadius: 16,
+        padding: 20,
+    },
+    resultDetailsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    resultDetailsTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginLeft: 8,
+    },
+    resultDetailsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+    },
+    resultDetailItem: {
+        width: '48%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    resultDetailLabel: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginBottom: 4,
+        fontWeight: '500',
+    },
+    resultDetailValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1F2937',
+    },
+    superEnhancedAnalysisButton: {
+        marginHorizontal: 20,
+        marginBottom: 20,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    superAnalysisButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        gap: 12,
+    },
+    superEnhancedAnalysisButtonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        flex: 1,
+        textAlign: 'center',
+    },
     headerGradient: {
         padding: 20,
     },
@@ -2575,15 +3055,15 @@ const styles = StyleSheet.create({
         paddingTop: 120,
     },
     enhancedModalContent: {
-        width: '85%',
-        maxHeight: '60%',
+        width: '90%',
+        maxHeight: '75%',
         backgroundColor: AppColors.white,
-        borderRadius: 18,
+        borderRadius: 24,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 15 },
+        shadowOpacity: 0.3,
+        shadowRadius: 25,
+        elevation: 15,
         flexDirection: 'column',
         paddingBottom: 20,
     },
@@ -2618,15 +3098,99 @@ const styles = StyleSheet.create({
     modalBodyContainer: {
         flex: 1,
         paddingHorizontal: 16,
-        minHeight: 250,
+        minHeight: 300,
+        maxHeight: 450,
         backgroundColor: AppColors.white,
+    },
+    instructionsSection: {
+        marginBottom: 20,
+    },
+    instructionsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    instructionsTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginLeft: 8,
+    },
+    instructionsCard: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: 12,
+        padding: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: '#8B5CF6',
+    },
+    instructionItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 16,
+    },
+    instructionNumber: {
+        backgroundColor: '#8B5CF6',
+        borderRadius: 12,
+        width: 24,
+        height: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+        flexShrink: 0,
+    },
+    instructionNumberText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    instructionText: {
+        fontSize: 14,
+        color: '#374151',
+        flex: 1,
+        lineHeight: 20,
+    },
+    tipsSection: {
+        marginBottom: 20,
+    },
+    tipsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    tipsTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginLeft: 8,
+    },
+    tipsCard: {
+        backgroundColor: '#FFFBEB',
+        borderRadius: 12,
+        padding: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: '#F59E0B',
+    },
+    tipItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    tipIcon: {
+        marginRight: 8,
+    },
+    tipText: {
+        fontSize: 14,
+        color: '#374151',
+        flex: 1,
+        lineHeight: 20,
     },
     enhancedInstructionsScroll: {
         flex: 1,
     },
     scrollContentContainer: {
         paddingVertical: 16,
-        paddingBottom: 20,
+        paddingBottom: 30,
+        flexGrow: 1,
     },
     enhancedInstructionsSection: {
         marginBottom: 10,
@@ -2739,28 +3303,31 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 10,
-        paddingTop: 15,
+        marginTop: 12,
+        paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: '#e9ecef',
+        borderTopColor: '#F3F4F6',
         backgroundColor: AppColors.white,
         paddingHorizontal: 16,
-        paddingBottom: 10,
+        paddingBottom: 16,
+        gap: 12,
     },
     enhancedCancelButton: {
         flex: 1,
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 32,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: '#667eea',
+        backgroundColor: 'transparent',
         alignItems: 'center',
-        marginRight: 10,
+        marginRight: 6,
     },
     enhancedCancelButtonText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '600',
         color: '#667eea',
+        marginLeft: 4,
     },
     enhancedBeginButton: {
         flex: 2,
@@ -2770,7 +3337,7 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         paddingHorizontal: 20,
         borderRadius: 12,
-        backgroundColor: '#667eea',
+        backgroundColor: 'transparent',
         gap: 8,
     },
     enhancedBeginButtonDisabled: {
@@ -2778,7 +3345,7 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     enhancedBeginButtonText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#fff',
     },
@@ -2838,6 +3405,21 @@ const styles = StyleSheet.create({
         marginHorizontal: 4,
         minWidth: '45%',
     },
+    descriptionItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: 'rgba(102, 126, 234, 0.05)',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+        flex: 1,
+        marginHorizontal: 4,
+        minWidth: '100%',
+    },
+    descriptionContainer: {
+        flex: 1,
+        marginLeft: 12,
+    },
     detailLabel: {
         fontSize: 12,
         color: '#7f8c8d',
@@ -2859,7 +3441,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 12,
         elevation: 8,
-        marginTop: 20,
+        marginTop: 8,
         marginBottom: 20,
     },
     enhancedStartButton: {
@@ -2927,10 +3509,341 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 14,
-        paddingHorizontal: 20,
+        paddingVertical: 8,
+        paddingHorizontal: 32,
+        borderRadius: 8,
+        gap: 4,
+    },
+    // Enhanced Leaderboard Styles
+    leaderboardScrollView: {
+        flex: 1,
+    },
+    leaderboardScrollContent: {
+        paddingBottom: 20,
+    },
+    enhancedLeaderboardHeader: {
+        marginBottom: 20,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    headerGradient: {
+        padding: 20,
+    },
+    headerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    trophyIconContainer: {
+        marginRight: 16,
+    },
+    trophyGradient: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    headerTextContainer: {
+        flex: 1,
+    },
+    leaderboardTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 4,
+    },
+    leaderboardSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.8)',
+    },
+    enhancedCurrentUserCard: {
+        marginHorizontal: 20,
+        marginBottom: 20,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    currentUserGradient: {
+        padding: 16,
+    },
+    currentUserContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    currentUserLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    rankBadge: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    rankBadgeGradient: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+    },
+    rankNumber: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#10B981',
+        marginLeft: 4,
+    },
+    currentUserInfo: {
+        flex: 1,
+    },
+    currentUserName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 4,
+    },
+    currentUserScoreLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginBottom: 8,
+    },
+    currentUserBadges: {
+        flexDirection: 'row',
+        gap: 6,
+    },
+    performanceBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        gap: 3,
+    },
+    badgeText: {
+        fontSize: 10,
+        color: '#FFFFFF',
+        fontWeight: '500',
+    },
+    currentUserRight: {
+        alignItems: 'flex-end',
+    },
+    scoreContainer: {
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    currentUserScore: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+    },
+    scoreLabel: {
+        fontSize: 10,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginTop: 2,
+    },
+    timeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    currentUserTime: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+    },
+    enhancedParticipantsList: {
+        marginHorizontal: 20,
+    },
+    participantsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
         borderRadius: 12,
-        gap: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    participantsTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    titleIconContainer: {
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        borderRadius: 8,
+        padding: 8,
+        marginRight: 12,
+    },
+    titleTextContainer: {
+        flex: 1,
+    },
+    participantsTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginBottom: 2,
+    },
+    participantsSubtitle: {
+        fontSize: 12,
+        color: '#6B7280',
+    },
+    participantsFilter: {
+        marginLeft: 12,
+    },
+    filterGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        gap: 4,
+    },
+    filterText: {
+        fontSize: 10,
+        color: '#8B5CF6',
+        fontWeight: '600',
+    },
+    enhancedParticipantCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.05)',
+    },
+    participantLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    enhancedRankBadge: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    },
+    firstPlaceBadge: {
+        backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    },
+    secondPlaceBadge: {
+        backgroundColor: 'rgba(192, 192, 192, 0.2)',
+    },
+    thirdPlaceBadge: {
+        backgroundColor: 'rgba(205, 127, 50, 0.2)',
+    },
+    enhancedParticipantAvatar: {
+        marginRight: 12,
+        position: 'relative',
+    },
+    currentUserIndicator: {
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        backgroundColor: '#FFD700',
+        borderRadius: 8,
+        width: 16,
+        height: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    participantInfo: {
+        flex: 1,
+    },
+    participantName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginBottom: 4,
+    },
+    participantDetails: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    participantTime: {
+        fontSize: 11,
+        color: '#6B7280',
+    },
+    participantRight: {
+        alignItems: 'flex-end',
+    },
+    participantScore: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginBottom: 4,
+    },
+    currentUserBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#8B5CF6',
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        gap: 3,
+    },
+    currentUserBadgeText: {
+        fontSize: 9,
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
+    currentUserParticipantCard: {
+        borderWidth: 2,
+        borderColor: '#10B981',
+        backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    },
+    firstPlaceCard: {
+        borderWidth: 2,
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255, 215, 0, 0.05)',
+    },
+    secondPlaceCard: {
+        borderWidth: 2,
+        borderColor: '#C0C0C0',
+        backgroundColor: 'rgba(192, 192, 192, 0.05)',
+    },
+    thirdPlaceCard: {
+        borderWidth: 2,
+        borderColor: '#CD7F32',
+        backgroundColor: 'rgba(205, 127, 50, 0.05)',
     },
 });
 

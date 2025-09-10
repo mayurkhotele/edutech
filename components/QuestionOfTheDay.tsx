@@ -1,7 +1,8 @@
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Audio } from 'expo-av';
 import {
   ActivityIndicator,
   Animated,
@@ -35,6 +36,8 @@ const QuestionOfTheDay = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isAnswered, setIsAnswered] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const tickSoundRef = useRef<Audio.Sound | null>(null);
+  const [tickReady, setTickReady] = useState(false);
   
   // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -72,6 +75,55 @@ const QuestionOfTheDay = () => {
     }
   }, [questionData]);
 
+  // Prepare audio for ticking (optional sound)
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          interruptionModeIOS: 1,
+          shouldDuckAndroid: true,
+          interruptionModeAndroid: 1,
+          playThroughEarpieceAndroid: false,
+        });
+        // Try primary clock tick sound, fallback to alternative if it fails
+        let sound: Audio.Sound | null = null;
+        try {
+          const created = await Audio.Sound.createAsync(
+            { uri: 'https://assets.mixkit.co/sfx/preview/mixkit-clock-tick-1051.mp3' },
+            { volume: 1.0, shouldPlay: false, isLooping: false }
+          );
+          sound = created.sound;
+        } catch (e) {
+          console.log('Primary tick sound failed, trying fallback...', e);
+          const fallback = await Audio.Sound.createAsync(
+            { uri: 'https://assets.mixkit.co/sfx/preview/mixkit-mechanical-click-1120.mp3' },
+            { volume: 1.0, shouldPlay: false, isLooping: false }
+          );
+          sound = fallback.sound;
+        }
+        if (!isMounted) {
+          await sound.unloadAsync();
+          return;
+        }
+        tickSoundRef.current = sound;
+        setTickReady(true);
+      } catch (e) {
+        console.log('Tick sound load failed:', e);
+      }
+    })();
+    return () => {
+      isMounted = false;
+      if (tickSoundRef.current) {
+        tickSoundRef.current.unloadAsync().catch(() => {});
+        tickSoundRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     console.log('Timer effect - timeLeft:', timeLeft, 'isAnswered:', isAnswered, 'hasAttempted:', questionData?.hasAttempted);
     if (timeLeft > 0 && !isAnswered && !questionData?.hasAttempted) {
@@ -82,6 +134,23 @@ const QuestionOfTheDay = () => {
       return () => clearTimeout(timer);
     }
   }, [timeLeft, isAnswered, questionData?.hasAttempted]);
+
+  // Play tick on each decrement
+  useEffect(() => {
+    if (!tickReady) return;
+    if (timeLeft > 0 && !isAnswered && !questionData?.hasAttempted) {
+      // Fire tick sound (no overlap)
+      (async () => {
+        try {
+          const s = tickSoundRef.current;
+          if (!s) return;
+          await s.replayAsync();
+        } catch (e) {
+          // ignore
+        }
+      })();
+    }
+  }, [timeLeft, isAnswered, questionData?.hasAttempted, tickReady]);
 
   const fetchQuestionOfTheDay = async () => {
     if (!user?.token) {

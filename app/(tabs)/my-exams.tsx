@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
     ActivityIndicator,
     Animated,
@@ -35,11 +36,14 @@ interface MyExam {
 
 const MyExamsScreen = () => {
     const { user } = useAuth();
+    const router = useRouter();
     const [exams, setExams] = useState<MyExam[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'LIVE' | 'PRACTICE'>('ALL');
+    const [showOnlyCompleted, setShowOnlyCompleted] = useState(true);
+    const [compactView, setCompactView] = useState(false);
     const [fadeAnim] = useState(new Animated.Value(0));
     const [showDetails, setShowDetails] = useState(false);
     const [selectedExam, setSelectedExam] = useState<MyExam | null>(null);
@@ -159,6 +163,18 @@ const MyExamsScreen = () => {
         if (selectedFilter !== 'ALL') {
             filtered = filtered.filter(exam => exam.examType === selectedFilter);
         }
+
+        // Show only completed attempts by default
+        if (showOnlyCompleted) {
+            filtered = filtered.filter(exam => exam.status === 'COMPLETED');
+        }
+        
+        // Sort by completion date - most recent first
+        filtered = filtered.sort((a, b) => {
+            const dateA = new Date(a.completedAt || a.createdAt || 0);
+            const dateB = new Date(b.completedAt || b.createdAt || 0);
+            return dateB.getTime() - dateA.getTime(); // Descending order (newest first)
+        });
         
         return filtered;
     };
@@ -187,6 +203,38 @@ const MyExamsScreen = () => {
             </Text>
         </TouchableOpacity>
     );
+
+    const renderExamRow = ({ item }: { item: MyExam }) => {
+        const percentage = getScorePercentage(item.score, item.totalQuestions);
+        const statusColor = getStatusColor(item.status);
+        return (
+            <TouchableOpacity activeOpacity={0.9} style={styles.rowItem} onPress={() => handleViewDetails(item)}>
+                <View style={[styles.rowThumb, { backgroundColor: getExamTypeColor(item.examType) }]}>
+                    <Ionicons name={item.examType === 'LIVE' ? 'radio' : 'school'} size={16} color={AppColors.white} />
+                </View>
+                <View style={styles.rowCenter}>
+                    <Text style={styles.rowTitle} numberOfLines={1}>{item.examName}</Text>
+                    <View style={styles.rowMeta}>
+                        <View style={[styles.rowBadge, { backgroundColor: getExamTypeColor(item.examType) }]}>
+                            <Text style={styles.rowBadgeText}>{item.examType}</Text>
+                        </View>
+                        <View style={[styles.rowBadge, { backgroundColor: statusColor }]}>
+                            <Text style={styles.rowBadgeText}>{item.status}</Text>
+                        </View>
+                        {item.completedAt ? (
+                            <Text style={styles.rowDate}>{formatDate(item.completedAt)}</Text>
+                        ) : null}
+                    </View>
+                </View>
+                <View style={styles.rowRight}>
+                    <View style={styles.rowScorePill}>
+                        <Text style={styles.rowScoreText}>{percentage}%</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color="#6c757d" />
+                </View>
+            </TouchableOpacity>
+        );
+    };
 
     const renderExamCard = ({ item, index }: { item: MyExam; index: number }) => {
         const percentage = getScorePercentage(item.score, item.totalQuestions);
@@ -329,15 +377,20 @@ const MyExamsScreen = () => {
     };
 
     const handleViewDetails = (exam: MyExam) => {
-        setSelectedExam(exam);
-        setShowDetails(true);
+        try {
+            const targetId = exam.examId || exam.id;
+            router.push({ pathname: '/(tabs)/exam/[id]' as any, params: { id: String(targetId), from: 'my-exams', status: exam.status } });
+        } catch {
+            setSelectedExam(exam);
+            setShowDetails(true);
+        }
     };
 
     if (loading) {
         return (
             <SafeAreaView style={styles.container}>
                 <LinearGradient
-                    colors={['#667eea', '#764ba2']}
+                    colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                     style={styles.header}
                 >
                     <Text style={styles.headerTitle}>My Exams</Text>
@@ -355,7 +408,7 @@ const MyExamsScreen = () => {
         return (
             <SafeAreaView style={styles.container}>
                 <LinearGradient
-                    colors={['#667eea', '#764ba2']}
+                    colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                     style={styles.header}
                 >
                     <Text style={styles.headerTitle}>My Exams</Text>
@@ -375,7 +428,7 @@ const MyExamsScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <LinearGradient
-                colors={['#667eea', '#764ba2']}
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                 style={styles.header}
             >
                 <Text style={styles.headerTitle}>My Exams</Text>
@@ -408,11 +461,14 @@ const MyExamsScreen = () => {
                 </View>
             </View>
 
-            {/* Filter Buttons */}
+            {/* Filter Controls */}
             <View style={styles.filterContainer}>
-                {renderFilterButton('ALL', 'All', 'list')}
-                {renderFilterButton('LIVE', 'Live', 'radio')}
-                {renderFilterButton('PRACTICE', 'Practice', 'school')}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {renderFilterButton('ALL', 'All', 'list')}
+                    {renderFilterButton('LIVE', 'Live', 'radio')}
+                    {renderFilterButton('PRACTICE', 'Practice', 'school')}
+                </View>
+                <View />
             </View>
 
             {filteredExams.length === 0 ? (
@@ -446,7 +502,7 @@ const MyExamsScreen = () => {
                 <FlatList
                     data={filteredExams}
                     keyExtractor={(item) => item.id}
-                    renderItem={renderExamCard}
+                    renderItem={compactView ? renderExamRow : renderExamCard}
                     contentContainerStyle={styles.listContainer}
                     refreshControl={
                         <RefreshControl
@@ -566,21 +622,67 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8f9fa',
     },
     header: {
-        padding: 20,
-        paddingTop: 10,
-        paddingBottom: 25,
+        padding: 16,
+        paddingTop: 8,
+        paddingBottom: 12,
+        borderBottomLeftRadius: 16,
+        borderBottomRightRadius: 16,
+    },
+    headerBackgroundPattern: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        opacity: 0.5,
+    },
+    headerPatternCircle1: {
+        position: 'absolute',
+        top: 6,
+        right: 18,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        backgroundColor: 'rgba(255,255,255,0.25)'
+    },
+    headerPatternCircle2: {
+        position: 'absolute',
+        bottom: 8,
+        left: 20,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: 'rgba(255,255,255,0.2)'
+    },
+    headerPatternDots: {
+        position: 'absolute',
+        top: 12,
+        left: 60,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: 'rgba(255,255,255,0.18)'
+    },
+    headerShimmerBar: {
+        position: 'absolute',
+        top: 0,
+        left: -80,
+        width: 120,
+        height: '100%',
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        transform: [{ skewX: '-20deg' }],
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: 'bold',
         color: AppColors.white,
-        marginBottom: 8,
+        marginBottom: 4,
         textShadowColor: 'rgba(0,0,0,0.3)',
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 4,
     },
     headerSubtitle: {
-        fontSize: 16,
+        fontSize: 13,
         color: 'rgba(255,255,255,0.9)',
         fontWeight: '500',
     },
@@ -659,22 +761,22 @@ const styles = StyleSheet.create({
         fontWeight: '400',
     },
     listContainer: {
-        padding: 16,
+        padding: 12,
         paddingTop: 8,
     },
     examCard: {
-        marginBottom: 16,
-        borderRadius: 20,
+        marginBottom: 12,
+        borderRadius: 16,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 5,
         transform: [{ scale: 1 }],
     },
     cardGradient: {
-        borderRadius: 20,
-        padding: 24,
+        borderRadius: 16,
+        padding: 16,
         overflow: 'hidden',
         backgroundColor: '#ffffff',
         borderWidth: 1,
@@ -684,36 +786,36 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 20,
+        marginBottom: 12,
     },
     examInfo: {
         flex: 1,
-        marginRight: 16,
+        marginRight: 12,
     },
     examNameContainer: {
         marginBottom: 12,
     },
     examName: {
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#2c3e50',
-        marginBottom: 10,
-        lineHeight: 26,
+        marginBottom: 6,
+        lineHeight: 22,
     },
     examTypeContainer: {
         flexDirection: 'row',
-        gap: 10,
+        gap: 8,
     },
     examTypeBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 16,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
         gap: 4,
     },
     examTypeText: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '700',
         color: '#ffffff',
         textTransform: 'uppercase',
@@ -721,79 +823,79 @@ const styles = StyleSheet.create({
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 16,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
         gap: 4,
     },
     statusText: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '700',
         color: '#ffffff',
         textTransform: 'uppercase',
     },
     scoreContainer: {
         alignItems: 'center',
-        minWidth: 80,
+        minWidth: 68,
     },
     scoreGradient: {
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 16,
-        minWidth: 80,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 12,
+        minWidth: 68,
         backgroundColor: '#667eea',
         shadowColor: '#667eea',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.22,
+        shadowRadius: 6,
+        elevation: 4,
     },
     scoreText: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#ffffff',
     },
     scoreLabel: {
-        fontSize: 12,
+        fontSize: 10,
         color: 'rgba(255,255,255,0.9)',
         marginTop: 2,
         fontWeight: '500',
     },
     scorePercentageContainer: {
-        marginTop: 4,
+        marginTop: 3,
         backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: 8,
+        paddingHorizontal: 6,
         paddingVertical: 2,
-        borderRadius: 8,
+        borderRadius: 6,
     },
     scorePercentage: {
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: 'bold',
         color: '#ffffff',
     },
     cardDetails: {
-        gap: 16,
+        gap: 12,
     },
     detailRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        gap: 16,
+        gap: 12,
     },
     detailItem: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
         backgroundColor: 'rgba(255,255,255,0.1)',
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 10,
         gap: 8,
     },
     detailIconContainer: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
         backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
@@ -802,36 +904,36 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     detailLabel: {
-        fontSize: 10,
+        fontSize: 9,
         color: 'rgba(255,255,255,0.7)',
         fontWeight: '500',
         textTransform: 'uppercase',
         marginBottom: 2,
     },
     detailText: {
-        fontSize: 14,
+        fontSize: 12,
         color: 'rgba(255,255,255,0.95)',
         fontWeight: '600',
     },
     completedAtContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 8,
-        paddingTop: 16,
+        marginTop: 6,
+        paddingTop: 12,
         borderTopWidth: 1,
         borderTopColor: '#e9ecef',
         gap: 8,
     },
     completedAtIconContainer: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
         backgroundColor: '#e9ecef',
         justifyContent: 'center',
         alignItems: 'center',
     },
     completedAtText: {
-        fontSize: 12,
+        fontSize: 11,
         color: '#6c757d',
         marginLeft: 6,
     },
@@ -895,6 +997,147 @@ const styles = StyleSheet.create({
     filterButtonTextActive: {
         color: '#ffffff',
     },
+    viewToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 16,
+        borderWidth: 2,
+        borderColor: '#e9ecef',
+        backgroundColor: '#ffffff',
+        gap: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    viewToggleActive: {
+        borderColor: '#667eea',
+        backgroundColor: '#667eea',
+        shadowColor: '#667eea',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    viewToggleText: {
+        fontSize: 12,
+        color: '#6c757d',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+    },
+    viewToggleTextActive: {
+        color: '#ffffff',
+    },
+    rowItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        borderRadius: 14,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: '#e9ecef',
+        marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    rowThumb: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    rowCenter: {
+        flex: 1,
+    },
+    rowTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#2c3e50',
+        marginBottom: 4,
+    },
+    rowMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flexWrap: 'wrap',
+    },
+    rowBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 10,
+    },
+    rowBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#ffffff',
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
+    },
+    rowDate: {
+        fontSize: 11,
+        color: '#6c757d',
+        marginLeft: 4,
+    },
+    rowRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginLeft: 10,
+    },
+    rowScorePill: {
+        backgroundColor: '#e9ecef',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 10,
+    },
+    rowScoreText: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#2c3e50',
+    },
+    completedToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 16,
+        borderWidth: 2,
+        borderColor: '#e9ecef',
+        backgroundColor: '#ffffff',
+        gap: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    completedToggleActive: {
+        borderColor: '#28a745',
+        backgroundColor: '#28a745',
+        shadowColor: '#28a745',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    completedToggleText: {
+        fontSize: 12,
+        color: '#6c757d',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+    },
+    completedToggleTextActive: {
+        color: '#ffffff',
+    },
     performanceIndicator: {
         position: 'absolute',
         top: 12,
@@ -917,8 +1160,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        gap: 12,
-        marginTop: 16,
+        gap: 10,
+        marginTop: 12,
     },
     statItem: {
         flexDirection: 'row',
@@ -926,17 +1169,17 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: '45%',
         backgroundColor: '#f8f9fa',
-        paddingHorizontal: 12,
-        paddingVertical: 12,
-        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        borderRadius: 10,
         gap: 8,
         borderWidth: 1,
         borderColor: '#e9ecef',
     },
     statIconContainer: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
         backgroundColor: '#e9ecef',
         justifyContent: 'center',
         alignItems: 'center',
@@ -945,13 +1188,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     statValue: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#2c3e50',
         marginBottom: 2,
     },
     statLabel: {
-        fontSize: 11,
+        fontSize: 10,
         color: '#6c757d',
         fontWeight: '500',
         textTransform: 'uppercase',
@@ -1106,16 +1349,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#f8f9fa',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 12,
-        marginTop: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 10,
+        marginTop: 12,
         borderWidth: 1,
         borderColor: '#e9ecef',
         gap: 8,
     },
     viewDetailsText: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
         color: '#667eea',
     },
