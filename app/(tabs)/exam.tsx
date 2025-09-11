@@ -1,6 +1,7 @@
 import { apiFetchAuth } from '@/constants/api';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
+import { applyExamFilters } from '@/utils/examFilter';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -173,24 +174,11 @@ export default function ExamScreen() {
 
     // Filter exams based on selected category and search query
     useEffect(() => {
-        let filtered = exams;
-        
-        // Apply category filter
-        if (selectedCategory === 'all') {
-            filtered = exams;
-        } else if (selectedCategory === 'uncategorized') {
-            filtered = exams.filter((exam: any) => !exam.category || exam.category === null);
-        } else {
-            filtered = exams.filter((exam: any) => exam.category === selectedCategory);
-        }
-        
-        // Apply search filter
-        if (searchQuery.trim()) {
-            filtered = filtered.filter((exam: any) => {
-                const examName = exam.name || exam.examName || exam.title || '';
-                return examName.toLowerCase().includes(searchQuery.toLowerCase());
-            });
-        }
+        const filtered = applyExamFilters(exams, {
+            category: selectedCategory,
+            searchQuery: searchQuery,
+            includeExpired: false // Filter out expired exams
+        });
         
         setFilteredExams(filtered);
     }, [selectedCategory, exams, searchQuery]);

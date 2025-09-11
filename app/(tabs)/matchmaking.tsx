@@ -5,13 +5,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  Easing,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Animated,
+    Dimensions,
+    Easing,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 
@@ -48,6 +48,9 @@ export default function MatchmakingScreen() {
   const [isConnected, setIsConnected] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   
+  // Countdown state
+  const [countdown, setCountdown] = useState(3);
+  
   // Enhanced Animation values
   const [pulseAnim] = useState(new Animated.Value(1));
   const [scaleAnim] = useState(new Animated.Value(1));
@@ -65,6 +68,7 @@ export default function MatchmakingScreen() {
   
   // Refs
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const searchStartTime = useRef<number>(Date.now());
   const hasStartedSearch = useRef(false);
 
@@ -231,6 +235,21 @@ export default function MatchmakingScreen() {
         ...prev,
         status: 'starting'
       }));
+      
+      // Start countdown
+      setCountdown(3);
+      countdownRef.current = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            if (countdownRef.current) {
+              clearInterval(countdownRef.current);
+              countdownRef.current = null;
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     });
 
     socket.on('match_ready', (data: { matchId: string; roomCode?: string }) => {
@@ -240,6 +259,11 @@ export default function MatchmakingScreen() {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
+      }
+      
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
       }
       
       if (searchTimeout) {
@@ -287,6 +311,11 @@ export default function MatchmakingScreen() {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
+      }
+      
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
       }
       
       // Clean up socket listeners
@@ -1124,8 +1153,10 @@ export default function MatchmakingScreen() {
                 colors={['#FF6B6B', '#FF8E53', '#FFD93D']}
                 style={styles.countdownGradient}
               >
-                <Text style={styles.countdownNumber}>3</Text>
-                <Text style={styles.countdownText}>Battle begins in...</Text>
+                <Text style={styles.countdownNumber}>{countdown}</Text>
+                <Text style={styles.countdownText}>
+                  {countdown > 0 ? 'Battle begins in...' : 'GO!'}
+                </Text>
               </LinearGradient>
             </View>
           </View>

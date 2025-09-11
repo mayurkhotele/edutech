@@ -172,10 +172,17 @@ const PracticeExamDetailsScreen = () => {
             console.log('Practice exam leaderboard response:', response);
             
             if (response.ok) {
-                console.log('Practice exam leaderboard data:', response.data);
                 const data: LeaderboardResponse = response.data;
                 setCurrentUser(data.currentUser);
-                setLeaderboard(data.leaderboard || []);
+                
+                // Sort leaderboard by rank to ensure proper order
+                const sortedLeaderboard = (data.leaderboard || []).sort((a, b) => {
+                    const rankA = typeof a.rank === 'string' ? parseInt(a.rank, 10) : a.rank;
+                    const rankB = typeof b.rank === 'string' ? parseInt(b.rank, 10) : b.rank;
+                    return rankA - rankB;
+                });
+                
+                setLeaderboard(sortedLeaderboard);
             } else {
                 console.error('Failed to fetch practice exam leaderboard:', response.data);
                 setCurrentUser(null);
@@ -697,153 +704,49 @@ const PracticeExamDetailsScreen = () => {
                           showsVerticalScrollIndicator={false}
                           contentContainerStyle={styles.leaderboardScrollContent}
                         >
-                          {/* Enhanced Header Section */}
-                          <View style={styles.enhancedLeaderboardHeader}>
-                            <LinearGradient
-                              colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
-                              style={styles.headerGradient}
-                            >
-                              <View style={styles.headerContent}>
-                                <View style={styles.headerLeft}>
-                                  <View style={styles.trophyIconContainer}>
-                                    <LinearGradient
-                                      colors={['#FFD700', '#FFA500']}
-                                      style={styles.trophyGradient}
-                                    >
-                                      <Ionicons name="trophy" size={32} color="#FFFFFF" />
-                                    </LinearGradient>
-                                  </View>
-                                  <View style={styles.headerTextContainer}>
-                                    <Text style={styles.leaderboardTitle}>🏆 Practice Exam Leaderboard</Text>
-                                    <Text style={styles.leaderboardSubtitle}>
-                                      {leaderboard.length} participant{leaderboard.length !== 1 ? 's' : ''} • Real-time Rankings
-                                    </Text>
-                                  </View>
-                                </View>
-                              </View>
-                            </LinearGradient>
-                          </View>
 
-                          {/* Enhanced Current User Card */}
+
+                          {/* Current User Section */}
                           {currentUser && (
-                            <View style={styles.enhancedCurrentUserCard}>
-                              <LinearGradient
-                                colors={['#10B981', '#059669']}
-                                style={styles.currentUserGradient}
-                              >
-                                <View style={styles.currentUserContent}>
+                            <View style={styles.currentUserSection}>
+                              <Text style={styles.currentUserTitle}>Your Performance</Text>
+                              <View style={[styles.currentUserCard, currentUser.rank <= 3 && styles.currentUserTopThree]}>
                                   <View style={styles.currentUserLeft}>
-                                    <View style={styles.rankBadge}>
-                                      <LinearGradient
-                                        colors={['#FFFFFF', 'rgba(255,255,255,0.8)']}
-                                        style={styles.rankBadgeGradient}
-                                      >
-                                        <Ionicons name="star" size={20} color="#10B981" />
-                                        <Text style={styles.rankNumber}>#{currentUser.rank}</Text>
-                                      </LinearGradient>
+                                  <View style={styles.currentUserRank}>
+                                    <Text style={styles.currentUserRankText}>#{currentUser.rank} / {leaderboard.length}</Text>
                                     </View>
+                                  <Ionicons name="person-circle" size={40} color={AppColors.primary} />
                                     <View style={styles.currentUserInfo}>
                                       <Text style={styles.currentUserName}>{currentUser.name}</Text>
-                                      <Text style={styles.currentUserScoreLabel}>Your Performance</Text>
-                                      <View style={styles.currentUserBadges}>
-                                        <View style={styles.performanceBadge}>
-                                          <Ionicons name="checkmark-circle" size={12} color="#FFFFFF" />
-                                          <Text style={styles.badgeText}>Completed</Text>
-                                        </View>
-                                      </View>
+                                    <Text style={styles.currentUserScoreLabel}>Your Score</Text>
                                     </View>
                                   </View>
                                   <View style={styles.currentUserRight}>
-                                    <View style={styles.scoreContainer}>
-                                      <Text style={styles.currentUserScore}>{currentUser.score}</Text>
-                                      <Text style={styles.scoreLabel}>points</Text>
-                                    </View>
-                                    <View style={styles.timeContainer}>
-                                      <Ionicons name="time" size={14} color="rgba(255,255,255,0.8)" />
+                                  <Text style={styles.currentUserScore}>{currentUser.score} pts</Text>
                                       <Text style={styles.currentUserTime}>{currentUser.timeTaken || 0}s</Text>
                                     </View>
                                   </View>
-                                </View>
-                              </LinearGradient>
                             </View>
                           )}
 
-                          {/* Enhanced Participants List */}
-                          <View style={styles.enhancedParticipantsList}>
-                            <View style={styles.participantsHeader}>
-                              <View style={styles.participantsTitleContainer}>
-                                <View style={styles.titleIconContainer}>
-                                  <Ionicons name="analytics" size={20} color="#8B5CF6" />
-                                </View>
-                                <View style={styles.titleTextContainer}>
-                                  <Text style={styles.participantsTitle}>All Participants</Text>
-                                  <Text style={styles.participantsSubtitle}>Ranked by performance score</Text>
-                                </View>
-                              </View>
-                              <View style={styles.participantsFilter}>
-                                <LinearGradient
-                                  colors={['rgba(139, 92, 246, 0.1)', 'rgba(124, 58, 237, 0.05)']}
-                                  style={styles.filterGradient}
-                                >
-                                  <Ionicons name="trending-up" size={16} color="#8B5CF6" />
-                                  <Text style={styles.filterText}>Score Ranking</Text>
-                                </LinearGradient>
-                              </View>
-                            </View>
-                            
+
+                          {/* All Participants */}
+                          {leaderboard.length > 0 && (
+                            <View style={styles.otherUsersSection}>
+                              <Text style={styles.otherUsersTitle}>All Participants</Text>
                             {leaderboard.map((item, index) => (
-                              <View key={item.userId} style={[
-                                styles.enhancedParticipantCard,
-                                currentUser?.userId === item.userId && styles.currentUserParticipantCard,
-                                index === 0 && styles.firstPlaceCard,
-                                index === 1 && styles.secondPlaceCard,
-                                index === 2 && styles.thirdPlaceCard
-                              ]}>
-                                <View style={styles.participantLeft}>
-                                  <View style={[
-                                    styles.enhancedRankBadge,
-                                    index === 0 && styles.firstPlaceBadge,
-                                    index === 1 && styles.secondPlaceBadge,
-                                    index === 2 && styles.thirdPlaceBadge
-                                  ]}>
-                                    {index < 3 ? (
-                                      <Ionicons 
-                                        name={index === 0 ? "trophy" : index === 1 ? "medal" : "ribbon"} 
-                                        size={20} 
-                                        color={index === 0 ? "#FFD700" : index === 1 ? "#C0C0C0" : "#CD7F32"} 
-                                      />
-                                    ) : (
-                                      <Text style={styles.rankNumber}>{item.rank}</Text>
-                                    )}
-                                  </View>
-                                  <View style={styles.enhancedParticipantAvatar}>
-                                    <Ionicons name="person-circle" size={44} color="#667eea" />
-                                    {currentUser?.userId === item.userId && (
-                                      <View style={styles.currentUserIndicator}>
-                                        <Ionicons name="star" size={12} color="#FFD700" />
-                                      </View>
-                                    )}
-                                  </View>
-                                  <View style={styles.participantInfo}>
-                                    <Text style={styles.participantName}>{item.name}</Text>
-                                    <View style={styles.participantDetails}>
-                                      <Ionicons name="time-outline" size={12} color="#666" />
-                                      <Text style={styles.participantTime}>Completed in {item.timeTaken || 0}s</Text>
-                                    </View>
-                                  </View>
-                                </View>
-                                <View style={styles.participantRight}>
-                                  <Text style={styles.participantScore}>{item.score} pts</Text>
-                                  {currentUser?.userId === item.userId && (
-                                    <View style={styles.currentUserBadge}>
-                                      <Ionicons name="star" size={10} color="#fff" />
-                                      <Text style={styles.currentUserBadgeText}>You</Text>
-                                    </View>
-                                  )}
-                                </View>
-                              </View>
+                                <LeaderboardRow
+                                  key={item.userId || `user-${index}`}
+                                  rank={item.rank || (index + 1)}
+                                  name={item.name}
+                                  score={item.score}
+                                  timeTaken={item.timeTaken}
+                                  isCurrentUser={currentUser?.userId === item.userId}
+                                  isTopThree={index < 3}
+                                />
                             ))}
                           </View>
+                          )}
                         </ScrollView>
                       ) : (
                         <View style={styles.emptyContainer}>
@@ -1452,9 +1355,16 @@ const styles = StyleSheet.create({
         gap: 20,
     },
     leaderboardTitle: {
-        fontSize: 18,
+        fontSize: 22,
         fontWeight: 'bold',
-        color: AppColors.darkGrey,
+        color: '#2D3748',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    leaderboardSubtitle: {
+        fontSize: 16,
+        color: '#718096',
+        textAlign: 'center',
         marginBottom: 15,
     },
     leaderboardItem: {
@@ -1851,42 +1761,94 @@ const styles = StyleSheet.create({
     leaderboardRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
-        marginHorizontal: 12,
-        marginVertical: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 6,
+        marginBottom: 6,
+        marginHorizontal: 0,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+        minHeight: 50,
     },
     currentUserRow: {
-        backgroundColor: '#f8f9ff',
+        backgroundColor: '#FFE4E6',
+        borderColor: '#FF6B6B',
         borderWidth: 2,
-        borderColor: '#667eea',
+        shadowColor: '#FF6B6B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
     },
     avatar: {
         marginHorizontal: 8,
+        color: '#667eea',
+    },
+    rankContainer: {
+        width: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    rankNumber: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#2D3748',
     },
     userInfo: {
         flex: 1,
+        marginRight: 10,
     },
-    rankContainer: {
-        width: 50,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#f8f9fa',
-        justifyContent: 'center',
+    userName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#2D3748',
+        marginBottom: 2,
+    },
+    userHandle: {
+        fontSize: 12,
+        color: '#718096',
+    },
+    scoreRow: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 1,
+        marginBottom: 2,
+    },
+    scoreText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#667eea',
+        marginLeft: 4,
+    },
+    currentUserScoreText: {
+        color: '#FFD700',
+    },
+    timeText: {
+        fontSize: 12,
+        color: '#718096',
+        textAlign: 'right',
+    },
+    leaderboardNameText: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#2D3748',
+        marginRight: 8,
+    },
+    leaderboardScoreText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#667eea',
+    },
+    prizeAmountText: {
+        fontSize: 14,
+        color: '#10B981',
+        fontWeight: '600',
+        marginTop: 2,
+    },
+    userInfo: {
+        flex: 1,
     },
     rankText: {
         fontSize: 16,
@@ -3845,6 +3807,189 @@ const styles = StyleSheet.create({
         borderColor: '#CD7F32',
         backgroundColor: 'rgba(205, 127, 50, 0.05)',
     },
+    
+    // Live exam leaderboard styles
+    leaderboardHeader: {
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        marginBottom: 20,
+        marginHorizontal: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    
+    
+    // Current User Section Styles
+    currentUserSection: {
+        marginBottom: 20,
+        paddingHorizontal: 5,
+    },
+    currentUserTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#2D3748',
+        marginBottom: 15,
+        paddingHorizontal: 15,
+        textAlign: 'center',
+    },
+    currentUserCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 20,
+        marginHorizontal: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        minHeight: 80,
+    },
+    currentUserTopThree: {
+        borderColor: '#FFD700',
+        backgroundColor: '#FFFBF0',
+    },
+    currentUserLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    currentUserRank: {
+        minWidth: 60,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: '#667eea',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 15,
+        paddingHorizontal: 8,
+    },
+    currentUserRankText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        textAlign: 'center',
+    },
+    currentUserInfo: {
+        flex: 1,
+        marginLeft: 15,
+    },
+    currentUserName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#2D3748',
+        marginBottom: 4,
+    },
+    currentUserScoreLabel: {
+        fontSize: 12,
+        color: '#718096',
+        fontWeight: '500',
+    },
+    currentUserRight: {
+        alignItems: 'flex-end',
+    },
+    currentUserScore: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: AppColors.primary,
+    },
+    currentUserTime: {
+        fontSize: 12,
+        color: AppColors.grey,
+        marginTop: 2,
+    },
+    
+    // Statistics Section
+    statisticsSection: {
+        marginBottom: 20,
+    },
+    statisticsCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 20,
+        marginHorizontal: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    statItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    statContent: {
+        marginLeft: 15,
+        flex: 1,
+    },
+    statValue: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#2D3748',
+        marginBottom: 2,
+    },
+    statLabel: {
+        fontSize: 14,
+        color: '#718096',
+        fontWeight: '500',
+    },
+    
+    // Other Users Section
+    otherUsersSection: {
+        marginBottom: 20,
+        backgroundColor: '#F8F9FA',
+        borderRadius: 12,
+        padding: 10,
+        marginHorizontal: 5,
+    },
+    otherUsersTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#2D3748',
+        marginBottom: 15,
+        paddingHorizontal: 10,
+    },
 });
+
+// LeaderboardRow component (updated to match image style)
+const LeaderboardRow = ({ rank, name, score, timeTaken, isCurrentUser, isTopThree }: any) => {
+    // Convert rank to number and ensure it's displayed properly
+    const numericRank = typeof rank === 'string' ? parseInt(rank, 10) : rank;
+    const displayRank = numericRank !== undefined && numericRank !== null && !isNaN(numericRank) ? numericRank : 'N/A';
+    
+    return (
+        <View style={[styles.leaderboardRow, isCurrentUser && styles.currentUserRow]}>
+            <View style={styles.rankContainer}>
+                <Text style={styles.rankNumber}>{displayRank}</Text>
+            </View>
+            <Ionicons name="person-circle" size={32} color="#667eea" style={styles.avatar} />
+            <View style={styles.userInfo}>
+                <Text style={styles.userName} numberOfLines={1}>{name || 'Unknown User'}</Text>
+                <Text style={styles.userHandle} numberOfLines={1}>@{name?.toLowerCase().replace(/\s+/g, '') || 'user'}</Text>
+            </View>
+            <View style={styles.scoreContainer}>
+                <View style={styles.scoreRow}>
+                    <Text style={[styles.scoreText, isCurrentUser && styles.currentUserScoreText]}>{score || 0} marks</Text>
+                </View>
+                {timeTaken && (
+                    <Text style={styles.timeText}>{timeTaken}s</Text>
+                )}
+            </View>
+        </View>
+    );
+};
 
 export default PracticeExamDetailsScreen; 

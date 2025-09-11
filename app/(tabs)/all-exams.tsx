@@ -1,6 +1,7 @@
 import { apiFetchAuth } from '@/constants/api';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
+import { applyExamFilters } from '@/utils/examFilter';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
@@ -90,7 +91,7 @@ export default function AllExamsScreen() {
                 return;
             }
 
-            const diff = earliestEndTime.getTime() - now.getTime();
+            const diff = (earliestEndTime as Date).getTime() - now.getTime();
 
             if (diff <= 0) {
                 setRemainingTime('00:00:00');
@@ -113,15 +114,12 @@ export default function AllExamsScreen() {
 
     // Filter exams based on selected category
     useEffect(() => {
-        if (selectedCategory === 'all') {
-            setFilteredExams(exams);
-        } else if (selectedCategory === 'uncategorized') {
-            const filtered = exams.filter((exam: any) => !exam.category || exam.category === null);
-            setFilteredExams(filtered);
-        } else {
-            const filtered = exams.filter((exam: any) => exam.category === selectedCategory);
-            setFilteredExams(filtered);
-        }
+        const filtered = applyExamFilters(exams, {
+            category: selectedCategory,
+            includeExpired: false // Filter out expired exams
+        });
+        
+        setFilteredExams(filtered);
     }, [selectedCategory, exams]);
 
     const handleCategorySelect = (category: string) => {

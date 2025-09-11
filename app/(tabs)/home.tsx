@@ -1,6 +1,7 @@
 import { apiFetchAuth } from '@/constants/api';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
+import { filterActiveExams } from '@/utils/examFilter';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -31,8 +32,9 @@ export default function HomeScreen() {
     const examSliderRef = useRef<FlatList<any>>(null);
     const practiceExamRef = useRef<any>(null);
 
-    // Data for sliders
-    const featuredExams = exams.slice(0, 5);
+    // Data for sliders - filter out expired exams
+    const activeExams = filterActiveExams(exams);
+    const featuredExams = activeExams.slice(0, 5);
 
     // Fetch Exams Function
     const fetchExams = async () => {

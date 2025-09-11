@@ -3,6 +3,7 @@ import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -52,6 +53,7 @@ const statusColors = {
 
 const ExamNotificationsSection = () => {
     const { user } = useAuth();
+    const router = useRouter();
     const [notifications, setNotifications] = useState<ExamNotification[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -328,7 +330,11 @@ const ExamNotificationsSection = () => {
 
             {/* Enhanced View All Button (Only if 5+ notifications) */}
             {notifications.length > 5 && (
-                <TouchableOpacity style={styles.viewAllButton} activeOpacity={0.8}>
+                <TouchableOpacity 
+                    style={styles.viewAllButton} 
+                    activeOpacity={0.8}
+                    onPress={() => router.push('/exam-notifications')}
+                >
                     <LinearGradient
                         colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                         start={{ x: 0, y: 0 }}
