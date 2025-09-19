@@ -2,9 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
+
+const { width } = Dimensions.get('window');
 
 interface FollowRequest {
   id: string;
@@ -29,6 +31,12 @@ export default function FollowRequestsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingRequest, setProcessingRequest] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    accepted: 0,
+    rejected: 0,
+    pending: 0
+  });
 
   useEffect(() => {
     fetchFollowRequests();
@@ -39,13 +47,27 @@ export default function FollowRequestsScreen() {
     try {
       const response = await apiFetchAuth('/student/follow-requests', user?.token || '');
       if (response.ok) {
-        setFollowRequests(response.data || []);
+        const requests = response.data || [];
+        setFollowRequests(requests);
+        updateStats(requests);
       }
     } catch (error) {
       console.error('Error fetching follow requests:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateStats = (requests: FollowRequest[]) => {
+    console.log('Follow requests data:', requests);
+    console.log('Request statuses:', requests.map(r => ({ id: r.id, status: r.status })));
+    
+    setStats({
+      total: requests.length,
+      accepted: requests.filter(r => r.status === 'accepted').length,
+      rejected: requests.filter(r => r.status === 'rejected').length,
+      pending: requests.filter(r => r.status === 'pending' || r.status === 'PENDING' || r.status === 'waiting' || r.status === 'WAITING').length
+    });
   };
 
   const onRefresh = async () => {
@@ -67,35 +89,64 @@ export default function FollowRequestsScreen() {
       
       if (response.ok) {
         // Remove the accepted request from the list
-        setFollowRequests(prev => prev.filter(req => req.id !== requestId));
+        const updatedRequests = followRequests.filter(req => req.id !== requestId);
+        setFollowRequests(updatedRequests);
+        updateStats(updatedRequests);
+        
+        // Show success message
+        Alert.alert('Success', 'Follow request accepted successfully!');
+      } else {
+        Alert.alert('Error', 'Failed to accept follow request. Please try again.');
       }
     } catch (error) {
       console.error('Error accepting follow request:', error);
+      Alert.alert('Error', 'An error occurred while accepting the request.');
     } finally {
       setProcessingRequest(null);
     }
   };
 
   const handleRejectFollowRequest = async (requestId: string) => {
-    setProcessingRequest(requestId);
-    try {
-      const response = await apiFetchAuth('/student/follow-requests', user?.token || '', {
-        method: 'POST',
-        body: {
-          requestId: requestId,
-          action: 'reject'
+    Alert.alert(
+      'Reject Follow Request',
+      'Are you sure you want to reject this follow request?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async () => {
+            setProcessingRequest(requestId);
+            try {
+              const response = await apiFetchAuth('/student/follow-requests', user?.token || '', {
+                method: 'POST',
+                body: {
+                  requestId: requestId,
+                  action: 'reject'
+                }
+              });
+              
+              if (response.ok) {
+                // Remove the rejected request from the list
+                const updatedRequests = followRequests.filter(req => req.id !== requestId);
+                setFollowRequests(updatedRequests);
+                updateStats(updatedRequests);
+                
+                // Show success message
+                Alert.alert('Success', 'Follow request rejected successfully!');
+              } else {
+                Alert.alert('Error', 'Failed to reject follow request. Please try again.');
+              }
+            } catch (error) {
+              console.error('Error rejecting follow request:', error);
+              Alert.alert('Error', 'An error occurred while rejecting the request.');
+            } finally {
+              setProcessingRequest(null);
+            }
+          }
         }
-      });
-      
-      if (response.ok) {
-        // Remove the rejected request from the list
-        setFollowRequests(prev => prev.filter(req => req.id !== requestId));
-      }
-    } catch (error) {
-      console.error('Error rejecting follow request:', error);
-    } finally {
-      setProcessingRequest(null);
-    }
+      ]
+    );
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -113,12 +164,22 @@ export default function FollowRequestsScreen() {
   const renderFollowRequest = ({ item }: { item: FollowRequest }) => (
     <View style={styles.requestCard}>
       <LinearGradient
-        colors={['rgba(255,255,255,0.95)', 'rgba(248,250,252,0.95)']}
+        colors={['rgba(255,255,255,0.98)', 'rgba(248,250,252,0.98)']}
         style={styles.requestGradient}
       >
-        {/* User Info Section */}
+        {/* Enhanced User Info Section */}
         <View style={styles.userInfoSection}>
-          <View style={styles.avatarContainer}>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={() => router.push({
+              pathname: '/(tabs)/user-profile',
+              params: { 
+                userId: item.senderId,
+                originalUserData: JSON.stringify(item.sender)
+              }
+            })}
+            activeOpacity={0.8}
+          >
             {item.sender.profilePhoto ? (
               <Image 
                 source={{ uri: item.sender.profilePhoto }} 
@@ -135,7 +196,7 @@ export default function FollowRequestsScreen() {
               </LinearGradient>
             )}
             <View style={styles.onlineIndicator} />
-          </View>
+          </TouchableOpacity>
           
           <View style={styles.userDetails}>
             <View style={styles.nameContainer}>
@@ -161,11 +222,14 @@ export default function FollowRequestsScreen() {
               </View>
             )}
             
-            <Text style={styles.timeAgo}>{formatTimeAgo(item.createdAt)}</Text>
+            <View style={styles.timeContainer}>
+              <Ionicons name="time-outline" size={12} color="#9CA3AF" />
+              <Text style={styles.timeAgo}>{formatTimeAgo(item.createdAt)}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Action Buttons */}
+        {/* Enhanced Action Buttons */}
         <View style={styles.actionButtons}>
           {processingRequest === item.id ? (
             <View style={styles.loadingContainer}>
@@ -226,7 +290,7 @@ export default function FollowRequestsScreen() {
     <View style={styles.container}>
       {/* Enhanced Header */}
       <LinearGradient
-        colors={['#667eea', '#764ba2', '#f093fb', '#f5576c']}
+        colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -242,12 +306,11 @@ export default function FollowRequestsScreen() {
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Follow Requests</Text>
             <Text style={styles.headerSubtitle}>
-              {followRequests.length} pending request{followRequests.length !== 1 ? 's' : ''}
+              {stats.pending > 0 ? `${stats.pending} pending request${stats.pending !== 1 ? 's' : ''}` : `${stats.total} request${stats.total !== 1 ? 's' : ''}`}
             </Text>
           </View>
           
-          <View style={styles.headerRight}>
-          </View>
+          <View style={styles.headerRight} />
         </View>
       </LinearGradient>
 
@@ -304,12 +367,14 @@ export default function FollowRequestsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F8F9FF',
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: 25,
+    paddingBottom: 8,
     paddingHorizontal: 16,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   headerContent: {
     flexDirection: 'row',
@@ -317,26 +382,36 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#fff',
-    marginBottom: 4,
+    marginBottom: 0,
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#e0e0e0',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 2,
   },
   headerRight: {
     width: 40,
@@ -438,9 +513,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 4,
   },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   timeAgo: {
     fontSize: 12,
     color: '#9CA3AF',
+    marginLeft: 4,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -499,7 +580,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F8F9FF',
   },
   loadingCard: {
     padding: 40,

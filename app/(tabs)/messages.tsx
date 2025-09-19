@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
@@ -59,7 +60,6 @@ export default function MessagesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('chats');
-  const [activeFilter, setActiveFilter] = useState('all');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   
   // Socket connection state
@@ -88,10 +88,21 @@ export default function MessagesScreen() {
       }
     }
 
-    // 2. Conversations aur message requests fetch karta hai
+    // 2. Initial conversations aur message requests fetch karta hai
     fetchConversations();
     fetchMessageRequests();
   }, [user?.token]);
+
+  // Refresh conversations every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.token) {
+        console.log('📱 Messages screen focused - refreshing conversations...');
+        fetchConversations();
+        fetchMessageRequests();
+      }
+    }, [user?.token])
+  );
 
   // Step 2: User Selection - Like React website
   useEffect(() => {
@@ -466,9 +477,15 @@ export default function MessagesScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchConversations();
-    await fetchMessageRequests();
-    setRefreshing(false);
+    try {
+      console.log('🔄 Messages screen pull-to-refresh triggered');
+      await fetchConversations();
+      await fetchMessageRequests();
+    } catch (error) {
+      console.error('Error refreshing messages:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -525,18 +542,8 @@ export default function MessagesScreen() {
     const lastMessage = conversation.latestMessage?.content || '';
     const searchLower = searchQuery.toLowerCase();
     
-    const matchesSearch = userName.toLowerCase().includes(searchLower) ||
-                         lastMessage.toLowerCase().includes(searchLower);
-    
-    if (activeFilter === 'unread') {
-      return matchesSearch && conversation.unreadCount > 0;
-    } else if (activeFilter === 'groups') {
-      return matchesSearch && userName.includes('Team');
-    } else if (activeFilter === 'favorites') {
-      return matchesSearch && conversation.unreadCount > 0; // Simplified favorites logic
-    }
-    
-    return matchesSearch;
+    return userName.toLowerCase().includes(searchLower) ||
+           lastMessage.toLowerCase().includes(searchLower);
   });
 
   const renderConversation = ({ item }: { item: Conversation }) => (
@@ -562,10 +569,10 @@ export default function MessagesScreen() {
              style={styles.avatarImage} 
            />
          ) : (
-           <LinearGradient
-             colors={['#667eea', '#764ba2']}
-             style={styles.avatarPlaceholder}
-           >
+          <LinearGradient
+            colors={['#4F46E5', '#7C3AED']}
+            style={styles.avatarPlaceholder}
+          >
              <Text style={styles.avatarInitials}>
                {item.user.name ? item.user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U'}
              </Text>
@@ -607,7 +614,7 @@ export default function MessagesScreen() {
     return (
       <View style={styles.loadingScreen}>
         <LinearGradient
-          colors={['#667eea', '#764ba2']}
+          colors={['#4F46E5', '#7C3AED']}
           style={styles.loadingCard}
         >
           <ActivityIndicator size="large" color="#fff" />
@@ -621,7 +628,7 @@ export default function MessagesScreen() {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={['#667eea', '#764ba2', '#f093fb', '#f5576c']}
+        colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -700,43 +707,6 @@ export default function MessagesScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Filter Buttons */}
-      <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity 
-            style={[styles.filterButton, activeFilter === 'all' && styles.activeFilterButton]}
-            onPress={() => setActiveFilter('all')}
-          >
-            <Text style={[styles.filterText, activeFilter === 'all' && styles.activeFilterText]}>
-              All
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.filterButton, activeFilter === 'unread' && styles.activeFilterButton]}
-            onPress={() => setActiveFilter('unread')}
-          >
-            <Text style={[styles.filterText, activeFilter === 'unread' && styles.activeFilterText]}>
-              Unread
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.filterButton, activeFilter === 'groups' && styles.activeFilterButton]}
-            onPress={() => setActiveFilter('groups')}
-          >
-            <Text style={[styles.filterText, activeFilter === 'groups' && styles.activeFilterText]}>
-              Groups
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.filterButton, activeFilter === 'favorites' && styles.activeFilterButton]}
-            onPress={() => setActiveFilter('favorites')}
-          >
-            <Text style={[styles.filterText, activeFilter === 'favorites' && styles.activeFilterText]}>
-              Favorites
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
 
              {/* Conversations List */}
        <FlatList
@@ -749,8 +719,8 @@ export default function MessagesScreen() {
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh}
-            colors={['#667eea']}
-            tintColor="#667eea"
+            colors={['#4F46E5']}
+            tintColor="#4F46E5"
           />
         }
         ListEmptyComponent={
@@ -760,7 +730,7 @@ export default function MessagesScreen() {
               style={styles.emptyCard}
             >
               <View style={styles.emptyIcon}>
-                <Ionicons name="chatbubbles-outline" size={64} color="#667eea" />
+                <Ionicons name="chatbubbles-outline" size={64} color="#4F46E5" />
               </View>
               <Text style={styles.emptyTitle}>No Messages</Text>
               <Text style={styles.emptySubtitle}>
@@ -771,7 +741,7 @@ export default function MessagesScreen() {
                  onPress={() => onRefresh()}
                >
                 <LinearGradient
-                  colors={['#667eea', '#764ba2']}
+                  colors={['#4F46E5', '#7C3AED']}
                   style={styles.refreshButtonGradient}
                 >
                   <Ionicons name="refresh" size={16} color="#fff" />
@@ -789,12 +759,17 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
   header: {
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   headerContent: {
     flexDirection: 'row',
@@ -803,21 +778,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: '#fff',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   headerActions: {
     flexDirection: 'row',
     gap: 12,
   },
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   searchContainer: {
     marginTop: 8,
@@ -825,107 +810,125 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   searchInput: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
     fontSize: 16,
     color: '#1F2937',
+    fontWeight: '500',
   },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
+    borderRadius: 8,
+    marginHorizontal: 4,
   },
   activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#667eea',
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+    borderBottomWidth: 3,
+    borderBottomColor: '#4F46E5',
   },
   tabText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#9CA3AF',
+    letterSpacing: 0.3,
   },
   activeTabText: {
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  filterContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    marginRight: 8,
-  },
-  activeFilterButton: {
-    backgroundColor: '#667eea',
-  },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  activeFilterText: {
-    color: '#fff',
+    color: '#4F46E5',
+    fontWeight: '700',
   },
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: 24,
+    paddingTop: 8,
   },
   messageItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginVertical: 4,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: 12,
+    marginRight: 16,
   },
   avatarImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
   },
   avatarPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   avatarInitials: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#fff',
+    letterSpacing: 0.5,
   },
   statusIndicator: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
+    bottom: 4,
+    right: 4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 3,
     borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   messageContent: {
     flex: 1,
@@ -934,40 +937,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   userName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#1F2937',
+    letterSpacing: 0.3,
   },
   timestamp: {
     fontSize: 12,
+    fontWeight: '500',
     color: '#9CA3AF',
+    letterSpacing: 0.2,
   },
   messagePreview: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 2,
   },
   lastMessage: {
     fontSize: 14,
+    fontWeight: '500',
     color: '#6B7280',
-    marginLeft: 4,
+    marginLeft: 6,
     flex: 1,
+    lineHeight: 20,
   },
   unreadBadge: {
-    backgroundColor: '#667eea',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    backgroundColor: '#4F46E5',
+    borderRadius: 11,
+    minWidth: 22,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   unreadCount: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '800',
     color: '#fff',
+    letterSpacing: 0.3,
   },
   loadingScreen: {
     flex: 1,
@@ -995,49 +1012,66 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
+    paddingHorizontal: 20,
   },
   emptyCard: {
-    padding: 40,
-    borderRadius: 20,
+    padding: 48,
+    borderRadius: 24,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    backgroundColor: '#fff',
   },
   emptyIcon: {
-    marginBottom: 16,
+    marginBottom: 20,
+    opacity: 0.8,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 8,
+    marginBottom: 10,
+    letterSpacing: 0.3,
+    textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '500',
     color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
+    marginBottom: 28,
+    lineHeight: 22,
+    letterSpacing: 0.2,
+    maxWidth: 280,
   },
   refreshButton: {
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   refreshButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    gap: 8,
   },
   refreshButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });
 

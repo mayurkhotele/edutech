@@ -4,17 +4,17 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  Easing,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    Easing,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -389,7 +389,7 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
                   }
                 ]}
               >
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
               </Animated.View>
             </View>
           </LinearGradient>
@@ -599,21 +599,23 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   viewAllButton: {
-    borderRadius: 14,
+    borderRadius: 10,
     overflow: 'hidden',
     shadowColor: '#4F46E5',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
     marginTop: 6,
+    alignSelf: 'center',
+    maxWidth: '80%',
   },
   viewAllGradient: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -625,18 +627,18 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    marginRight: 12,
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 6,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   viewAllIconContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 10,
-    padding: 6,
+    borderRadius: 8,
+    padding: 4,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     shadowColor: '#000',

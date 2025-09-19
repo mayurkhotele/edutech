@@ -281,7 +281,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         
         // Update the post's comment count in the main posts list
         setPosts(prevPosts => 
-          prevPosts.map(post => {
+          prevPosts.map((post: any) => {
             if (post.id === selectedPost.id) {
               return {
                 ...post,
@@ -337,24 +337,54 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
     }
   };
 
-  const handleFollowUser = async (postId: string, authorId: string) => {
+  const handlePollVote = async (postId: string, optionIndex: number) => {
     try {
-      const response = await apiFetchAuth('/student/follow', user?.token || '', {
+      const res = await apiFetchAuth(`/student/posts/${postId}/vote`, user?.token || '', {
         method: 'POST',
-        body: { targetUserId: authorId },
+        body: { optionIndex },
       });
+      
+      if (res.ok) {
+        // Update the post's poll vote count in the local state
+        setPosts(prevPosts => 
+          prevPosts.map((post: any) => {
+            if (post.id === postId) {
+              return {
+                ...post,
+                _count: {
+                  ...post._count,
+                  pollVotes: (post._count?.pollVotes || 0) + 1
+                },
+                pollVotes: res.data.pollVotes || post.pollVotes || []
+              };
+            }
+            return post;
+          })
+        );
+      }
+    } catch (error) {
+      console.error('Error voting on poll:', error);
+      // Optionally show error message to user
+    }
+  };
 
-      if (response.ok) {
-        // Update the post's author follow status
+  const handleQuestionAnswer = async (postId: string, optionIndex: number) => {
+    try {
+      const res = await apiFetchAuth(`/student/posts/${postId}/question-answer`, user?.token || '', {
+        method: 'POST',
+        body: { optionIndex },
+      });
+      
+      if (res.ok) {
+        // Update the post's question answer count in the local state
         setPosts(prevPosts => 
           prevPosts.map(post => {
             if (post.id === postId) {
               return {
                 ...post,
-                author: {
-                  ...post.author,
-                  isFollowing: !post.author?.isFollowing,
-                  followRequestStatus: response.data.followRequestStatus // Update followRequestStatus
+                _count: {
+                  ...post._count,
+                  questionAnswers: (post._count?.questionAnswers || 0) + 1
                 }
               };
             }
@@ -363,9 +393,11 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         );
       }
     } catch (error) {
-      console.error('Error following user:', error);
+      console.error('Error answering question:', error);
+      // Optionally show error message to user
     }
   };
+
 
   const handleMessageUser = async (authorId: string, authorName: string) => {
     try {
@@ -514,7 +546,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         console.log('🚀 Attempting expo-router navigation...');
         // Use expo-router for navigation
         router.push({
-          pathname: '/user-profile',
+          pathname: '/(tabs)/user-profile',
           params: { 
             userId: searchUser.id,
             originalUserData: searchUser
@@ -531,7 +563,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         if (navigation) {
           try {
             console.log('🚀 Attempting fallback navigation...');
-            navigation.navigate('user-profile' as never, { 
+            navigation.navigate('UserProfile' as never, { 
               userId: searchUser.id,
               originalUserData: searchUser
             } as never);
@@ -774,36 +806,6 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
           </View>
         </TouchableOpacity>
         <View style={styles.postActions}>
-          {/* Follow Button - Only show if not current user */}
-          {item.author?.id !== user?.id && (
-            <TouchableOpacity
-              style={[
-                styles.followButton, 
-                item.author?.isFollowing && styles.unfollowButton,
-                item.author?.followRequestStatus === 'PENDING' && styles.pendingRequestButton
-              ]}
-              onPress={() => handleFollowUser(
-                item.id, 
-                item.author?.id || ''
-              )}
-            >
-              <Ionicons 
-                name={
-                  item.author?.isFollowing ? "person-remove-outline" : 
-                  item.author?.followRequestStatus === 'PENDING' ? "time-outline" : 
-                  "person-add-outline"
-                } 
-                size={16} 
-                color="#fff" 
-              />
-              <Text style={styles.followButtonText}>
-                {item.author?.isFollowing ? 'Unfollow' : 
-                 item.author?.followRequestStatus === 'PENDING' ? 'Request Sent' : 
-                 'Follow'}
-              </Text>
-            </TouchableOpacity>
-          )}
-          
           {item.isPrivate && (
             <View style={styles.privacyIndicator}>
               <Ionicons name="lock-closed" size={14} color="#667eea" />
@@ -815,78 +817,156 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         </View>
       </View>
 
-             {/* Instagram-Style Content */}
-       <Text style={styles.instagramPostContent}>{item.content}</Text>
+      {/* Instagram-Style Content */}
+      <Text style={styles.instagramPostContent}>{item.content}</Text>
 
-       {/* Instagram-Style Media */}
-       {item.imageUrl && (
-         <View style={styles.instagramMediaContainer}>
-           <Image source={{ uri: item.imageUrl }} style={styles.instagramMediaImage} resizeMode="cover" />
-         </View>
-       )}
+      {/* Poll Options */}
+      {item.postType === 'POLL' && item.pollOptions && item.pollOptions.length > 0 && (
+        <View style={styles.pollContainer}>
+          <Text style={styles.pollTitle}>Poll Options</Text>
+          {item.pollOptions.map((option: string, index: number) => {
+            // Calculate votes for this specific option
+            const optionVotes = item.pollVotes?.filter((vote: any) => vote.optionIndex === index).length || 0;
+            const totalVotes = item._count?.pollVotes || 0;
+            const percentage = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
+            
+            return (
+              <TouchableOpacity 
+                key={index} 
+                style={styles.pollOption}
+                onPress={() => handlePollVote(item.id, index)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.pollOptionContent}>
+                  <Text style={styles.pollOptionText}>{option}</Text>
+                  <View style={styles.pollVoteInfo}>
+                    <Text style={styles.pollVoteCount}>
+                      {optionVotes} votes ({percentage}%)
+                    </Text>
+                    <View style={styles.pollProgressBar}>
+                      <View 
+                        style={[
+                          styles.pollProgressFill, 
+                          { width: `${percentage}%` }
+                        ]} 
+                      />
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
-       {item.videoUrl && (
-         <View style={styles.instagramVideoContainer}>
-           <View style={styles.instagramVideoPlaceholder}>
-             <Ionicons name="play-circle" size={48} color="#fff" />
-           </View>
-         </View>
-       )}
+      {/* Question Options */}
+      {item.postType === 'QUESTION' && item.questionOptions && item.questionOptions.length > 0 && (
+        <View style={styles.questionContainer}>
+          <Text style={styles.questionTitle}>Question Options</Text>
+          {item.questionOptions.map((option: string, index: number) => {
+            // Calculate answers for this specific option
+            const optionAnswers = item.questionAnswers?.filter((answer: any) => answer.optionIndex === index).length || 0;
+            const totalAnswers = item._count?.questionAnswers || 0;
+            const percentage = totalAnswers > 0 ? Math.round((optionAnswers / totalAnswers) * 100) : 0;
+            
+            return (
+              <TouchableOpacity 
+                key={index} 
+                style={styles.questionOption}
+                onPress={() => handleQuestionAnswer(item.id, index)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.questionOptionContent}>
+                  <Text style={styles.questionOptionText}>{option}</Text>
+                  <View style={styles.questionAnswerInfo}>
+                    <Text style={styles.questionAnswerCount}>
+                      {optionAnswers} answers ({percentage}%)
+                    </Text>
+                    <View style={styles.questionProgressBar}>
+                      <View 
+                        style={[
+                          styles.questionProgressFill, 
+                          { width: `${percentage}%` }
+                        ]} 
+                      />
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
-       {/* Instagram-Style Hashtags */}
-       {item.hashtags && item.hashtags.length > 0 && (
-         <View style={styles.instagramHashtagsContainer}>
-           {item.hashtags.map((tag: string) => (
-             <Text key={tag} style={styles.instagramHashtagText}>#{tag}</Text>
-           ))}
-         </View>
-       )}
+      {/* Instagram-Style Media */}
+      {item.imageUrl && (
+        <View style={styles.instagramMediaContainer}>
+          <Image source={{ uri: item.imageUrl }} style={styles.instagramMediaImage} resizeMode="cover" />
+        </View>
+      )}
 
-       {/* Instagram-Style Action Bar */}
-       <View style={styles.instagramActionsBar}>
-         <View style={styles.instagramActionLeft}>
-           <TouchableOpacity style={styles.instagramActionButton} onPress={() => handleLikePost(item.id)}>
-             <Ionicons 
-               name={item.isLiked ? 'heart' : 'heart-outline'} 
-               size={28} 
-               color={item.isLiked ? '#ed4956' : '#262626'} 
-             />
-           </TouchableOpacity>
-           
-           <TouchableOpacity style={styles.instagramActionButton} onPress={() => openComments(item)}>
-             <Ionicons name="chatbubble-outline" size={28} color="#262626" />
-           </TouchableOpacity>
-           
-           <TouchableOpacity style={styles.instagramActionButton}>
-             <Ionicons name="paper-plane-outline" size={28} color="#262626" />
-           </TouchableOpacity>
-         </View>
-         
-         <TouchableOpacity style={styles.instagramBookmarkButton}>
-           <Ionicons name="bookmark-outline" size={28} color="#262626" />
-         </TouchableOpacity>
-       </View>
+      {item.videoUrl && (
+        <View style={styles.instagramVideoContainer}>
+          <View style={styles.instagramVideoPlaceholder}>
+            <Ionicons name="play-circle" size={48} color="#fff" />
+          </View>
+        </View>
+      )}
 
-       {/* Instagram-Style Likes Count */}
-       <View style={styles.instagramLikesContainer}>
-         <Text style={styles.instagramLikesText}>
-           <Text style={styles.instagramLikesBold}>{item._count?.likes || 0} likes</Text>
-         </Text>
-       </View>
+      {/* Instagram-Style Hashtags */}
+      {item.hashtags && item.hashtags.length > 0 && (
+        <View style={styles.instagramHashtagsContainer}>
+          {item.hashtags.map((tag: string) => (
+            <Text key={tag} style={styles.instagramHashtagText}>#{tag}</Text>
+          ))}
+        </View>
+      )}
 
-       {/* Instagram-Style Comments Preview */}
-       <View style={styles.instagramCommentsContainer}>
-         <Text style={styles.instagramCommentsText}>
-           <Text style={styles.instagramCommentsBold}>{item.author?.name}</Text> {item.content}
-         </Text>
-         {item._count?.comments > 0 && (
-           <TouchableOpacity onPress={() => openComments(item)}>
-             <Text style={styles.instagramViewCommentsText}>
-               View all {item._count.comments} comments
-             </Text>
-           </TouchableOpacity>
-         )}
-       </View>
+      {/* Instagram-Style Action Bar */}
+      <View style={styles.instagramActionsBar}>
+        <View style={styles.instagramActionLeft}>
+          <TouchableOpacity style={styles.instagramActionButton} onPress={() => handleLikePost(item.id)}>
+            <Ionicons 
+              name={item.isLiked ? 'heart' : 'heart-outline'} 
+              size={28} 
+              color={item.isLiked ? '#ed4956' : '#262626'} 
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.instagramActionButton} onPress={() => openComments(item)}>
+            <Ionicons name="chatbubble-outline" size={28} color="#262626" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.instagramActionButton}>
+            <Ionicons name="paper-plane-outline" size={28} color="#262626" />
+          </TouchableOpacity>
+        </View>
+        
+        <TouchableOpacity style={styles.instagramBookmarkButton}>
+          <Ionicons name="bookmark-outline" size={28} color="#262626" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Instagram-Style Likes Count */}
+      <View style={styles.instagramLikesContainer}>
+        <Text style={styles.instagramLikesText}>
+          <Text style={styles.instagramLikesBold}>{item._count?.likes || 0} likes</Text>
+        </Text>
+      </View>
+
+      {/* Instagram-Style Comments Preview */}
+      <View style={styles.instagramCommentsContainer}>
+        <Text style={styles.instagramCommentsText}>
+          <Text style={styles.instagramCommentsBold}>{item.author?.name}</Text> {item.content}
+        </Text>
+        {item._count?.comments > 0 && (
+          <TouchableOpacity onPress={() => openComments(item)}>
+            <Text style={styles.instagramViewCommentsText}>
+              View all {item._count.comments} comments
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 
@@ -2118,18 +2198,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  followButton: {
-    backgroundColor: '#667eea',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginRight: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  unfollowButton: {
-    backgroundColor: '#ff6b6b',
-  },
   messageButton: {
     backgroundColor: '#4CAF50',
     paddingHorizontal: 12,
@@ -2426,18 +2494,18 @@ const styles = StyleSheet.create({
      borderRadius: 16,
      overflow: 'hidden',
    },
-   followButtonGradient: {
-     flexDirection: 'row',
-     alignItems: 'center',
-     paddingHorizontal: 12,
-     paddingVertical: 6,
-   },
-   followButtonText: {
-     fontSize: 11,
-     fontWeight: '600',
-     color: '#fff',
-     marginLeft: 3,
-   },
+  followButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  followButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
    noSearchResults: {
      alignItems: 'center',
      padding: 30,
@@ -2579,9 +2647,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#6B7280',
-  },
-  pendingRequestButton: {
-    backgroundColor: '#F59E0B', // Orange color for pending
   },
   enhancedHeader: {
     paddingTop: 50, // Adjust for status bar
@@ -2774,12 +2839,6 @@ const styles = StyleSheet.create({
     color: '#666',
     marginRight: 8,
   },
-  followButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: 4,
-  },
   videoPlaceholder: {
     height: 200,
     backgroundColor: '#f5f5f5',
@@ -2883,16 +2942,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
   },
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+  searchResultsList: {
+    paddingBottom: 16,
   },
-     searchResultsList: {
-     paddingBottom: 16,
-   },
    // Enhanced Stories Styles
    enhancedStoriesContainer: {
      marginHorizontal: 16,
@@ -3019,12 +3071,123 @@ const styles = StyleSheet.create({
      textAlign: 'center',
      lineHeight: 16,
    },
-   enhancedAddStoryText: {
-     fontSize: 11,
-     fontWeight: '500',
-     color: '#667eea',
-     marginTop: 4,
-     textAlign: 'center',
-   },
+  enhancedAddStoryText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#667eea',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  // Poll and Question Styles
+  pollContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    backgroundColor: '#f8f9fa',
+    marginHorizontal: 12,
+    marginVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  pollTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#495057',
+    marginBottom: 12,
+  },
+  pollOption: {
+    backgroundColor: '#fff',
+    padding: 12,
+    marginBottom: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  pollOptionContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pollOptionText: {
+    fontSize: 14,
+    color: '#212529',
+    flex: 1,
+  },
+  pollVoteCount: {
+    fontSize: 12,
+    color: '#6c757d',
+    fontWeight: '500',
+  },
+  questionContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    backgroundColor: '#f8f9fa',
+    marginHorizontal: 12,
+    marginVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  questionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#495057',
+    marginBottom: 12,
+  },
+  questionOption: {
+    backgroundColor: '#fff',
+    padding: 12,
+    marginBottom: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  questionOptionContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  questionOptionText: {
+    fontSize: 14,
+    color: '#212529',
+    flex: 1,
+  },
+  questionAnswerCount: {
+    fontSize: 12,
+    color: '#6c757d',
+    fontWeight: '500',
+  },
+  pollVoteInfo: {
+    alignItems: 'flex-end',
+    minWidth: 100,
+  },
+  pollProgressBar: {
+    width: 80,
+    height: 4,
+    backgroundColor: '#e9ecef',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  pollProgressFill: {
+    height: '100%',
+    backgroundColor: '#667eea',
+    borderRadius: 2,
+  },
+  questionAnswerInfo: {
+    alignItems: 'flex-end',
+    minWidth: 100,
+  },
+  questionProgressBar: {
+    width: 80,
+    height: 4,
+    backgroundColor: '#e9ecef',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  questionProgressFill: {
+    height: '100%',
+    backgroundColor: '#28a745',
+    borderRadius: 2,
+  },
 
- }); 
+ });

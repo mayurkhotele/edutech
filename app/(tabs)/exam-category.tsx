@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,27 @@ import {
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+const getGradientColors = (category: string) => {
+  const categoryLower = category.toLowerCase();
+  
+  const colorSchemes = [
+    ['#8B5CF6', '#A855F7'], // Purple
+    ['#06B6D4', '#0891B2'], // Cyan  
+    ['#10B981', '#059669'], // Green
+    ['#F59E0B', '#D97706'], // Orange
+    ['#EF4444', '#DC2626'], // Red
+    ['#8B5CF6', '#A855F7'], // Purple again
+  ];
+  
+  const hash = categoryLower.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  
+  const colorIndex = Math.abs(hash) % colorSchemes.length;
+  return colorSchemes[colorIndex] as [string, string];
+};
 
 interface PracticeExam {
   id: string;
@@ -45,6 +66,10 @@ const ExamCategoryPage = () => {
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(50);
   const scaleAnim = new Animated.Value(0.9);
+  
+  // Get category colors early
+  const categoryColors = getGradientColors(category || '');
+  
 
   useEffect(() => {
     console.log('🔍 ExamCategoryPage mounted with category:', category);
@@ -94,7 +119,7 @@ const ExamCategoryPage = () => {
         console.log('📊 Looking for category:', category);
         console.log('📊 Available categories:', [...new Set(response.data.map((exam: PracticeExam) => exam.category))]);
         
-        // Filter exams by the selected category - improved matching
+        // Filter exams by the selected category
         let categoryExams = response.data.filter((exam: PracticeExam) => {
           const examCategory = exam.category.toLowerCase().trim();
           const searchCategory = category.toLowerCase().trim();
@@ -151,13 +176,7 @@ const ExamCategoryPage = () => {
         console.log('📊 Filtered exams for category:', categoryExams.length);
         console.log('📊 Category exams:', categoryExams);
         
-        // If still no exams found, show all exams for debugging
-        if (categoryExams.length === 0) {
-          console.log('⚠️ No exams found for category, showing all exams for debugging');
-          setExams(response.data);
-        } else {
           setExams(categoryExams);
-        }
       } else {
         console.error('❌ Failed to fetch exams:', response.data);
       }
@@ -217,26 +236,6 @@ const ExamCategoryPage = () => {
     return 'library';
   };
 
-  const getGradientColors = (category: string) => {
-    const categoryLower = category.toLowerCase();
-    
-    const colorSchemes = [
-      ['#8B5CF6', '#A855F7'], // Purple
-      ['#06B6D4', '#0891B2'], // Cyan  
-      ['#10B981', '#059669'], // Green
-      ['#F59E0B', '#D97706'], // Orange
-      ['#EF4444', '#DC2626'], // Red
-      ['#8B5CF6', '#A855F7'], // Purple again
-    ];
-    
-    const hash = categoryLower.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    
-    const colorIndex = Math.abs(hash) % colorSchemes.length;
-    return colorSchemes[colorIndex] as [string, string];
-  };
 
   const handleStartExam = (exam: PracticeExam) => {
     console.log('🎯 Starting exam:', exam.title, 'ID:', exam.id);
@@ -386,7 +385,6 @@ const ExamCategoryPage = () => {
     exam.category.toLowerCase().trim() === category?.toLowerCase().trim()
   );
   const overallProgress = totalExams > 0 ? (attemptedExams / totalExams) * 100 : 0;
-  const categoryColors = getGradientColors(category || '');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -470,112 +468,180 @@ const ExamCategoryPage = () => {
       >
         
 
-        {/* Test Navigation Button */}
-        {exams.length > 0 && (
-          <View style={styles.testButtonContainer}>
-            <TouchableOpacity 
-              style={styles.testButton}
-              onPress={() => {
-                console.log('🎯 Test button pressed');
-                handleStartExam(exams[0]);
-              }}
-            >
-              <Text style={styles.testButtonText}>Test Navigation - Click to go to first exam</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
-        {/* Simple Exam List - Always Show */}
+        {/* Enhanced Header Section */}
+        <LinearGradient
+          colors={categoryColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.enhancedHeader}
+        >
+          <View style={styles.enhancedHeaderContent}>
+            <TouchableOpacity 
+              style={styles.enhancedBackButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            
+            <View style={styles.enhancedHeaderInfo}>
+              <View style={styles.enhancedCategoryIcon}>
+                <Ionicons name={getCategoryIcon(category || '')} size={28} color="#FFFFFF" />
+          </View>
+              <Text style={styles.enhancedCategoryTitle}>{category}</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* Stats Section */}
+        <View style={styles.statsSection}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Ionicons name="library" size={20} color="#8B5CF6" />
+              </View>
+              <Text style={styles.statValue}>{exams.length}</Text>
+              <Text style={styles.statLabel}>Total Exams</Text>
+            </View>
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+              </View>
+              <Text style={styles.statValue}>{attemptedExams}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Ionicons name="time" size={20} color="#F59E0B" />
+              </View>
+              <Text style={styles.statValue}>{exams.length - attemptedExams}</Text>
+              <Text style={styles.statLabel}>Pending</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Enhanced Exam List */}
         {exams.length > 0 ? (
-          <View style={styles.simpleExamListContainer}>
-            <Text style={styles.simpleExamListTitle}>Practice Your Exam</Text>
+          <View style={styles.enhancedExamListContainer}>
+            <View style={styles.examListHeader}>
+              <Text style={styles.examListTitle}>Practice Your Exam</Text>
+            </View>
+            
             {exams.map((exam, index) => (
-              <Animated.View
+              <View
                 key={exam.id}
                 style={[
                   styles.enhancedExamCard,
-                  { 
-                    opacity: fadeAnim,
-                    transform: [{ 
-                      translateY: slideAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [20, 0]
-                      })
-                    }]
-                  }
+                  exam.attempted && styles.completedExamCard
                 ]}
               >
                 <TouchableOpacity
-                  style={styles.examCardTouchable}
+                  style={styles.enhancedExamCardTouchable}
                   onPress={() => {
                     console.log('🎯 Exam card pressed:', exam.title);
                     exam.attempted ? handleReviewExam(exam) : handleStartExam(exam);
                   }}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={exam.attempted ? ['#10B981', '#059669'] : ['#FFFFFF', '#F8FAFC']}
+                    colors={exam.attempted ? ['#F0FDF4', '#FFFFFF'] : ['#FFFFFF', '#F8FAFC']}
                     style={styles.examCardGradient}
                   >
-                    <View style={styles.examCardHeader}>
-                      <View style={styles.examCardLeft}>
-                        <View style={styles.examIconContainer}>
+                    {/* Card Header */}
+                    <View style={styles.enhancedExamHeader}>
+                      <View style={styles.examLeftSection}>
+                        <View style={[
+                          styles.enhancedExamIcon,
+                          exam.attempted && styles.completedExamIcon
+                        ]}>
                           <Ionicons 
                             name={getCategoryIcon(exam.category)} 
                             size={24} 
-                            color={exam.attempted ? "#FFFFFF" : "#8B5CF6"} 
+                            color={exam.attempted ? "#10B981" : "#8B5CF6"} 
                           />
                         </View>
-                        <View style={styles.examInfo}>
+                        <View style={styles.examInfoSection}>
                           <Text style={[
-                            styles.examTitle,
+                            styles.enhancedExamTitle,
                             exam.attempted && styles.completedExamTitle
                           ]}>
                             {exam.title}
                           </Text>
                           <Text style={[
-                            styles.examSubcategory,
+                            styles.enhancedExamSubcategory,
                             exam.attempted && styles.completedExamSubcategory
                           ]}>
                             {exam.subcategory}
                           </Text>
+                          <View style={styles.categoryTag}>
                           <Text style={[
-                            styles.examCategory,
-                            exam.attempted && styles.completedExamCategory
+                              styles.categoryTagText,
+                              exam.attempted && styles.completedCategoryTagText
                           ]}>
                             {exam.category}
                           </Text>
                         </View>
                       </View>
-                      <View style={styles.examCardRight}>
-                        <View style={[
-                          styles.examStatusBadge,
-                          exam.attempted ? styles.completedBadge : styles.pendingBadge
-                        ]}>
-                          <Ionicons 
-                            name={exam.attempted ? "checkmark-circle" : "play-circle"} 
-                            size={20} 
-                            color={exam.attempted ? "#10B981" : "#8B5CF6"} 
-                          />
-                          <Text style={[
-                            styles.examStatusText,
-                            exam.attempted ? styles.completedStatusText : styles.pendingStatusText
-                          ]}>
-                            {exam.attempted ? 'Completed' : 'Start Exam'}
-                          </Text>
                         </View>
-                        <View style={styles.examActionButton}>
-                          <Ionicons 
-                            name="arrow-forward" 
-                            size={16} 
-                            color={exam.attempted ? "#10B981" : "#8B5CF6"} 
-                          />
+                      
                         </View>
+
+                    {/* Exam Details Row */}
+                    <View style={styles.enhancedExamDetails}>
+                      <View style={styles.detailItem}>
+                        <View style={styles.detailIconContainer}>
+                          <Ionicons name="calendar" size={16} color="#6B7280" />
                       </View>
+                        <Text style={styles.detailText}>
+                          {formatDate(exam.startTime)}
+            </Text>
+          </View>
+                      
+                      <View style={styles.detailItem}>
+                        <View style={styles.detailIconContainer}>
+                          <Ionicons name="people" size={16} color="#6B7280" />
                     </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
+                        <Text style={styles.detailText}>
+                          {exam.spotsLeft}/{exam.spots} spots
+                  </Text>
+              </View>
+
+                      <View style={styles.detailItem}>
+                        <View style={styles.detailIconContainer}>
+                          <Ionicons name="time" size={16} color="#6B7280" />
+                            </View>
+                        <Text style={styles.detailText}>
+                          Practice
+                              </Text>
+                          </View>
+                        </View>
+                        
+                    {/* Action Button */}
+                    <View style={styles.enhancedActionContainer}>
+                      <LinearGradient
+                        colors={exam.attempted ? ['#10B981', '#059669'] : ['#8B5CF6', '#7C3AED']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.enhancedActionButton}
+                          >
+                            <Ionicons 
+                              name={exam.attempted ? "eye" : "play"} 
+                              size={18} 
+                              color="#FFFFFF" 
+                            />
+                        <Text style={styles.enhancedActionText}>
+                          {exam.attempted ? 'Review Results' : 'Start Exam'}
+                            </Text>
+                        <Ionicons 
+                          name="arrow-forward" 
+                          size={16} 
+                          color="#FFFFFF" 
+                        />
+                      </LinearGradient>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+            </View>
             ))}
           </View>
         ) : (
@@ -583,171 +649,12 @@ const ExamCategoryPage = () => {
             <Text style={styles.noExamsTitle}>No Exams Found</Text>
             <Text style={styles.noExamsText}>
               No exams available for {category} category.
-            </Text>
+                  </Text>
             <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
               <Ionicons name="refresh" size={20} color="#FFFFFF" />
               <Text style={styles.refreshButtonText}>Refresh</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        
-        {/* Original Grouped Exam Section */}
-        {Object.keys(groupedExams).length > 0 ? (
-          Object.entries(groupedExams).map(([subcategory, subcategoryExams], sectionIndex) => {
-          const subcategoryProgress = subcategoryExams.length > 0 
-            ? (subcategoryExams.filter(exam => exam.attempted).length / subcategoryExams.length) * 100 
-            : 0;
-          
-          return (
-            <View 
-              key={subcategory} 
-              style={styles.subcategorySection}
-            >
-              <View style={styles.subcategoryHeader}>
-                <View style={styles.subcategoryInfo}>
-                  <View style={styles.subcategoryTitleRow}>
-                    <Text style={styles.subcategoryTitle}>{subcategory}</Text>
-                    <View style={styles.subcategoryBadge}>
-                      <Text style={styles.subcategoryBadgeText}>
-                        {subcategoryExams.length}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.subcategoryCount}>
-                    {subcategoryExams.length} exam{subcategoryExams.length !== 1 ? 's' : ''}
-                  </Text>
-                </View>
-                <View style={styles.subcategoryProgress}>
-                  <View style={styles.subcategoryProgressRing}>
-                    <Text style={styles.subcategoryProgressText}>
-                      {Math.round(subcategoryProgress)}%
-                    </Text>
-                  </View>
-                  <Text style={styles.subcategoryProgressLabel}>completed</Text>
-                </View>
-              </View>
-
-              {subcategoryExams.map((exam, index) => {
-                console.log(`🎯 Rendering exam: ${exam.title} (${exam.id})`);
-                return (
-                  <Animated.View
-                    key={exam.id}
-                    style={[
-                      styles.examCardWrapper,
-                      { 
-                        opacity: fadeAnim,
-                        transform: [{ 
-                          translateY: slideAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [20, 0]
-                          })
-                        }]
-                      }
-                    ]}
-                  >
-                    <TouchableOpacity
-                      style={styles.enhancedExamCard}
-                      onPress={() => exam.attempted ? handleReviewExam(exam) : handleStartExam(exam)}
-                      activeOpacity={0.7}
-                    >
-                    <LinearGradient
-                      colors={exam.attempted ? ['#10B981', '#059669'] : ['#FFFFFF', '#F8FAFC']}
-                      style={styles.examCardGradient}
-                    >
-                      <View style={styles.examCardContent}>
-                        <View style={styles.examLeftSection}>
-                          <View style={styles.examHeader}>
-                            <Text style={[
-                              styles.examTitle,
-                              exam.attempted && styles.completedExamTitle
-                            ]}>
-                              {exam.title}
-                            </Text>
-                            <View style={[
-                              styles.statusBadge,
-                              exam.attempted ? styles.completedBadge : styles.pendingBadge
-                            ]}>
-                              <Ionicons 
-                                name={exam.attempted ? "checkmark-circle" : "time"} 
-                                size={16} 
-                                color={exam.attempted ? "#10B981" : "#6B7280"} 
-                              />
-                              <Text style={[
-                                styles.statusText,
-                                exam.attempted ? styles.completedText : styles.pendingText
-                              ]}>
-                                {exam.attempted ? 'Completed' : 'Pending'}
-                              </Text>
-                            </View>
-                          </View>
-                          
-                          <View style={styles.examMeta}>
-                            <View style={styles.metaItem}>
-                              <View style={styles.metaIconContainer}>
-                                <Ionicons name="calendar" size={14} color="#6B7280" />
-                              </View>
-                              <Text style={styles.metaText}>
-                                Ends {formatDate(exam.endTime)}
-                              </Text>
-                            </View>
-                            <View style={styles.metaItem}>
-                              <View style={styles.metaIconContainer}>
-                                <Ionicons name="people" size={14} color="#6B7280" />
-                              </View>
-                              <Text style={styles.metaText}>
-                                {exam.spotsLeft}/{exam.spots} spots
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                        
-                        <View style={styles.examRightSection}>
-                          <TouchableOpacity
-                            style={[
-                              styles.actionButton,
-                              exam.attempted ? styles.reviewButton : styles.startButton
-                            ]}
-                            onPress={() => exam.attempted ? handleReviewExam(exam) : handleStartExam(exam)}
-                          >
-                            <Ionicons 
-                              name={exam.attempted ? "eye" : "play"} 
-                              size={18} 
-                              color="#FFFFFF" 
-                            />
-                            <Text style={styles.actionButtonText}>
-                              {exam.attempted ? 'Review' : 'Start'}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </Animated.View>
-                );
-              })}
-            </View>
-          );
-        })
-        ) : (
-          /* Fallback: Show exams directly if no grouping */
-          exams.length > 0 && (
-            <View style={styles.fallbackContainer}>
-              <Text style={styles.fallbackTitle}>Available Exams</Text>
-              {exams.map((exam, index) => (
-                <TouchableOpacity
-                  key={exam.id}
-                  style={styles.simpleExamCard}
-                  onPress={() => exam.attempted ? handleReviewExam(exam) : handleStartExam(exam)}
-                >
-                  <Text style={styles.simpleExamTitle}>{exam.title}</Text>
-                  <Text style={styles.simpleExamSubcategory}>{exam.subcategory}</Text>
-                  <Text style={styles.simpleExamStatus}>
-                    {exam.attempted ? 'Completed' : 'Available'}
-                  </Text>
                 </TouchableOpacity>
-              ))}
             </View>
-          )
         )}
       </ScrollView>
 
@@ -1079,122 +986,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
-  examCardWrapper: {
-    marginBottom: 16,
-  },
-  enhancedExamCard: {
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-    overflow: 'hidden',
-  },
-  examCardGradient: {
-    padding: 24,
-  },
-  examCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  examLeftSection: {
-    flex: 1,
-    marginRight: 20,
-  },
-  examHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  examTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    flex: 1,
-    marginRight: 12,
-    lineHeight: 24,
-  },
-  completedExamTitle: {
-    color: '#FFFFFF',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  completedBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-  },
-  pendingBadge: {
-    backgroundColor: 'rgba(107, 114, 128, 0.1)',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  completedText: {
-    color: '#10B981',
-  },
-  pendingText: {
-    color: '#6B7280',
-  },
-  examMeta: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metaIconContainer: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 6,
-  },
-  metaText: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  examRightSection: {
-    alignItems: 'flex-end',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  startButton: {
-    backgroundColor: '#8B5CF6',
-  },
-  reviewButton: {
-    backgroundColor: '#10B981',
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
-  },
   // Floating Action Button
   fabContainer: {
     position: 'absolute',
@@ -1288,120 +1079,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 8,
   },
-  // Enhanced Exam List styles
-  simpleExamListContainer: {
-    padding: 20,
-  },
-  simpleExamListTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#1F2937',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  enhancedExamCard: {
-    marginBottom: 20,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  examCardTouchable: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    flex: 1,
-  },
-  examCardGradient: {
-    padding: 24,
-    borderRadius: 20,
-  },
-  examCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  examCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  examIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  examInfo: {
-    flex: 1,
-  },
-  examTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 6,
-    lineHeight: 26,
-  },
-  completedExamTitle: {
-    color: '#FFFFFF',
-  },
-  examSubcategory: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  completedExamSubcategory: {
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  examCategory: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    fontWeight: '500',
-  },
-  completedExamCategory: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  examCardRight: {
-    alignItems: 'flex-end',
-    gap: 12,
-  },
-  examStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
-    gap: 8,
-  },
-  completedBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  pendingBadge: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-  },
-  examStatusText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  completedStatusText: {
-    color: '#FFFFFF',
-  },
-  pendingStatusText: {
-    color: '#8B5CF6',
-  },
-  examActionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   // Fallback styles
   fallbackContainer: {
     padding: 16,
@@ -1411,35 +1088,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 16,
-  },
-  simpleExamCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  simpleExamTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  simpleExamSubcategory: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  simpleExamStatus: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8B5CF6',
   },
   // Debug styles
   debugContainer: {
@@ -1495,6 +1143,356 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Enhanced Header Styles
+  enhancedHeader: {
+    paddingTop: 12,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    marginHorizontal: 16,
+    marginTop: 4,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  enhancedHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  enhancedBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  enhancedHeaderInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  enhancedCategoryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  enhancedCategoryTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 3,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  enhancedCategorySubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  // Stats Section
+  statsSection: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  // Enhanced Exam List
+  enhancedExamListContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+  },
+  examListHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  examListTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
+    letterSpacing: 0.3,
+    lineHeight: 26,
+  },
+  examCountBadge: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  examCountText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  enhancedExamCard: {
+    marginBottom: 20,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  completedExamCard: {
+    borderWidth: 2,
+    borderColor: '#10B981',
+    shadowColor: '#10B981',
+    shadowOpacity: 0.2,
+  },
+  enhancedExamCardTouchable: {
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  examCardGradient: {
+    padding: 24,
+  },
+  enhancedExamHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    paddingHorizontal: 6,
+  },
+  examLeftSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    paddingRight: 16,
+  },
+  enhancedExamIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 18,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  completedExamIcon: {
+    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    shadowColor: '#10B981',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  examInfoSection: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    paddingTop: 4,
+  },
+  enhancedExamTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 10,
+    lineHeight: 28,
+    letterSpacing: 0.4,
+  },
+  enhancedExamSubcategory: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 12,
+    fontWeight: '500',
+    lineHeight: 22,
+  },
+  categoryTag: {
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.25)',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  categoryTagText: {
+    fontSize: 13,
+    color: '#8B5CF6',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  completedCategoryTagText: {
+    color: '#10B981',
+  },
+  enhancedStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  completedStatusBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    shadowColor: '#10B981',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  pendingStatusBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    shadowColor: '#F59E0B',
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  enhancedStatusText: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 8,
+    color: '#F59E0B',
+    letterSpacing: 0.2,
+  },
+  completedStatusText: {
+    color: '#10B981',
+  },
+  pendingStatusText: {
+    color: '#F59E0B',
+  },
+  enhancedExamDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 28,
+    paddingHorizontal: 12,
+    paddingVertical: 20,
+    backgroundColor: 'rgba(249, 250, 251, 0.9)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.6)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  detailIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.5)',
+  },
+  detailText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  enhancedActionContainer: {
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  enhancedActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 36,
+    borderRadius: 18,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+    minWidth: 220,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  enhancedActionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginHorizontal: 10,
+    letterSpacing: 0.6,
+    textAlign: 'center',
   },
   // Test card styles
   testCard: {

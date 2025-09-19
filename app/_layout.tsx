@@ -8,7 +8,6 @@ import { Drawer } from 'expo-router/drawer';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-gesture-handler';
-import 'react-native-reanimated';
 import CustomDrawerContent from '../components/CustomDrawerContent';
 import ErrorBoundary from '../components/ErrorBoundary';
 import SplashScreen from '../components/SplashScreen';
@@ -214,7 +213,7 @@ const styles = StyleSheet.create({
     },
 });
 
-export default function RootLayout() {
+function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -248,3 +247,5 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
+
+export default RootLayout;

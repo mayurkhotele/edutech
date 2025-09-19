@@ -179,10 +179,14 @@ const PracticeExamQuestionsScreen = () => {
 
       if (response.ok) {
         console.log('Test submitted successfully');
+        console.log('Submit response:', response.data);
         setShowSubmitModal(false);
         setSubmitting(false);
-        // Direct redirect to result page
-        router.push(`/(tabs)/practice-exam/result/${id}`);
+        // Store result data and redirect to result page
+        router.push({
+          pathname: `/(tabs)/practice-exam/result/${id}`,
+          params: { resultData: JSON.stringify(response.data) }
+        });
       } else {
         console.error('Failed to submit test:', response);
         setSubmitting(false);

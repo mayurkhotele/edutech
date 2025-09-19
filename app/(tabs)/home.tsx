@@ -5,13 +5,14 @@ import { filterActiveExams } from '@/utils/examFilter';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AdvertisementBanner from '../../components/AdvertisementBanner';
 import EducationBannerSlider from '../../components/EducationBannerSlider';
 import ExamCard from '../../components/ExamCard';
 import ExamNotificationsSection from '../../components/ExamNotificationsSection';
 import JobCompetitionBanner from '../../components/JobCompetitionBanner';
+import OurFeaturesSection from '../../components/OurFeaturesSection';
 import PracticeExamSection from '../../components/PracticeExamSection';
 import QuestionOfTheDayPreview from '../../components/QuestionOfTheDayPreview';
 import TopPerformersSection from '../../components/TopPerformersSection';
@@ -53,18 +54,21 @@ export default function HomeScreen() {
         }
     };
 
-    // Refresh Function - Now refreshes all sections
+    // Simple Refresh Function
     const onRefresh = async () => {
         setRefreshing(true);
-        
-        // Refresh all sections in parallel
-        await Promise.all([
-            fetchExams(),
+        try {
+            console.log('🔄 Home page pull-to-refresh triggered');
+            await fetchExams();
             // Trigger practice exam refresh if ref exists
-            practiceExamRef.current?.handleRefresh?.()
-        ]);
-        
-        setRefreshing(false);
+            if (practiceExamRef.current?.handleRefresh) {
+                await practiceExamRef.current.handleRefresh();
+            }
+        } catch (error) {
+            console.error('Error refreshing home page:', error);
+        } finally {
+            setRefreshing(false);
+        }
     };
 
     // Fetch Exams Effect
@@ -102,10 +106,8 @@ export default function HomeScreen() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={[AppColors.primary]}
-                        tintColor={AppColors.primary}
-                        title="Pull to refresh"
-                        titleColor={AppColors.primary}
+                        colors={['#667eea']}
+                        tintColor="#667eea"
                     />
                 }
             >
@@ -161,6 +163,9 @@ export default function HomeScreen() {
             
             {/* Question of the Day Section */}
             <QuestionOfTheDayPreview />
+
+            {/* Our Features Section */}
+            <OurFeaturesSection />
 
             {/* Job Competition Banner */}
             <JobCompetitionBanner onPress={() => {

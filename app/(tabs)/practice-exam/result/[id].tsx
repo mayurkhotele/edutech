@@ -9,69 +9,124 @@ import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TouchableO
 const { width } = Dimensions.get('window');
 
 export default function PracticeExamResultScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, resultData } = useLocalSearchParams<{ id: string, resultData?: string }>();
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<any[]>([]);
   const [userAnswers, setUserAnswers] = useState<{ [qid: string]: number | undefined }>({});
   const [timeData, setTimeData] = useState<{ [qid: string]: number }>({});
+  const [actualResult, setActualResult] = useState<any>(null);
 
   useEffect(() => {
-    if (!id || !user?.token) return;
-    fetchResults();
-  }, [id, user?.token]);
+    if (!id) return;
+    loadResultData();
+  }, [id, resultData]);
 
-  const fetchResults = async () => {
+  const loadResultData = () => {
     setLoading(true);
     try {
-      if (!user?.token) return;
-      const res = await apiFetchAuth(`/student/practice-exams/${id}/questions-with-answers`, user.token);
-      if (res.ok) {
-        setQuestions(res.data.questions || res.data);
-        setUserAnswers(res.data.userAnswers || {});
-        setTimeData(res.data.timeData || {});
+      if (resultData) {
+        // Use data from submit response
+        const submitResponse = JSON.parse(resultData);
+        console.log('Submit response data:', submitResponse);
+        
+        if (submitResponse.result) {
+          setActualResult(submitResponse.result);
+          setQuestions([{
+            id: 'result',
+            marks: submitResponse.result.totalMarks,
+            correct: 1,
+            difficulty: 'medium',
+            topic: 'Practice Exam'
+          }]);
+          setUserAnswers({ 'result': submitResponse.result.correctAnswers });
+          setTimeData({ 'result': 0 });
+        }
+      } else {
+        // Fallback: fetch from API if no submit data
+        fetchResults();
       }
     } catch (e) {
-      // handle error
+      console.error('Error loading result data:', e);
+      fetchResults();
     } finally {
       setLoading(false);
     }
   };
 
-  // Calculate comprehensive analytics
-  const total = questions.length;
-  let correct = 0, incorrect = 0, unattempted = 0, totalMarks = 0, score = 0;
-  let totalTime = 0, avgTime = 0;
+  const fetchResults = async () => {
+    try {
+      if (!user?.token) return;
+      const resultRes = await apiFetchAuth(`/student/practice-exams/${id}/result`, user.token);
+      if (resultRes.ok) {
+        const resultData = resultRes.data.result;
+        setActualResult(resultData);
+        setQuestions([{
+          id: 'result',
+          marks: resultData.totalMarks,
+          correct: 1,
+          difficulty: 'medium',
+          topic: 'Practice Exam'
+        }]);
+        setUserAnswers({ 'result': resultData.correctAnswers });
+        setTimeData({ 'result': 0 });
+      }
+    } catch (e) {
+      console.error('Error fetching results:', e);
+    }
+  };
+
+  // Use actual result data if available, otherwise calculate from questions
+  let total = actualResult ? actualResult.totalQuestions : questions.length;
+  let correct = actualResult ? actualResult.correctAnswers : 0;
+  let incorrect = actualResult ? actualResult.wrongAnswers : 0;
+  let unattempted = actualResult ? actualResult.unattempted : 0;
+  let totalMarks = actualResult ? actualResult.totalMarks : 0;
+  let score = actualResult ? actualResult.earnedMarks : 0;
+  let totalTime = 0; // Not available in result data
+  let avgTime = 0; // Not available in result data
   const difficultyStats = { easy: 0, medium: 0, hard: 0 };
   const topicStats: { [topic: string]: { correct: number, total: number } } = {};
 
-  questions.forEach(q => {
-    totalMarks += q.marks || 1;
-    const userAns = userAnswers[q.id];
-    const timeSpent = timeData[q.id] || 0;
-    totalTime += timeSpent;
+  // If no actual result, calculate from questions
+  if (!actualResult) {
+    total = questions.length;
+    correct = 0;
+    incorrect = 0;
+    unattempted = 0;
+    totalMarks = 0;
+    score = 0;
+    totalTime = 0;
+    
+    questions.forEach(q => {
+      totalMarks += q.marks || 1;
+      const userAns = userAnswers[q.id];
+      const timeSpent = timeData[q.id] || 0;
+      totalTime += timeSpent;
 
-    if (userAns === undefined) unattempted++;
-    else if (userAns === q.correct) { 
-      correct++; 
-      score += q.marks || 1; 
-    } else incorrect++;
+      if (userAns === undefined) unattempted++;
+      else if (userAns === q.correct) { 
+        correct++; 
+        score += q.marks || 1; 
+      } else incorrect++;
 
-    // Difficulty analysis
-    if (q.difficulty === 'easy') difficultyStats.easy++;
-    else if (q.difficulty === 'medium') difficultyStats.medium++;
-    else if (q.difficulty === 'hard') difficultyStats.hard++;
+      // Difficulty analysis
+      if (q.difficulty === 'easy') difficultyStats.easy++;
+      else if (q.difficulty === 'medium') difficultyStats.medium++;
+      else if (q.difficulty === 'hard') difficultyStats.hard++;
 
-    // Topic analysis
-    if (q.topic) {
-      if (!topicStats[q.topic]) topicStats[q.topic] = { correct: 0, total: 0 };
-      topicStats[q.topic].total++;
-      if (userAns === q.correct) topicStats[q.topic].correct++;
-    }
-  });
+      // Topic analysis
+      if (q.topic) {
+        if (!topicStats[q.topic]) topicStats[q.topic] = { correct: 0, total: 0 };
+        topicStats[q.topic].total++;
+        if (userAns === q.correct) topicStats[q.topic].correct++;
+      }
+    });
+    
+    avgTime = total > 0 ? totalTime / total : 0;
+  }
 
-  avgTime = total > 0 ? totalTime / total : 0;
   const accuracy = total > 0 ? (correct / total) * 100 : 0;
   const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
 

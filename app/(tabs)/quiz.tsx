@@ -3,37 +3,34 @@ import { useAuth } from '@/context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
-  ArrowRight,
-  Brain,
-  CheckCircle,
-  Clock,
-  Key,
-  Map,
-  Plus,
-  TestTube,
-  Trophy,
-  Users,
-  X,
-  Zap
+    ArrowRight,
+    Brain,
+    CheckCircle,
+    Clock,
+    Map,
+    TestTube,
+    Trophy,
+    Users,
+    X,
+    Zap
 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  Easing,
-  Image,
-  Modal,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
+    Alert,
+    Animated,
+    Dimensions,
+    Easing,
+    Image,
+    Modal,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 
@@ -1266,13 +1263,12 @@ export default function QuizScreen() {
                </Animated.View>
             </View>
 
-            {/* Enhanced Private Room Section */}
+            {/* TEMPORARILY COMMENTED OUT - Private Room and Join Section 
             <View style={styles.section}>
               <LinearGradient
                 colors={['rgba(102, 126, 234, 0.08)', 'rgba(118, 75, 162, 0.08)']}
                 style={styles.privateRoomContainer}
               >
-                {/* Header Section */}
                 <View style={styles.privateRoomHeader}>
                   <View style={styles.privateRoomInfo}>
                     <View style={styles.privateRoomIconContainer}>
@@ -1301,42 +1297,40 @@ export default function QuizScreen() {
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
-
-                                 {/* Join Room Section */}
-                 <View style={styles.joinRoomSection}>
-                   <View style={styles.joinRoomHeader}>
-                     <View style={styles.joinRoomIconContainer}>
-                       <Key size={20} color="#667eea" />
-                     </View>
-                     <Text style={styles.joinRoomLabel}>Join existing room</Text>
-                   </View>
-                   
-                   <View style={styles.joinRoomInputContainer}>
-                     <TextInput
-                       style={styles.roomCodeInput}
-                       placeholder="Enter room code"
-                       placeholderTextColor="#9ca3af"
-                       value={roomCode}
-                       onChangeText={setRoomCode}
-                       autoCapitalize="none"
-                     />
-                     <TouchableOpacity
-                       style={styles.joinButton}
-                       onPress={handleJoinRoom}
-                       activeOpacity={0.8}
-                     >
-                       <LinearGradient
-                         colors={['#667eea', '#764ba2']}
-                         style={styles.joinButtonGradient}
-                       >
-                         <Text style={styles.joinButtonText}>Join</Text>
-                         <ArrowRight size={16} color="#fff" />
-                       </LinearGradient>
-                     </TouchableOpacity>
-                   </View>
-                 </View>
+                <View style={styles.joinRoomSection}>
+                  <View style={styles.joinRoomHeader}>
+                    <View style={styles.joinRoomIconContainer}>
+                      <Key size={20} color="#667eea" />
+                    </View>
+                    <Text style={styles.joinRoomLabel}>Join existing room</Text>
+                  </View>
+                  <View style={styles.joinRoomInputContainer}>
+                    <TextInput
+                      style={styles.roomCodeInput}
+                      placeholder="Enter room code"
+                      placeholderTextColor="#9ca3af"
+                      value={roomCode}
+                      onChangeText={setRoomCode}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity
+                      style={styles.joinButton}
+                      onPress={handleJoinRoom}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={['#667eea', '#764ba2']}
+                        style={styles.joinButtonGradient}
+                      >
+                        <Text style={styles.joinButtonText}>Join</Text>
+                        <ArrowRight size={16} color="#fff" />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </LinearGradient>
             </View>
+            */}
           </View>
         </Animated.View>
       </ScrollView>

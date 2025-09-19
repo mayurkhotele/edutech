@@ -37,6 +37,17 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  
+  // New post type states
+  const [postType, setPostType] = useState<'TEXT' | 'POLL' | 'QUESTION'>('TEXT');
+  
+  // Poll states
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+  const [allowMultipleVotes, setAllowMultipleVotes] = useState(false);
+  
+  // Question states
+  const [questionOptions, setQuestionOptions] = useState<string[]>(['', '']);
+  const [questionType, setQuestionType] = useState<'MCQ' | 'TRUE_FALSE'>('MCQ');
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -117,10 +128,66 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
     setImage(null);
   };
 
+  // Poll helper functions
+  const addPollOption = () => {
+    if (pollOptions.length < 6) {
+      setPollOptions([...pollOptions, '']);
+    }
+  };
+
+  const removePollOption = (index: number) => {
+    if (pollOptions.length > 2) {
+      setPollOptions(pollOptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const updatePollOption = (index: number, value: string) => {
+    const newOptions = [...pollOptions];
+    newOptions[index] = value;
+    setPollOptions(newOptions);
+  };
+
+  // Question helper functions
+  const addQuestionOption = () => {
+    if (questionOptions.length < 6) {
+      setQuestionOptions([...questionOptions, '']);
+    }
+  };
+
+  const removeQuestionOption = (index: number) => {
+    if (questionOptions.length > 2) {
+      setQuestionOptions(questionOptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateQuestionOption = (index: number, value: string) => {
+    const newOptions = [...questionOptions];
+    newOptions[index] = value;
+    setQuestionOptions(newOptions);
+  };
+
   const handleSubmit = async () => {
     if (!content.trim()) {
       Alert.alert('Error', 'Please enter some content for your post');
       return;
+    }
+
+    // Validate poll options
+    if (postType === 'POLL') {
+      const validOptions = pollOptions.filter(option => option.trim().length > 0);
+      if (validOptions.length < 2) {
+        Alert.alert('Error', 'Please add at least 2 poll options');
+        return;
+      }
+    }
+
+    // Validate question options
+    if (postType === 'QUESTION') {
+      const validOptions = questionOptions.filter(option => option.trim().length > 0);
+      if (validOptions.length < 2) {
+        Alert.alert('Error', 'Please add at least 2 question options');
+        return;
+      }
     }
 
     setLoading(true);
@@ -145,12 +212,25 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
         .map(tag => tag.trim().replace('#', ''))
         .filter(tag => tag.length > 0);
 
-      const postData = {
+      let postData: any = {
         content: content.trim(),
         hashtags: hashtagsArray,
         isPrivate,
         imageUrl: imageUrl,
+        postType: postType,
       };
+
+      // Add poll-specific data
+      if (postType === 'POLL') {
+        postData.pollOptions = pollOptions.filter(option => option.trim().length > 0);
+        postData.allowMultipleVotes = allowMultipleVotes;
+      }
+
+      // Add question-specific data
+      if (postType === 'QUESTION') {
+        postData.questionOptions = questionOptions.filter(option => option.trim().length > 0);
+        postData.questionType = questionType;
+      }
 
       const response = await apiFetchAuth('/student/posts', user?.token || '', {
         method: 'POST',
@@ -178,6 +258,11 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
     setHashtags('');
     setIsPrivate(false);
     setImage(null);
+    setPostType('TEXT');
+    setPollOptions(['', '']);
+    setAllowMultipleVotes(false);
+    setQuestionOptions(['', '']);
+    setQuestionType('MCQ');
   };
 
   const handleClose = () => {
@@ -330,6 +415,86 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                 </View>
               </View>
             </LinearGradient>
+          </Animated.View>
+
+          {/* Post Type Selector */}
+          <Animated.View 
+            style={[
+              styles.postTypeSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <LinearGradient
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                style={styles.iconContainer}
+              >
+                <Ionicons name="layers-outline" size={18} color="#fff" />
+              </LinearGradient>
+              <Text style={styles.sectionTitle}>📝 Post Type</Text>
+            </View>
+            
+            <View style={styles.postTypeButtons}>
+              <TouchableOpacity
+                style={[styles.postTypeButton, postType === 'TEXT' && styles.postTypeButtonActive]}
+                onPress={() => setPostType('TEXT')}
+              >
+                <LinearGradient
+                  colors={postType === 'TEXT' ? ['#4F46E5', '#7C3AED'] : ['#f1f5f9', '#e2e8f0']}
+                  style={styles.postTypeButtonGradient}
+                >
+                  <Ionicons 
+                    name="create-outline" 
+                    size={20} 
+                    color={postType === 'TEXT' ? '#fff' : '#64748b'} 
+                  />
+                  <Text style={[styles.postTypeButtonText, postType === 'TEXT' && styles.postTypeButtonTextActive]}>
+                    Text Post
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.postTypeButton, postType === 'POLL' && styles.postTypeButtonActive]}
+                onPress={() => setPostType('POLL')}
+              >
+                <LinearGradient
+                  colors={postType === 'POLL' ? ['#4F46E5', '#7C3AED'] : ['#f1f5f9', '#e2e8f0']}
+                  style={styles.postTypeButtonGradient}
+                >
+                  <Ionicons 
+                    name="bar-chart-outline" 
+                    size={20} 
+                    color={postType === 'POLL' ? '#fff' : '#64748b'} 
+                  />
+                  <Text style={[styles.postTypeButtonText, postType === 'POLL' && styles.postTypeButtonTextActive]}>
+                    Poll
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.postTypeButton, postType === 'QUESTION' && styles.postTypeButtonActive]}
+                onPress={() => setPostType('QUESTION')}
+              >
+                <LinearGradient
+                  colors={postType === 'QUESTION' ? ['#4F46E5', '#7C3AED'] : ['#f1f5f9', '#e2e8f0']}
+                  style={styles.postTypeButtonGradient}
+                >
+                  <Ionicons 
+                    name="help-circle-outline" 
+                    size={20} 
+                    color={postType === 'QUESTION' ? '#fff' : '#64748b'} 
+                  />
+                  <Text style={[styles.postTypeButtonText, postType === 'QUESTION' && styles.postTypeButtonTextActive]}>
+                    Question
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
 
           {/* Enhanced Content Input */}
@@ -540,6 +705,154 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
               </TouchableOpacity>
             </LinearGradient>
           </Animated.View>
+
+          {/* Poll Options Section */}
+          {postType === 'POLL' && (
+            <Animated.View 
+              style={[
+                styles.pollOptionsSection,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
+            >
+              <View style={styles.sectionHeader}>
+                <LinearGradient
+                  colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
+                  style={styles.iconContainer}
+                >
+                  <Ionicons name="bar-chart-outline" size={18} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.sectionTitle}>📊 Poll Options</Text>
+              </View>
+              
+              <View style={styles.optionsContainer}>
+                {pollOptions.map((option, index) => (
+                  <View key={index} style={styles.optionRow}>
+                    <TextInput
+                      style={styles.optionInput}
+                      placeholder={`Option ${index + 1}`}
+                      placeholderTextColor="#94a3b8"
+                      value={option}
+                      onChangeText={(value) => updatePollOption(index, value)}
+                    />
+                    {pollOptions.length > 2 && (
+                      <TouchableOpacity
+                        style={styles.removeOptionButton}
+                        onPress={() => removePollOption(index)}
+                      >
+                        <Ionicons name="close-circle" size={24} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                
+                {pollOptions.length < 6 && (
+                  <TouchableOpacity style={styles.addOptionButton} onPress={addPollOption}>
+                    <LinearGradient
+                      colors={['#4F46E5', '#7C3AED']}
+                      style={styles.addOptionButtonGradient}
+                    >
+                      <Ionicons name="add" size={20} color="#fff" />
+                      <Text style={styles.addOptionText}>Add Option</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={styles.pollSettings}>
+                <TouchableOpacity
+                  style={styles.settingRow}
+                  onPress={() => setAllowMultipleVotes(!allowMultipleVotes)}
+                >
+                  <View style={styles.settingInfo}>
+                    <Ionicons name="checkmark-circle-outline" size={20} color="#4F46E5" />
+                    <Text style={styles.settingText}>Allow multiple votes</Text>
+                  </View>
+                  <View style={[styles.toggleSwitch, allowMultipleVotes && styles.toggleSwitchActive]}>
+                    <View style={[styles.toggleKnob, allowMultipleVotes && styles.toggleKnobActive]} />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Question Options Section */}
+          {postType === 'QUESTION' && (
+            <Animated.View 
+              style={[
+                styles.questionOptionsSection,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
+            >
+              <View style={styles.sectionHeader}>
+                <LinearGradient
+                  colors={['#F59E0B', '#D97706', '#B45309']}
+                  style={styles.iconContainer}
+                >
+                  <Ionicons name="help-circle-outline" size={18} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.sectionTitle}>❓ Question Options</Text>
+              </View>
+
+              <View style={styles.questionTypeSelector}>
+                <TouchableOpacity
+                  style={[styles.questionTypeButton, questionType === 'MCQ' && styles.questionTypeButtonActive]}
+                  onPress={() => setQuestionType('MCQ')}
+                >
+                  <Text style={[styles.questionTypeButtonText, questionType === 'MCQ' && styles.questionTypeButtonTextActive]}>
+                    Multiple Choice
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.questionTypeButton, questionType === 'TRUE_FALSE' && styles.questionTypeButtonActive]}
+                  onPress={() => setQuestionType('TRUE_FALSE')}
+                >
+                  <Text style={[styles.questionTypeButtonText, questionType === 'TRUE_FALSE' && styles.questionTypeButtonTextActive]}>
+                    True/False
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.optionsContainer}>
+                {questionOptions.map((option, index) => (
+                  <View key={index} style={styles.optionRow}>
+                    <TextInput
+                      style={styles.optionInput}
+                      placeholder={questionType === 'TRUE_FALSE' ? (index === 0 ? 'True' : 'False') : `Option ${index + 1}`}
+                      placeholderTextColor="#94a3b8"
+                      value={option}
+                      onChangeText={(value) => updateQuestionOption(index, value)}
+                    />
+                    {questionOptions.length > 2 && questionType === 'MCQ' && (
+                      <TouchableOpacity
+                        style={styles.removeOptionButton}
+                        onPress={() => removeQuestionOption(index)}
+                      >
+                        <Ionicons name="close-circle" size={24} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                
+                {questionType === 'MCQ' && questionOptions.length < 6 && (
+                  <TouchableOpacity style={styles.addOptionButton} onPress={addQuestionOption}>
+                    <LinearGradient
+                      colors={['#4F46E5', '#7C3AED']}
+                      style={styles.addOptionButtonGradient}
+                    >
+                      <Ionicons name="add" size={20} color="#fff" />
+                      <Text style={styles.addOptionText}>Add Option</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Animated.View>
+          )}
         </ScrollView>
 
                  {/* Enhanced Bottom Actions */}
@@ -1098,5 +1411,137 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 17,
     fontWeight: 'bold',
+  },
+
+  // Post Type Selector Styles
+  postTypeSection: {
+    marginBottom: 20,
+  },
+  postTypeButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  postTypeButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  postTypeButtonActive: {
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  postTypeButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  postTypeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  postTypeButtonTextActive: {
+    color: '#fff',
+  },
+
+  // Poll Options Styles
+  pollOptionsSection: {
+    marginBottom: 20,
+  },
+  optionsContainer: {
+    gap: 12,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  optionInput: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  removeOptionButton: {
+    padding: 4,
+  },
+  addOptionButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  addOptionButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  addOptionText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  pollSettings: {
+    marginTop: 16,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  settingText: {
+    fontSize: 16,
+    color: '#1e293b',
+    fontWeight: '500',
+  },
+
+  // Question Options Styles
+  questionOptionsSection: {
+    marginBottom: 20,
+  },
+  questionTypeSelector: {
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  questionTypeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  questionTypeButtonActive: {
+    backgroundColor: '#4F46E5',
+  },
+  questionTypeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  questionTypeButtonTextActive: {
+    color: '#fff',
   },
 }); 

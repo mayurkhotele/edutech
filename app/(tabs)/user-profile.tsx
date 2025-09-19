@@ -61,7 +61,19 @@ export default function UserProfileScreen() {
     // If we have original user data, use it instead of fetching
     if (originalUserData) {
       console.log('🔍 Using original user data:', originalUserData);
-      setProfile(originalUserData);
+      // Ensure profile has required fields
+      const profileData = {
+        ...originalUserData,
+        name: originalUserData.name || originalUserData.username || 'Unknown User',
+        username: originalUserData.username || originalUserData.name || 'unknown',
+        email: originalUserData.email || '',
+        profilePhoto: originalUserData.profilePhoto || null,
+        bio: originalUserData.bio || '',
+        followersCount: originalUserData.followersCount || 0,
+        followingCount: originalUserData.followingCount || 0,
+        postsCount: originalUserData.postsCount || 0
+      };
+      setProfile(profileData);
       setIsFollowing(originalUserData.isFollowing || false);
       setLoading(false);
       return;
@@ -147,7 +159,7 @@ export default function UserProfileScreen() {
     if (isFollowing) {
       Alert.alert(
         'Unfollow User',
-        `Are you sure you want to unfollow ${profile.name}?`,
+        `Are you sure you want to unfollow ${profile?.name || 'this user'}?`,
         [
           { text: 'Cancel', style: 'cancel' },
           { 
@@ -426,7 +438,7 @@ export default function UserProfileScreen() {
     );
   };
 
-  if (loading) {
+  if (loading || !profile) {
     return (
       <View style={styles.enhancedLoadingContainer}>
         <LinearGradient
@@ -474,7 +486,10 @@ export default function UserProfileScreen() {
   }
 
   // Helper for initials
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined) => {
+    if (!name || typeof name !== 'string') {
+      return 'U';
+    }
     return name
       .split(' ')
       .map((n) => n[0])
@@ -497,7 +512,7 @@ export default function UserProfileScreen() {
             />
           </LinearGradient>
           <View style={styles.postAuthorInfo}>
-            <Text style={styles.postAuthorName}>{profile.name}</Text>
+            <Text style={styles.postAuthorName}>{profile?.name || 'Unknown User'}</Text>
             <View style={styles.postMetaRow}>
               <Ionicons name="time-outline" size={14} color="#999" />
               <Text style={styles.postTime}>{timeAgo(item.createdAt)}</Text>
@@ -598,7 +613,6 @@ export default function UserProfileScreen() {
 
   return (
     <View style={styles.container}>
-
       <ScrollView 
         style={styles.scrollView}
         refreshControl={
@@ -611,53 +625,94 @@ export default function UserProfileScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Clean Profile Section */}
-        <View style={styles.cleanProfileSection}>
-          <View style={styles.profileInfoContainer}>
-            <View style={styles.profileAvatarContainer}>
-              <View style={styles.profileAvatar}>
-                {profile.profilePhoto ? (
-                  <Image source={{ uri: profile.profilePhoto }} style={styles.avatarImage} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
+        {/* Enhanced Profile Section */}
+        <View style={styles.enhancedProfileSection}>
+          <LinearGradient
+            colors={['#fff', '#f8f9fa']}
+            style={styles.profileCard}
+          >
+            <View style={styles.profileInfoContainer}>
+              <View style={styles.profileAvatarContainer}>
+                <View style={styles.avatarRing}>
+                  {profile.profilePhoto ? (
+                    <Image source={{ uri: profile.profilePhoto }} style={styles.enhancedAvatarImage} />
+                  ) : (
+                    <LinearGradient
+                      colors={['#4F46E5', '#7C3AED']}
+                      style={styles.enhancedAvatarPlaceholder}
+                    >
+                      <Text style={styles.enhancedAvatarInitials}>{getInitials(profile?.name)}</Text>
+                    </LinearGradient>
+                  )}
+                  <View style={styles.onlineIndicator} />
+                </View>
+              </View>
+              
+              <View style={styles.profileDetails}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.enhancedProfileName}>{profile?.name || 'Unknown User'}</Text>
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
                   </View>
+                </View>
+                <Text style={styles.enhancedProfileHandle}>
+                  {profile?.handle
+                    ? `@${profile.handle}`
+                    : profile?.username
+                    ? `@${profile.username}`
+                    : profile?.name
+                    ? `@${(profile?.name || 'unknown').replace(/\s+/g, '').toLowerCase()}`
+                    : ''}
+                </Text>
+                {profile.bio && (
+                  <Text style={styles.profileBio}>{profile.bio}</Text>
                 )}
               </View>
             </View>
-            
-            <View style={styles.profileDetails}>
-              <Text style={styles.profileName}>{profile.name}</Text>
-              <Text style={styles.profileEmail}>
-                {profile?.handle
-                  ? `@${profile.handle}`
-                  : profile?.username
-                  ? `@${profile.username}`
-                  : profile?.name
-                  ? `@${profile.name.replace(/\s+/g, '').toLowerCase()}`
-                  : ''}
-              </Text>
-              
-            </View>
-          </View>
+          </LinearGradient>
         </View>
 
-        {/* Compact Stats Section */}
-        <View style={styles.compactStatsSection}>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile._count?.posts || 0}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
+        {/* Enhanced Stats Section */}
+        <View style={styles.enhancedStatsSection}>
+          <LinearGradient
+            colors={['#fff', '#f8f9fa']}
+            style={styles.statsCard}
+          >
+            <View style={styles.enhancedStatsContainer}>
+              <TouchableOpacity style={styles.enhancedStatItem} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={['#4F46E5', '#7C3AED']}
+                  style={styles.statIconGradient}
+                >
+                  <Ionicons name="grid-outline" size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.enhancedStatNumber}>{profile._count?.posts || 0}</Text>
+                <Text style={styles.enhancedStatLabel}>Posts</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.enhancedStatItem} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  style={styles.statIconGradient}
+                >
+                  <Ionicons name="people-outline" size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.enhancedStatNumber}>{profile._count?.followers || 0}</Text>
+                <Text style={styles.enhancedStatLabel}>Followers</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.enhancedStatItem} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={['#F59E0B', '#D97706']}
+                  style={styles.statIconGradient}
+                >
+                  <Ionicons name="person-add-outline" size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={styles.enhancedStatNumber}>{profile._count?.following || 0}</Text>
+                <Text style={styles.enhancedStatLabel}>Following</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile._count?.followers || 0}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile._count?.following || 0}</Text>
-              <Text style={styles.statLabel}>Following</Text>
-            </View>
-          </View>
+          </LinearGradient>
         </View>
 
         {/* Enhanced Bio Section */}
@@ -680,65 +735,80 @@ export default function UserProfileScreen() {
 
         {/* Enhanced Action Buttons */}
         <View style={styles.enhancedActionSection}>
-          <View style={styles.actionButtonsContainer}>
-            {/* Follow Button */}
-            <TouchableOpacity 
-              style={styles.enhancedFollowButtonWrapper}
-              activeOpacity={0.8} 
-              onPress={handleFollow}
-            >
-              <LinearGradient
-                colors={
-                  isFollowing ? ['#ff6b6b', '#ee5a52'] :
-                  profile?.followRequestStatus === 'PENDING' ? ['#ff9f43', '#f39c12'] :
-                  ['#4F46E5', '#7C3AED']
-                }
-                style={styles.enhancedFollowButtonGradient}
-              >
-                <Ionicons 
-                  name={
-                    isFollowing ? "person-remove-outline" : 
-                    profile?.followRequestStatus === 'PENDING' ? "time-outline" : 
-                    "person-add-outline"
-                  } 
-                  size={20} 
-                  color="#fff" 
-                />
-                <Text style={styles.enhancedFollowButtonText}>
-                  {isFollowing ? 'Following' : 
-                   profile?.followRequestStatus === 'PENDING' ? 'Requested' : 
-                   'Follow'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            {/* Message Button */}
-            {canMessageUser() && (
-              <TouchableOpacity
-                style={styles.enhancedMessageButtonWrapper}
-                onPress={() => {
-                  console.log('🔍 Message button clicked!');
-                  router.push({
-                    pathname: '/chat-screen',
-                    params: {
-                      userId: profile?.id || '',
-                      userName: profile?.name || 'User',
-                      userProfilePhoto: profile?.profilePhoto || '',
-                      isFollowing: isFollowing.toString()
-                    }
-                  });
-                }}
+          <LinearGradient
+            colors={['#fff', '#f8f9fa']}
+            style={styles.actionCard}
+          >
+            <View style={styles.enhancedActionButtonsContainer}>
+              {/* Follow Button */}
+              <TouchableOpacity 
+                style={styles.enhancedFollowButtonWrapper}
+                activeOpacity={0.8} 
+                onPress={handleFollow}
               >
                 <LinearGradient
-                  colors={['#7C3AED', '#8B5CF6']}
-                  style={styles.enhancedMessageButtonGradient}
+                  colors={
+                    isFollowing ? ['#ff6b6b', '#ee5a52'] :
+                    profile?.followRequestStatus === 'PENDING' ? ['#ff9f43', '#f39c12'] :
+                    ['#4F46E5', '#7C3AED']
+                  }
+                  style={styles.enhancedFollowButtonGradient}
                 >
-                  <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
-                  <Text style={styles.enhancedMessageButtonText}>Message</Text>
+                  <Ionicons 
+                    name={
+                      isFollowing ? "person-remove-outline" : 
+                      profile?.followRequestStatus === 'PENDING' ? "time-outline" : 
+                      "person-add-outline"
+                    } 
+                    size={20} 
+                    color="#fff" 
+                  />
+                  <Text style={styles.enhancedFollowButtonText}>
+                    {isFollowing ? 'Following' : 
+                     profile?.followRequestStatus === 'PENDING' ? 'Requested' : 
+                     'Follow'}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
-            )}
-          </View>
+              
+              {/* Message Button */}
+              {canMessageUser() && (
+                <TouchableOpacity
+                  style={styles.enhancedMessageButtonWrapper}
+                  onPress={() => {
+                    console.log('🔍 Message button clicked!');
+                    router.push({
+                      pathname: '/chat-screen',
+                      params: {
+                        userId: profile?.id || '',
+                        userName: profile?.name || 'User',
+                        userProfilePhoto: profile?.profilePhoto || '',
+                        isFollowing: isFollowing.toString()
+                      }
+                    });
+                  }}
+                >
+                  <LinearGradient
+                    colors={['#7C3AED', '#8B5CF6']}
+                    style={styles.enhancedMessageButtonGradient}
+                  >
+                    <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
+                    <Text style={styles.enhancedMessageButtonText}>Message</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              
+              {/* More Options Button */}
+              <TouchableOpacity style={styles.moreOptionsButton} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={['#6B7280', '#4B5563']}
+                  style={styles.moreOptionsGradient}
+                >
+                  <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
         </View>
 
         {/* About Section */}
@@ -754,100 +824,126 @@ export default function UserProfileScreen() {
           </View>
         )}
 
-        {/* Posts Section */}
-        <View style={styles.postsSection}>
-          {postsLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#4F46E5" />
-              <Text style={styles.loadingText}>Loading posts...</Text>
-            </View>
-          ) : userPosts.length > 0 ? (
-            <View style={styles.postsList}>
-              {userPosts.map((item, index) => (
-                <View key={item.id} style={styles.postCard}>
-                  {/* Post Header */}
-                  <View style={styles.postHeader}>
-                    <View style={styles.postAuthorSection}>
-                      <View style={styles.postAuthorAvatar}>
-                        {profile.profilePhoto ? (
-                          <Image source={{ uri: profile.profilePhoto }} style={styles.postAuthorAvatarImage} />
-                        ) : (
-                          <View style={styles.postAuthorAvatarPlaceholder}>
-                            <Text style={styles.postAuthorAvatarInitials}>{getInitials(profile.name)}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.postAuthorInfo}>
-                        <Text style={styles.postAuthorName}>{profile.name}</Text>
-                        <Text style={styles.postTime}>{timeAgo(item.createdAt)}</Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity style={styles.postMoreButton}>
-                      <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Post Content */}
-                  <View style={styles.postContentContainer}>
-                    <Text style={styles.postContent}>{item.content}</Text>
-                  </View>
-
-                  {/* Post Image */}
-                  {item.imageUrl && (
-                    <View style={styles.postImageContainer}>
-                      <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
-                    </View>
-                  )}
-
-                  {/* Post Actions */}
-                  <View style={styles.postActions}>
-                    <TouchableOpacity style={styles.postActionButton}>
-                      <Ionicons name="heart-outline" size={20} color="#666" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.postActionButton}>
-                      <Ionicons name="chatbubble-outline" size={20} color="#666" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.postActionButton}>
-                      <Ionicons name="share-outline" size={20} color="#666" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.postActionButton}>
-                      <Ionicons name="bookmark-outline" size={20} color="#666" />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Post Stats */}
-                  <View style={styles.postStats}>
-                    <Text style={styles.postLikes}>{item._count?.likes || 0} likes</Text>
-                    <Text style={styles.postComments}>{item._count?.comments || 0} comments</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.enhancedEmptyPostsContainer}>
-              <View style={styles.enhancedEmptyPostsCard}>
+        {/* Enhanced Posts Section */}
+        <View style={styles.enhancedPostsSection}>
+          <LinearGradient
+            colors={['#fff', '#f8f9fa']}
+            style={styles.postsCard}
+          >
+            <View style={styles.postsHeader}>
+              <View style={styles.postsHeaderLeft}>
                 <LinearGradient
                   colors={['#4F46E5', '#7C3AED']}
-                  style={styles.emptyPostsIconGradient}
+                  style={styles.postsIconGradient}
                 >
-                  <Ionicons name="camera-outline" size={48} color="#fff" />
+                  <Ionicons name="grid-outline" size={20} color="#fff" />
                 </LinearGradient>
-                <Text style={styles.enhancedEmptyPostsTitle}>No posts yet</Text>
-                <Text style={styles.enhancedEmptyPostsSubtitle}>When {profile.name} shares photos and videos, you'll see them here.</Text>
-                <View style={styles.emptyPostsAction}>
-                  <TouchableOpacity style={styles.followUserButton}>
-                    <LinearGradient
-                      colors={['#4F46E5', '#7C3AED']}
-                      style={styles.followUserButtonGradient}
-                    >
-                      <Ionicons name="person-add-outline" size={20} color="#fff" />
-                      <Text style={styles.followUserButtonText}>Follow {profile.name}</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
+                <Text style={styles.postsTitle}>Posts</Text>
               </View>
+              <Text style={styles.postsCount}>{userPosts.length} posts</Text>
             </View>
-          )}
+            
+            {postsLoading ? (
+              <View style={styles.enhancedLoadingContainer}>
+                <ActivityIndicator size="large" color="#4F46E5" />
+                <Text style={styles.enhancedLoadingText}>Loading posts...</Text>
+              </View>
+            ) : userPosts.length > 0 ? (
+              <View style={styles.enhancedPostsList}>
+                {userPosts.map((item, index) => (
+                  <View key={item.id} style={styles.enhancedPostCard}>
+                    <LinearGradient
+                      colors={['#fff', '#f8f9fa']}
+                      style={styles.postCardGradient}
+                    >
+                      {/* Enhanced Post Header */}
+                      <View style={styles.enhancedPostHeader}>
+                        <View style={styles.enhancedPostAuthorSection}>
+                          <View style={styles.enhancedPostAvatar}>
+                            {profile.profilePhoto ? (
+                              <Image source={{ uri: profile.profilePhoto }} style={styles.enhancedPostAvatarImage} />
+                            ) : (
+                              <LinearGradient
+                                colors={['#4F46E5', '#7C3AED']}
+                                style={styles.enhancedPostAvatarPlaceholder}
+                              >
+                                <Text style={styles.enhancedPostAvatarInitials}>{getInitials(profile?.name)}</Text>
+                              </LinearGradient>
+                            )}
+                          </View>
+                          <View style={styles.enhancedPostAuthorInfo}>
+                            <Text style={styles.enhancedPostAuthorName}>{profile?.name || 'Unknown User'}</Text>
+                            <Text style={styles.enhancedPostTime}>{timeAgo(item.createdAt)}</Text>
+                          </View>
+                        </View>
+                        <TouchableOpacity style={styles.enhancedPostMoreButton}>
+                          <Ionicons name="ellipsis-horizontal" size={20} color="#9CA3AF" />
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Enhanced Post Content */}
+                      <View style={styles.enhancedPostContentContainer}>
+                        <Text style={styles.enhancedPostContent}>{item.content}</Text>
+                      </View>
+
+                      {/* Enhanced Post Image */}
+                      {item.imageUrl && (
+                        <View style={styles.enhancedPostImageContainer}>
+                          <Image source={{ uri: item.imageUrl }} style={styles.enhancedPostImage} />
+                        </View>
+                      )}
+
+                      {/* Enhanced Post Actions */}
+                      <View style={styles.enhancedPostActions}>
+                        <TouchableOpacity style={styles.enhancedPostActionButton}>
+                          <LinearGradient
+                            colors={['#ff6b6b', '#ff8e53']}
+                            style={styles.postActionIconGradient}
+                          >
+                            <Ionicons name="heart-outline" size={16} color="#fff" />
+                          </LinearGradient>
+                          <Text style={styles.enhancedPostActionText}>{item._count?.likes || 0}</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={styles.enhancedPostActionButton}>
+                          <LinearGradient
+                            colors={['#4facfe', '#00f2fe']}
+                            style={styles.postActionIconGradient}
+                          >
+                            <Ionicons name="chatbubble-outline" size={16} color="#fff" />
+                          </LinearGradient>
+                          <Text style={styles.enhancedPostActionText}>{item._count?.comments || 0}</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={styles.enhancedPostActionButton}>
+                          <LinearGradient
+                            colors={['#f093fb', '#f5576c']}
+                            style={styles.postActionIconGradient}
+                          >
+                            <Ionicons name="share-outline" size={16} color="#fff" />
+                          </LinearGradient>
+                          <Text style={styles.enhancedPostActionText}>Share</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </LinearGradient>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.enhancedEmptyPostsContainer}>
+                <LinearGradient
+                  colors={['#f8f9fa', '#e9ecef']}
+                  style={styles.enhancedEmptyPostsCard}
+                >
+                  <View style={styles.enhancedEmptyPostsIcon}>
+                    <Ionicons name="camera-outline" size={48} color="#9CA3AF" />
+                  </View>
+                  <Text style={styles.enhancedEmptyPostsTitle}>No posts yet</Text>
+                  <Text style={styles.enhancedEmptyPostsSubtitle}>When {profile?.name || 'this user'} shares photos and videos, you'll see them here.</Text>
+                </LinearGradient>
+              </View>
+            )}
+          </LinearGradient>
         </View>
       </ScrollView>
 
@@ -879,16 +975,20 @@ export default function UserProfileScreen() {
               ) : followRequests.length === 0 ? (
                 <View style={styles.modalEmptyContainer}>
                   <Ionicons name="people-outline" size={48} color="#bdc3c7" />
-                  <Text style={styles.modalEmptyTitle}>No follow requests</Text>
-                  <Text style={styles.modalEmptySubtitle}>You don't have any pending follow requests</Text>
+                  <Text style={styles.modalTitle}>No follow requests</Text>
+                  <Text style={styles.emptySubtitle}>You don't have any pending follow requests</Text>
                 </View>
               ) : (
                 <FlatList
                   data={followRequests}
                   keyExtractor={(item) => item.id}
-                  renderItem={renderFollowRequest}
+                  renderItem={({ item }) => (
+                    <View style={styles.followRequestItem}>
+                      <Text style={styles.followRequestText}>{item.sender?.name || 'Unknown User'}</Text>
+                    </View>
+                  )}
                   showsVerticalScrollIndicator={false}
-                  contentContainerStyle={styles.followRequestsList}
+                  contentContainerStyle={styles.followRequestItem}
                 />
               )}
             </View>
@@ -3783,5 +3883,371 @@ const styles = StyleSheet.create({
   },
   messagesFlatList: {
     paddingBottom: 100, // Add padding for the input bar
+  },
+
+  enhancedProfileSection: {
+    marginTop: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  profileCard: {
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  avatarRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 4,
+    borderColor: '#4F46E5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  enhancedAvatarImage: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+  },
+  enhancedAvatarPlaceholder: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  enhancedAvatarInitials: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#10B981',
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  enhancedProfileName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginRight: 8,
+  },
+  verifiedBadge: {
+    marginLeft: 4,
+  },
+  enhancedProfileHandle: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  profileBio: {
+    fontSize: 15,
+    color: '#374151',
+    lineHeight: 22,
+  },
+  enhancedStatsSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  statsCard: {
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  enhancedStatsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  enhancedStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statIconGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  enhancedStatNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  enhancedStatLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  actionCard: {
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  enhancedActionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  enhancedFollowButtonWrapper: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  enhancedFollowButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  enhancedFollowButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  enhancedMessageButtonWrapper: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  enhancedMessageButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  enhancedMessageButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  moreOptionsButton: {
+    width: 48,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  moreOptionsGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  enhancedPostsSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  postsCard: {
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  postsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  postsHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  postsIconGradient: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  postsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  postsCount: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  enhancedPostsList: {
+    gap: 12,
+  },
+  enhancedPostCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  postCardGradient: {
+    padding: 16,
+  },
+  enhancedPostHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  enhancedPostAuthorSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  enhancedPostAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  enhancedPostAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  enhancedPostAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  enhancedPostAvatarInitials: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  enhancedPostAuthorInfo: {
+    flex: 1,
+  },
+  enhancedPostAuthorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  enhancedPostTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  enhancedPostMoreButton: {
+    padding: 8,
+    borderRadius: 16,
+    backgroundColor: 'rgba(156, 163, 175, 0.1)',
+  },
+  enhancedPostContentContainer: {
+    marginBottom: 12,
+  },
+  enhancedPostContent: {
+    fontSize: 15,
+    color: '#374151',
+    lineHeight: 22,
+  },
+  enhancedPostImageContainer: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  enhancedPostImage: {
+    width: '100%',
+    height: 200,
+  },
+  enhancedPostActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  enhancedPostActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 20,
+    paddingVertical: 4,
+  },
+  postActionIconGradient: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+  },
+  enhancedPostActionText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  enhancedLoadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  enhancedLoadingText: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 12,
+    fontWeight: '500',
+  },
+  enhancedEmptyPostsContainer: {
+    paddingVertical: 40,
+  },
+  enhancedEmptyPostsCard: {
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  enhancedEmptyPostsIcon: {
+    marginBottom: 16,
+  },
+  enhancedEmptyPostsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  enhancedEmptyPostsSubtitle: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 }); 
