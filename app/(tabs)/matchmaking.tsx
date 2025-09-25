@@ -3,15 +3,15 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Easing,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  Dimensions,
+  Easing,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 
@@ -113,7 +113,7 @@ export default function MatchmakingScreen() {
     
     if (user?.token) {
       console.log('🚀 Initializing socket connection...');
-      const newSocket = io('http://192.168.1.3:3001', {
+      const newSocket = io('http://192.168.1.6:3001', {
         auth: {
           token: user.token
         },

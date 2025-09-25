@@ -4,19 +4,19 @@ import { useToast } from '@/context/ToastContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    Easing,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Easing,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import RefreshableScrollView from '../../components/RefreshableScrollView';
 
@@ -288,7 +288,7 @@ const PracticeExamScreen = () => {
     
     return (
       <LinearGradient
-        colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+        colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -443,12 +443,15 @@ const PracticeExamScreen = () => {
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <LinearGradient
-              colors={['#8B5CF6', '#A855F7']}
+              colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
               style={styles.statCardGradient}
             >
-              <View style={styles.statIconContainer}>
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.statIconContainer}
+              >
                 <Ionicons name="library" size={24} color="#FFFFFF" />
-              </View>
+              </LinearGradient>
               <Text style={styles.statValue}>{stats.total}</Text>
               <Text style={styles.statLabel}>Total Exams</Text>
             </LinearGradient>
@@ -456,12 +459,15 @@ const PracticeExamScreen = () => {
           
           <View style={styles.statCard}>
             <LinearGradient
-              colors={['#06B6D4', '#0891B2']}
+              colors={['#10B981', '#059669', '#047857']}
               style={styles.statCardGradient}
             >
-              <View style={styles.statIconContainer}>
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.statIconContainer}
+              >
                 <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-              </View>
+              </LinearGradient>
               <Text style={styles.statValue}>{stats.attempted}</Text>
               <Text style={styles.statLabel}>Completed</Text>
             </LinearGradient>
@@ -469,12 +475,15 @@ const PracticeExamScreen = () => {
           
           <View style={styles.statCard}>
             <LinearGradient
-              colors={['#8B5CF6', '#A855F7']}
+              colors={['#F59E0B', '#D97706', '#B45309']}
               style={styles.statCardGradient}
             >
-              <View style={styles.statIconContainer}>
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.statIconContainer}
+              >
                 <Ionicons name="time" size={24} color="#FFFFFF" />
-              </View>
+              </LinearGradient>
               <Text style={styles.statValue}>{stats.pending}</Text>
               <Text style={styles.statLabel}>Pending</Text>
             </LinearGradient>
@@ -524,37 +533,46 @@ const PracticeExamScreen = () => {
             const iconName = categoryIcons[category] || 'library';
             
             return (
-                             <TouchableOpacity
-                 key={category}
-                 style={[styles.categoryCard, { backgroundColor }]}
-                 onPress={() => router.push(`/exam-category?category=${encodeURIComponent(category)}`)}
-               >
-                <View style={styles.categoryCardContent}>
-                  <LinearGradient
-                    colors={colors as [string, string]}
-                    style={styles.categoryIconContainer}
-                  >
-                    <Ionicons name={iconName} size={20} color="#FFFFFF" />
-                  </LinearGradient>
-                  
-                  <View style={styles.categoryInfo}>
-                    <Text style={styles.categoryName}>{category}</Text>
-                    <Text style={styles.categoryProgress}>
-                      {stats.attemptedExams} of {stats.totalExams} completed
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.progressCircleContainer}>
-                    <View style={styles.progressCircle}>
-                      <View style={[styles.progressFill, { 
-                        transform: [{ rotate: `${(progress / 100) * 360}deg` }] 
-                      }]} />
-                      <View style={styles.progressInner}>
-                        <Text style={styles.progressPercentage}>{Math.round(progress)}%</Text>
-                      </View>
+              <TouchableOpacity
+                key={category}
+                style={[styles.categoryCard, { backgroundColor }]}
+                onPress={() => router.push(`/exam-category?category=${encodeURIComponent(category)}`)}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#FFFFFF', '#F8FAFC', '#F1F5F9']}
+                  style={styles.categoryCardGradient}
+                >
+                  <View style={styles.categoryCardContent}>
+                    <LinearGradient
+                      colors={colors as [string, string]}
+                      style={styles.categoryIconContainer}
+                    >
+                      <Ionicons name={iconName} size={20} color="#FFFFFF" />
+                    </LinearGradient>
+                    
+                    <View style={styles.categoryInfo}>
+                      <Text style={styles.categoryName}>{category}</Text>
+                      <Text style={styles.categoryProgress}>
+                        {stats.attemptedExams} of {stats.totalExams} completed
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.progressCircleContainer}>
+                      <LinearGradient
+                        colors={colors as [string, string]}
+                        style={styles.progressCircle}
+                      >
+                        <View style={[styles.progressFill, { 
+                          transform: [{ rotate: `${(progress / 100) * 360}deg` }] 
+                        }]} />
+                        <View style={styles.progressInner}>
+                          <Text style={styles.progressPercentage}>{Math.round(progress)}%</Text>
+                        </View>
+                      </LinearGradient>
                     </View>
                   </View>
-                </View>
+                </LinearGradient>
               </TouchableOpacity>
             );
           })}
@@ -828,16 +846,19 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   categoryCard: {
-    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.1)',
+    overflow: 'hidden',
+  },
+  categoryCardGradient: {
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   categoryCardContent: {
     flexDirection: 'row',
@@ -873,7 +894,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',

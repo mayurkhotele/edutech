@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import { HelpCircle, KeyRound, Layers3, Play, Sparkles, Users } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -12,6 +12,7 @@ interface SpyGamePlayer {
   socketId: string;
   isHost: boolean;
   name: string;
+  position?: number;
 }
 
 interface SpyGame {
@@ -19,7 +20,6 @@ interface SpyGame {
   roomCode: string;
   hostId: string;
   maxPlayers: number;
-  wordPack: string;
   players: SpyGamePlayer[];
   status: string;
   currentPhase: string;
@@ -35,7 +35,6 @@ export default function SpyGameLobby() {
   const [game, setGame] = useState<SpyGame | null>(null);
   const [roomCode, setRoomCode] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(6);
-  const [wordPack, setWordPack] = useState('default');
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const createTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -143,7 +142,7 @@ export default function SpyGameLobby() {
       if (!socket?.connected) {
         throw new Error('Socket not connected');
       }
-      socket.emit('create_spy_game', { userId: user.id, maxPlayers, wordPack });
+      socket.emit('create_spy_game', { userId: user.id, maxPlayers });
     } catch (e: any) {
       setIsCreating(false);
       showError(e?.message || 'Failed to create game');
@@ -179,138 +178,104 @@ export default function SpyGameLobby() {
     }
   };
 
-  const wordPacks = [
-    { id: 'default', name: 'Default', description: 'General words' },
-    { id: 'funny', name: 'Funny', description: 'Humorous words' },
-    { id: 'hard', name: 'Hard', description: 'Challenging words' },
-  ];
 
   return (
-    <LinearGradient colors={[ '#1e1b4b', '#312e81', '#0b1020' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }}>
+    <LinearGradient colors={[ '#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <LinearGradient colors={[ '#4c1d95', '#1e1b4b' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 18, padding: 1, marginBottom: 16 }}>
-        <LinearGradient
-          colors={[ '#1e1b4b', '#312e81', '#0b1020' ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 16, padding: 20 }}
-        >
-          <Text style={{ color: '#cbd5e1', marginTop: 8 }}>
-            Spot the spy without revealing your word. Blend in, outsmart, and win.
-          </Text>
-          <View style={{ flexDirection: 'row', marginTop: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, marginRight: 8 }}>
-              <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: isConnected ? '#22c55e' : '#ef4444', marginRight: 8 }} />
-              <Text style={{ color: 'white', fontSize: 12 }}>{isConnected ? 'Online' : 'Offline'}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, marginRight: 8 }}>
-              <Users color="#fff" size={16} />
-              <Text style={{ color: 'white', fontSize: 12, marginLeft: 6 }}>{user ? 'Signed in' : 'Guest'}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999 }}>
-              <Sparkles color="#fde68a" size={16} />
-              <Text style={{ color: 'white', fontSize: 12, marginLeft: 6 }}>Quick & Fun</Text>
-            </View>
-          </View>
-        </LinearGradient>
-        </LinearGradient>
 
-        {/* Section Heading */}
-        <View style={{ alignItems: 'center', marginBottom: 10 }}>
-          <Text style={{ color: 'white', fontSize: 20, fontWeight: '900' }}>Spy Game</Text>
-          <View style={{ width: 80, height: 2, backgroundColor: 'rgba(255,255,255,0.15)', marginTop: 4, borderRadius: 999 }} />
+        {/* Enhanced Section Heading */}
+        <View style={{ alignItems: 'center', marginBottom: 20 }}>
+          <LinearGradient colors={[ '#FFFFFF', '#F8FAFC', '#E2E8F0' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20, marginBottom: 8, shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }}>
+            <Text style={{ color: '#4F46E5', fontSize: 24, fontWeight: '900', textShadowColor: 'rgba(255,255,255,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}>🕵️ SPY GAME</Text>
+          </LinearGradient>
+          <View style={{ width: 100, height: 3, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: 4, borderRadius: 999 }} />
+          <View style={{ width: 60, height: 2, backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 2, borderRadius: 999 }} />
         </View>
 
-        {/* Create Game */}
-        <LinearGradient colors={[ 'rgba(167,139,250,0.35)', 'rgba(30,64,175,0.35)' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 18, padding: 1, marginBottom: 16 }}>
-        <Animated.View style={{ backgroundColor: '#ffffff', borderRadius: 16, padding: 16, opacity: createCardAnim, transform: [{ translateY: createCardAnim.interpolate({ inputRange: [0,1], outputRange: [16, 0] }) }] }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Layers3 color="#a78bfa" size={18} />
-            <Text style={{ color: '#111827', fontSize: 18, fontWeight: '800', marginLeft: 8 }}>Create New Game</Text>
+        {/* Enhanced Create Game */}
+        <LinearGradient colors={[ '#FFFFFF', '#F8FAFC', '#E2E8F0' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 20, padding: 2, marginBottom: 20, shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 }}>
+        <Animated.View style={{ backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20, opacity: createCardAnim, transform: [{ translateY: createCardAnim.interpolate({ inputRange: [0,1], outputRange: [16, 0] }) }] }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <LinearGradient colors={[ '#4F46E5', '#7C3AED' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 8, borderRadius: 12, marginRight: 12 }}>
+              <Layers3 color="white" size={20} />
+            </LinearGradient>
+            <Text style={{ color: '#4F46E5', fontSize: 20, fontWeight: '900', textShadowColor: 'rgba(79,70,229,0.1)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}>Create New Game</Text>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Animated.View style={{ transform: [{ rotate: sparkleRotate.interpolate({ inputRange: [0,1], outputRange: ['0deg','360deg'] }) }] }}>
-              <Sparkles color="#a78bfa" size={14} />
+              <Sparkles color="#4F46E5" size={16} />
             </Animated.View>
-            <Text style={{ color: '#6b7280', textAlign: 'center', fontSize: 12, marginLeft: 6 }}>Select Number of Players</Text>
+            <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14, marginLeft: 8, fontWeight: '600' }}>Select Number of Players</Text>
           </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
             {[6, 8].map((num) => {
               const active = maxPlayers === num;
-              const tileColor = num === 6 ? '#ec4899' : '#3b82f6';
+              const tileGradient = num === 6 ? ['#4F46E5', '#7C3AED'] : ['#8B5CF6', '#A855F7'];
               const tileScale = num === 6 ? tileScale6 : tileScale8;
               return (
-                <Animated.View key={num} style={{ flex: 1, marginRight: num !== 8 ? 12 : 0, transform: [{ scale: tileScale }] }}>
+                <Animated.View key={num} style={{ flex: 1, marginRight: num !== 8 ? 16 : 0, transform: [{ scale: tileScale }] }}>
                   <TouchableOpacity
                     onPress={() => setMaxPlayers(num)}
-                    onPressIn={() => Animated.spring(tileScale, { toValue: 0.97, useNativeDriver: true }).start()}
+                    onPressIn={() => Animated.spring(tileScale, { toValue: 0.95, useNativeDriver: true }).start()}
                     onPressOut={() => Animated.spring(tileScale, { toValue: 1, useNativeDriver: true }).start()}
-                    style={{
-                      backgroundColor: active ? tileColor : 'rgba(17,24,39,0.06)',
-                      borderWidth: 0,
-                      paddingVertical: 14,
-                      borderRadius: 14,
-                      alignItems: 'center',
-                      shadowColor: '#000',
-                      shadowOpacity: 0.15,
-                      shadowRadius: 10,
-                      shadowOffset: { width: 0, height: 6 },
-                      elevation: 3,
-                    }}
                   >
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Users color="#fff" size={18} />
-                      <Text style={{ color: 'white', fontWeight: '900', marginLeft: 6, fontSize: 16 }}>{num}</Text>
+                    <LinearGradient 
+                      colors={active ? tileGradient : ['rgba(107,114,128,0.1)', 'rgba(75,85,99,0.1)']} 
+                      start={{ x: 0, y: 0 }} 
+                      end={{ x: 1, y: 1 }} 
+                    style={{
+                        paddingVertical: 16, 
+                        paddingHorizontal: 20, 
+                        borderRadius: 16, 
+                      alignItems: 'center',
+                        shadowColor: active ? (num === 6 ? '#4F46E5' : '#8B5CF6') : 'transparent',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                        <Users color={active ? "white" : "#6b7280"} size={20} />
+                        <Text style={{ color: active ? 'white' : '#6b7280', fontWeight: '900', marginLeft: 8, fontSize: 18 }}>{num}</Text>
                     </View>
-                    <Text style={{ color: 'white', opacity: 0.95, fontSize: 12, marginTop: 2 }}>Players</Text>
+                      <Text style={{ color: active ? 'rgba(255,255,255,0.9)' : '#9ca3af', fontSize: 12, fontWeight: '600' }}>Players</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 </Animated.View>
               );
             })}
           </View>
 
-          <Text style={{ color: '#374151', marginBottom: 8, fontWeight: '700' }}>Word Pack</Text>
-          <View>
-            {wordPacks.map((pack, idx) => (
-              <TouchableOpacity
-                key={pack.id}
-                onPress={() => setWordPack(pack.id)}
-                style={{
-                  backgroundColor: wordPack === pack.id ? 'rgba(79,70,229,0.12)' : 'transparent',
-                  borderWidth: 1,
-                  borderColor: wordPack === pack.id ? '#4F46E5' : '#e5e7eb',
-                  padding: 12,
-                  borderRadius: 12,
-                  marginBottom: idx === wordPacks.length - 1 ? 0 : 8,
-                  flexDirection: 'row',
-                  alignItems: 'center'
-                }}
-              >
-                <Sparkles color="#a78bfa" size={16} />
-                <View style={{ marginLeft: 8 }}>
-                  <Text style={{ color: '#111827', fontWeight: '700' }}>{pack.name}</Text>
-                  <Text style={{ color: '#6b7280', fontSize: 12 }}>{pack.description}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
 
           <TouchableOpacity
             onPress={createGame}
             disabled={!isConnected || isCreating}
-            activeOpacity={0.9}
-            style={{ marginTop: 12, borderRadius: 12, overflow: 'hidden', opacity: !isConnected || isCreating ? 0.6 : 1 }}
+            activeOpacity={0.8}
+            style={{ 
+              marginTop: 20, 
+              borderRadius: 16, 
+              overflow: 'hidden', 
+              opacity: !isConnected || isCreating ? 0.6 : 1,
+              shadowColor: '#4F46E5',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+              elevation: 6,
+            }}
           >
             <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
-            <LinearGradient colors={[ '#6D28D9', '#4F46E5' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
+            <LinearGradient colors={[ '#4F46E5', '#7C3AED', '#8B5CF6' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
               {isCreating ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#fff" size="large" />
               ) : (
                 <>
-                  <Play color="#fff" size={18} />
-                  <Text style={{ color: 'white', fontWeight: '800', marginLeft: 8 }}>Create Game</Text>
+                  <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 8, borderRadius: 12, marginRight: 12 }}>
+                    <Play color="#fff" size={20} />
+                  </LinearGradient>
+                  <Text style={{ color: 'white', fontWeight: '900', fontSize: 16, textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}>Create Game</Text>
                 </>
               )}
             </LinearGradient>
@@ -319,56 +284,72 @@ export default function SpyGameLobby() {
         </Animated.View>
         </LinearGradient>
 
-        {/* Join Game */}
-        <LinearGradient colors={[ 'rgba(34,197,94,0.35)', 'rgba(56,189,248,0.35)' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 18, padding: 1 }}>
-        <View style={{ backgroundColor: 'rgba(15,23,42,0.85)', borderRadius: 16, padding: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Users color="#22d3ee" size={18} />
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: '700', marginLeft: 8 }}>Join Game</Text>
+        {/* Enhanced Join Game */}
+        <LinearGradient colors={[ '#FFFFFF', '#F8FAFC', '#E2E8F0' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 20, padding: 2, marginTop: 8, shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}>
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <LinearGradient colors={[ '#8B5CF6', '#A855F7' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 8, borderRadius: 12, marginRight: 12 }}>
+              <Users color="white" size={20} />
+            </LinearGradient>
+            <Text style={{ color: '#4F46E5', fontSize: 20, fontWeight: '900', textShadowColor: 'rgba(79,70,229,0.1)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}>Join Game</Text>
           </View>
 
-          <Text style={{ color: '#cbd5e1', marginBottom: 8 }}>Room Code</Text>
+          <Text style={{ color: '#4F46E5', marginBottom: 12, fontWeight: '700', fontSize: 14 }}>Room Code</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TextInput
               placeholder="Enter room code"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#a0aec0"
               value={roomCode}
               onChangeText={(t) => setRoomCode(t.toUpperCase())}
-              style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, letterSpacing: 4, fontWeight: '700' }}
+              style={{ flex: 1, backgroundColor: 'rgba(79,70,229,0.1)', color: '#4F46E5', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, letterSpacing: 4, fontWeight: '800', fontSize: 16, borderWidth: 2, borderColor: 'rgba(79,70,229,0.3)' }}
               maxLength={6}
               autoCapitalize="characters"
             />
             <TouchableOpacity
               onPress={joinGame}
               disabled={!isConnected || isJoining || !roomCode.trim()}
-              style={{ marginLeft: 8, backgroundColor: '#059669', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, opacity: !isConnected || isJoining || !roomCode.trim() ? 0.6 : 1 }}
+              style={{ marginLeft: 12, borderRadius: 12, opacity: !isConnected || isJoining || !roomCode.trim() ? 0.6 : 1, shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }}
             >
-              {isJoining ? <ActivityIndicator color="#fff" /> : <Text style={{ color: 'white', fontWeight: '800' }}>Join</Text>}
+              <LinearGradient colors={[ '#8B5CF6', '#A855F7' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12 }}>
+                {isJoining ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>Join</Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
-          <View style={{ marginTop: 12, backgroundColor: 'rgba(255,255,255,0.06)', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-              <KeyRound color="#93c5fd" size={16} />
-              <Text style={{ color: 'white', fontWeight: '700', marginLeft: 6 }}>How to join</Text>
+          <View style={{ marginTop: 16, backgroundColor: 'rgba(79,70,229,0.1)', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(79,70,229,0.2)' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <LinearGradient colors={[ '#4F46E5', '#7C3AED' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 6, borderRadius: 8, marginRight: 8 }}>
+                <KeyRound color="white" size={14} />
+              </LinearGradient>
+              <Text style={{ color: '#4F46E5', fontWeight: '800', fontSize: 14 }}>How to join</Text>
             </View>
-            <Text style={{ color: '#cbd5e1', fontSize: 12 }}>• Ask the host for the 6-letter room code</Text>
-            <Text style={{ color: '#cbd5e1', fontSize: 12 }}>• Enter the code above</Text>
-            <Text style={{ color: '#cbd5e1', fontSize: 12 }}>• Tap Join to enter the lobby</Text>
+            <Text style={{ color: '#6B7280', fontSize: 13, marginBottom: 4, fontWeight: '600' }}>• Ask the host for the 6-letter room code</Text>
+            <Text style={{ color: '#6B7280', fontSize: 13, marginBottom: 4, fontWeight: '600' }}>• Enter the code above</Text>
+            <Text style={{ color: '#6B7280', fontSize: 13, fontWeight: '600' }}>• Tap Join to enter the lobby</Text>
           </View>
         </View>
         </LinearGradient>
 
-        {/* How to play */}
-        <View style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 16, marginTop: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <HelpCircle color="#a3e635" size={18} />
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: '700', marginLeft: 8 }}>How to Play</Text>
+        {/* Enhanced How to play */}
+        <LinearGradient colors={[ '#FFFFFF', '#F8FAFC', '#E2E8F0' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 20, padding: 2, marginTop: 20, shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}>
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <LinearGradient colors={[ '#8B5CF6', '#A855F7' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 8, borderRadius: 12, marginRight: 12 }}>
+              <HelpCircle color="white" size={20} />
+            </LinearGradient>
+            <Text style={{ color: '#4F46E5', fontSize: 20, fontWeight: '900', textShadowColor: 'rgba(79,70,229,0.1)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}>How to Play</Text>
           </View>
-          <Text style={{ color: '#cbd5e1', marginBottom: 6 }}>1. Most players share a word; the spy gets a different word.</Text>
-          <Text style={{ color: '#cbd5e1', marginBottom: 6 }}>2. Describe your word without saying it. Keep it vague but credible.</Text>
-          <Text style={{ color: '#cbd5e1' }}>3. Vote for the spy. Catch them to win — or fool everyone as the spy!</Text>
+          <View style={{ backgroundColor: 'rgba(79,70,229,0.1)', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(79,70,229,0.2)' }}>
+            <Text style={{ color: '#4F46E5', marginBottom: 8, fontSize: 14, fontWeight: '700', lineHeight: 20 }}>1. Most players share a word; the spy gets a different word.</Text>
+            <Text style={{ color: '#4F46E5', marginBottom: 8, fontSize: 14, fontWeight: '700', lineHeight: 20 }}>2. Describe your word without saying it. Keep it vague but credible.</Text>
+            <Text style={{ color: '#4F46E5', fontSize: 14, fontWeight: '700', lineHeight: 20 }}>3. Vote for the spy. Catch them to win — or fool everyone as the spy!</Text>
+          </View>
         </View>
+        </LinearGradient>
       </ScrollView>
     </LinearGradient>
   );

@@ -201,13 +201,6 @@ const WalletScreen = () => {
                         isWithdraw 
                         iconColor="#10B981"
                     />
-                    <View style={styles.divider} />
-                    <MoneyDetailRow 
-                        icon="logo-bitcoin" 
-                        title="Real Coins" 
-                        amount="0.00" 
-                        iconColor="#F59E0B"
-                    />
                 </View>
 
                 {/* Enhanced Options List */}

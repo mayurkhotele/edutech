@@ -3,34 +3,34 @@ import { useAuth } from '@/context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
-    ArrowRight,
-    Brain,
-    CheckCircle,
-    Clock,
-    Map,
-    TestTube,
-    Trophy,
-    Users,
-    X,
-    Zap
+  ArrowRight,
+  Brain,
+  CheckCircle,
+  Clock,
+  Map,
+  TestTube,
+  Trophy,
+  Users,
+  X,
+  Zap
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    Easing,
-    Image,
-    Modal,
-    RefreshControl,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
+  Alert,
+  Animated,
+  Dimensions,
+  Easing,
+  Image,
+  Modal,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 
@@ -40,7 +40,6 @@ interface QuestionCategory {
   id: string;
   name: string;
   color: string;
-  description: string;
   questionCount: number;
 }
 
@@ -98,7 +97,7 @@ export default function QuizScreen() {
   // Initialize socket connection
   useEffect(() => {
     if (user?.token) {
-      const newSocket = io('http://192.168.1.4:3001', {
+      const newSocket = io('http://192.168.1.6:3001', {
         auth: {
           token: user.token
         },
@@ -126,18 +125,18 @@ export default function QuizScreen() {
     if (!user?.token) return;
     
     try {
-      console.log('Fetching question categories...');
-      const response = await apiFetchAuth('/student/question-categories', user.token);
+      console.log('Fetching battle quiz categories...');
+      const response = await apiFetchAuth('/student/battle-quiz', user.token);
       if (response.ok) {
         const categories: QuestionCategory[] = response.data;
-        console.log('Categories fetched successfully:', categories);
+        console.log('Battle quiz categories fetched successfully:', categories);
         setQuestionCategories(categories);
         // Remove automatic selection - no category should be preselected
       } else {
-        console.error('Failed to fetch categories - response not ok');
+        console.error('Failed to fetch battle quiz categories - response not ok');
       }
     } catch (error) {
-      console.error('Failed to fetch question categories:', error);
+      console.error('Failed to fetch battle quiz categories:', error);
     }
   };
 
@@ -467,6 +466,30 @@ export default function QuizScreen() {
   };
 
   const getGradientColors = (categoryColor: string): [string, string] => {
+    // Create a darker shade of the same color for gradient effect
+    const lightenColor = (color: string, percent: number) => {
+      const num = parseInt(color.replace("#", ""), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+    };
+
+    const darkenColor = (color: string, percent: number) => {
+      const num = parseInt(color.replace("#", ""), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) - amt;
+      const G = (num >> 8 & 0x00FF) - amt;
+      const B = (num & 0x0000FF) - amt;
+      return "#" + (0x1000000 + (R > 255 ? 255 : R < 0 ? 0 : R) * 0x10000 +
+        (G > 255 ? 255 : G < 0 ? 0 : G) * 0x100 +
+        (B > 255 ? 255 : B < 0 ? 0 : B)).toString(16).slice(1);
+    };
+
+    // Predefined colors for common cases, otherwise generate gradient
     const colors: Record<string, [string, string]> = {
       '#3B82F6': ['#3B82F6', '#1D4ED8'],
       '#10B981': ['#10B981', '#059669'],
@@ -474,8 +497,10 @@ export default function QuizScreen() {
       '#EF4444': ['#EF4444', '#DC2626'],
       '#8B5CF6': ['#8B5CF6', '#7C3AED'],
       '#EC4899': ['#EC4899', '#DB2777'],
+      '#f55600': ['#f55600', '#d4490a'], // Orange for Science from API
     };
-    return colors[categoryColor] || ['#6366F1', '#4F46E5'];
+    
+    return colors[categoryColor] || [categoryColor, darkenColor(categoryColor, 20)];
   };
 
   const getCategoryBackgroundColor = (index: number) => {
@@ -1014,7 +1039,7 @@ export default function QuizScreen() {
                     activeOpacity={0.7}
                   >
                     <LinearGradient
-                      colors={getGradientColors(getCategoryBackgroundColor(0))}
+                      colors={getGradientColors(questionCategories[0]?.color || '#6366F1')}
                       style={[
                         styles.largeCategoryContent,
                         selectedCategory === questionCategories[0]?.id && styles.selectedCategoryContent
@@ -1039,7 +1064,7 @@ export default function QuizScreen() {
                         {questionCategories[0]?.name || 'Any Category'}
                       </Text>
                       <Text style={styles.largeCategoryDescription}>
-                        {questionCategories[0]?.description || 'General Knowledge'}
+                        {questionCategories[0]?.questionCount || 0} questions
                       </Text>
                     </LinearGradient>
                     {selectedCategory === questionCategories[0]?.id && (
@@ -1065,7 +1090,7 @@ export default function QuizScreen() {
                         activeOpacity={0.7}
                       >
                         <LinearGradient
-                          colors={getGradientColors(getCategoryBackgroundColor(index + 1))}
+                          colors={getGradientColors(category.color)}
                           style={[
                             styles.smallCategoryContent,
                             selectedCategory === category.id && styles.selectedCategoryContent
@@ -1112,7 +1137,7 @@ export default function QuizScreen() {
                         activeOpacity={0.7}
                       >
                         <LinearGradient
-                          colors={getGradientColors(getCategoryBackgroundColor(index + 3))}
+                          colors={getGradientColors(category.color)}
                           style={[
                             styles.smallCategoryContent,
                             selectedCategory === category.id && styles.selectedCategoryContent
@@ -1354,7 +1379,7 @@ export default function QuizScreen() {
                  ]}
                >
                  <LinearGradient
-                   colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                   colors={['#667eea', '#764ba2', '#4F46E5']}
                    start={{ x: 0, y: 0 }}
                    end={{ x: 1, y: 1 }}
                    style={styles.modalGradientBackground}
@@ -1365,14 +1390,19 @@ export default function QuizScreen() {
                   <View style={styles.handleBarLine} />
                 </View>
                 
-                                 {/* Cute Enhanced Header */}
+                                 {/* Enhanced Header */}
                  <View style={styles.enhancedModalHeader}>
                    <View style={styles.modalTitleContainer}>
-                     <Text style={styles.enhancedModalTitle}>💰 Choose Amount</Text>
-                     <Text style={styles.modalSubtitle}>Pick your battle stake!</Text>
+                     <Text style={styles.enhancedModalTitle}>Choose Battle Amount</Text>
+                     <Text style={styles.modalSubtitle}>Select your entry fee for {selectedCategoryName}</Text>
                    </View>
                    <TouchableOpacity onPress={closeAmountModal} style={styles.enhancedCloseButton}>
-                     <X size={16} color="#fff" />
+                     <LinearGradient
+                       colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
+                       style={styles.closeButtonGradient}
+                     >
+                       <X size={18} color="#fff" />
+                     </LinearGradient>
                    </TouchableOpacity>
                  </View>
 
@@ -1399,76 +1429,103 @@ export default function QuizScreen() {
                 ) : (
                   <View style={styles.enhancedAmountOptionsContainer}>
                     {battleAmounts.map((amount, index) => (
-                      <View key={amount.id} style={styles.amountOptionWrapper}>
-                        <TouchableOpacity
-                          style={[
-                            styles.enhancedAmountOption,
-                            selectedAmount?.id === amount.id && styles.enhancedSelectedAmountOption
-                          ]}
-                          onPress={() => handleAmountSelect(amount)}
-                          activeOpacity={0.7}
+                      <TouchableOpacity
+                        key={amount.id}
+                        style={[
+                          styles.enhancedAmountOption,
+                          selectedAmount?.id === amount.id && styles.enhancedSelectedAmountOption
+                        ]}
+                        onPress={() => handleAmountSelect(amount)}
+                        activeOpacity={0.8}
+                      >
+                        <LinearGradient
+                          colors={selectedAmount?.id === amount.id 
+                            ? ['#10B981', '#059669', '#047857']
+                            : ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']
+                          }
+                          style={styles.amountOptionGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
                         >
-                          <LinearGradient
-                            colors={selectedAmount?.id === amount.id 
-                              ? ['#FFD700', '#FFA500', '#FF8C00']
-                              : ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)']
-                            }
-                            style={styles.amountOptionGradient}
-                          >
-                            <View style={styles.amountOptionContent}>
-                              <Text style={[
-                                styles.enhancedAmountOptionText,
-                                selectedAmount?.id === amount.id && styles.selectedAmountText
-                              ]}>
-                                ₹{amount.amount}
-                              </Text>
-                            </View>
-                          </LinearGradient>
+                          <View style={styles.amountOptionContent}>
+                            <Text style={styles.currencySymbol}>₹</Text>
+                            <Text style={[
+                              styles.enhancedAmountOptionText,
+                              selectedAmount?.id === amount.id && styles.selectedAmountText
+                            ]}>
+                              {amount.amount}
+                            </Text>
+                          </View>
                           
                           {/* Selection Indicator */}
                           {selectedAmount?.id === amount.id && (
-                            <View style={styles.selectedIndicator}>
-                              <CheckCircle size={16} color="#fff" />
+                            <View style={styles.amountSelectedIndicator}>
+                              <CheckCircle size={20} color="#fff" />
                             </View>
                           )}
-                        </TouchableOpacity>
-                      </View>
+                          
+                          {/* Glow Effect for Selected */}
+                          {selectedAmount?.id === amount.id && (
+                            <View style={styles.amountGlowEffect} />
+                          )}
+                        </LinearGradient>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 )}
 
                 {/* Enhanced Play Now Button */}
-                <TouchableOpacity
-                  style={styles.enhancedPlayNowButton}
-                  onPress={handlePlayNow}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={['#4CAF50', '#45A049', '#2E7D32']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.enhancedPlayNowButtonGradient}
+                <View style={styles.playButtonContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.enhancedPlayNowButton,
+                      !selectedAmount && styles.disabledPlayButton
+                    ]}
+                    onPress={handlePlayNow}
+                    activeOpacity={0.8}
+                    disabled={!selectedAmount}
                   >
-                                         <Animated.View 
-                       style={[
-                         styles.playButtonIconContainer,
-                         {
-                           transform: [
-                             { scale: iconBounceAnim },
-                             { rotate: iconRotateAnim.interpolate({
-                               inputRange: [0, 1],
-                               outputRange: ['0deg', '360deg'],
-                             })}
-                           ]
-                         }
-                       ]}
-                     >
-                       <Zap size={16} color="#fff" />
-                     </Animated.View>
-                     <Text style={styles.enhancedPlayNowButtonText}>🎮 PLAY NOW</Text>
-                     <ArrowRight size={16} color="#fff" />
-                  </LinearGradient>
-                </TouchableOpacity>
+                    <LinearGradient
+                      colors={selectedAmount 
+                        ? ['#FF6B35', '#F7931E', '#FFD700']
+                        : ['#9CA3AF', '#6B7280', '#4B5563']
+                      }
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.enhancedPlayNowButtonGradient}
+                    >
+                      <View style={styles.playButtonContent}>
+                        <Animated.View 
+                          style={[
+                            styles.playButtonIconContainer,
+                            {
+                              transform: [
+                                { scale: iconBounceAnim },
+                                { rotate: selectedAmount ? iconRotateAnim.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: ['0deg', '360deg'],
+                                }) : '0deg'}
+                              ]
+                            }
+                          ]}
+                        >
+                          <Zap size={20} color="#fff" />
+                        </Animated.View>
+                        <View style={styles.playButtonTextContainer}>
+                          <Text style={styles.enhancedPlayNowButtonText}>
+                            {selectedAmount ? 'START BATTLE' : 'SELECT AMOUNT'}
+                          </Text>
+                          {selectedAmount && (
+                            <Text style={styles.playButtonSubtext}>
+                              Entry Fee: ₹{selectedAmount.amount}
+                            </Text>
+                          )}
+                        </View>
+                        <ArrowRight size={20} color="#fff" />
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
 
 
                  </LinearGradient>
@@ -2449,40 +2506,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(102, 126, 234, 0.1)',
   },
-  privateRoomInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-
-
-  // Enhanced Modal Overlay
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    flex: 1,
-    textAlign: 'center',
-  },
-  closeButton: {
-    padding: 8,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 20,
-  },
   playButton: {
     backgroundColor: '#4F46E5',
     borderRadius: 16,
@@ -2912,28 +2935,30 @@ const styles = StyleSheet.create({
    
           // Enhanced Modal Styles
    enhancedBottomSheet: {
-     borderRadius: 30,
+     borderTopLeftRadius: 25,
+     borderTopRightRadius: 25,
      width: '100%',
-     maxWidth: 420,
+     maxWidth: 450,
      alignSelf: 'center',
-     marginHorizontal: 0,
-     marginVertical: 0,
-     padding: 0,
-     paddingBottom: 0,
-     shadowColor: '#4F46E5',
-     shadowOffset: { width: 0, height: -15 },
-     shadowOpacity: 0.4,
-     shadowRadius: 30,
-     elevation: 20,
+     position: 'absolute',
+     bottom: 0,
+     left: 0,
+     right: 0,
+     shadowColor: '#667eea',
+     shadowOffset: { width: 0, height: -10 },
+     shadowOpacity: 0.3,
+     shadowRadius: 25,
+     elevation: 15,
      overflow: 'hidden',
      borderWidth: 2,
-     borderColor: 'rgba(255, 255, 255, 0.2)',
+     borderColor: 'rgba(255, 255, 255, 0.15)',
    },
        modalGradientBackground: {
-     padding: 20,
-     paddingTop: 12,
-     paddingBottom: 24,
-     borderRadius: 30,
+     padding: 24,
+     paddingTop: 8,
+     paddingBottom: 30,
+     borderTopLeftRadius: 25,
+     borderTopRightRadius: 25,
      minHeight: 'auto',
    },
    enhancedHandleBar: {
@@ -2956,7 +2981,7 @@ const styles = StyleSheet.create({
      flexDirection: 'row',
      justifyContent: 'space-between',
      alignItems: 'center',
-     marginBottom: 16,
+     marginBottom: 25,
      paddingHorizontal: 4,
    },
    modalTitleContainer: {
@@ -3011,28 +3036,31 @@ const styles = StyleSheet.create({
     },
        enhancedAmountOptionsContainer: {
      flexDirection: 'row',
-     justifyContent: 'space-between',
-     marginBottom: 20,
+     justifyContent: 'space-around',
+     alignItems: 'center',
+     marginBottom: 30,
      flexWrap: 'wrap',
-     gap: 8,
-     paddingHorizontal: 4,
+     gap: 12,
+     paddingHorizontal: 8,
+     paddingVertical: 10,
    },
        amountOptionWrapper: {
      marginBottom: 4,
    },
     enhancedAmountOption: {
-      width: 70,
-      height: 70,
-      borderRadius: 35,
+      width: 80,
+      height: 80,
+      borderRadius: 20,
       borderWidth: 2,
-      borderColor: 'rgba(255,255,255,0.4)',
-      shadowColor: '#FF6B9D',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-      elevation: 5,
+      borderColor: 'rgba(255,255,255,0.3)',
+      shadowColor: '#667eea',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 6,
       position: 'relative',
       overflow: 'hidden',
+      marginHorizontal: 6,
     },
     amountOptionGradient: {
       width: '100%',
@@ -3041,22 +3069,94 @@ const styles = StyleSheet.create({
       alignItems: 'center',
     },
     enhancedSelectedAmountOption: {
-      borderColor: '#FFD700',
-      transform: [{ scale: 1.05 }],
-      shadowColor: '#FFD700',
-      shadowOffset: { width: 0, height: 6 },
+      borderColor: '#10B981',
+      borderWidth: 3,
+      transform: [{ scale: 1.08 }],
+      shadowColor: '#10B981',
+      shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.4,
-      shadowRadius: 12,
-      elevation: 8,
+      shadowRadius: 15,
+      elevation: 10,
     },
        enhancedAmountOptionText: {
-     fontSize: 16,
-     fontWeight: '700',
+     fontSize: 18,
+     fontWeight: '800',
      color: '#fff',
-     textShadowColor: 'rgba(0,0,0,0.2)',
+     textShadowColor: 'rgba(0,0,0,0.3)',
      textShadowOffset: { width: 0, height: 1 },
-     textShadowRadius: 2,
+     textShadowRadius: 3,
+     letterSpacing: 0.5,
+   },
+   currencySymbol: {
+     fontSize: 14,
+     fontWeight: '600',
+     color: 'rgba(255,255,255,0.8)',
+     marginBottom: 2,
+   },
+   amountOptionContent: {
+     alignItems: 'center',
+     justifyContent: 'center',
+   },
+   amountSelectedIndicator: {
+     position: 'absolute',
+     top: -8,
+     right: -8,
+     backgroundColor: '#10B981',
+     borderRadius: 15,
+     width: 30,
+     height: 30,
+     justifyContent: 'center',
+     alignItems: 'center',
+     borderWidth: 2,
+     borderColor: '#fff',
+     shadowColor: '#10B981',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.3,
+     shadowRadius: 4,
+     elevation: 5,
+   },
+   amountGlowEffect: {
+     position: 'absolute',
+     top: -5,
+     left: -5,
+     right: -5,
+     bottom: -5,
+     borderRadius: 25,
+     backgroundColor: 'rgba(16, 185, 129, 0.2)',
+     zIndex: -1,
+   },
+   closeButtonGradient: {
+     width: 32,
+     height: 32,
+     borderRadius: 16,
+     justifyContent: 'center',
+     alignItems: 'center',
+   },
+   playButtonContainer: {
+     marginTop: 10,
+     marginBottom: 5,
+   },
+   playButtonContent: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingHorizontal: 20,
+     paddingVertical: 16,
+   },
+   playButtonTextContainer: {
+     flex: 1,
+     alignItems: 'center',
+     marginHorizontal: 15,
+   },
+   playButtonSubtext: {
+     fontSize: 12,
+     color: 'rgba(255,255,255,0.9)',
+     fontWeight: '600',
+     marginTop: 2,
      letterSpacing: 0.3,
+   },
+   disabledPlayButton: {
+     opacity: 0.7,
    },
    selectedAmountText: {
      color: '#FFFFFF',

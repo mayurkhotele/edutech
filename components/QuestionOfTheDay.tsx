@@ -1,8 +1,8 @@
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useRef, useState } from 'react';
 import { Audio } from 'expo-av';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,

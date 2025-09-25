@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
@@ -282,9 +282,6 @@ const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
                             <View style={styles.categoryBadge}>
                                 <Text style={styles.categoryText}>{exam.category || 'General Knowledge'}</Text>
                             </View>
-                            <View style={styles.questionCountBadge}>
-                                <Text style={styles.questionCountText}>{exam.questionCount || exam.questions?.length || '5'} Questions</Text>
-                            </View>
                         </View>
                     </View>
                     <View style={styles.trophyContainer}>
@@ -410,9 +407,6 @@ const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
                       <View style={styles.liveExamBadge}>
                         <Ionicons name="radio" size={12} color="#fff" />
                         <Text style={styles.liveExamText}>LIVE EXAM</Text>
-                      </View>
-                      <View style={styles.questionBadge}>
-                        <Text style={styles.questionBadgeText}>{exam.questionCount || exam.questions?.length || '5'} Questions</Text>
                       </View>
                     </View>
                   </View>
@@ -619,23 +613,24 @@ const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
 const styles = StyleSheet.create({
     card: {
         backgroundColor: AppColors.white,
-        borderRadius: 15,
-        padding: 12, // Reduced from 15
-        marginVertical: 8, // Reduced from 10
-        marginHorizontal: 15,
+        borderRadius: 12,
+        padding: 12,
+        marginVertical: 6,
+        marginHorizontal: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 3,
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
+        width: 360, // Maximum width for optimal screen coverage
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        borderRadius: 12,
+        borderRadius: 10,
         overflow: 'hidden',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     headerGradient: {
         padding: 12,
@@ -648,69 +643,61 @@ const styles = StyleSheet.create({
     },
     titleContainer: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)', // Added semi-transparent background
-        padding: 8, // Added padding
-        borderRadius: 8, // Added border radius
-        marginRight: 10, // Added margin to separate from trophy
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        padding: 6,
+        borderRadius: 6,
+        marginRight: 8,
     },
     title: {
-        fontSize: 18, // Increased for better visibility
-        fontWeight: '800', // Made bolder
-        color: '#1E293B', // Darker color for better contrast
-        marginBottom: 8, // Increased spacing
-        lineHeight: 22, // Added line height
-        textShadowColor: 'rgba(255, 255, 255, 0.8)', // Added white text shadow
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1E293B',
+        marginBottom: 6,
+        lineHeight: 20,
     },
     categoryContainer: {
         flexDirection: 'row',
     },
     categoryBadge: {
-        marginRight: 6,
-    },
-    categoryBadgeGradient: {
-        borderRadius: 8,
+        marginRight: 4,
+        backgroundColor: 'rgba(230, 81, 0, 0.1)',
+        borderRadius: 6,
         paddingHorizontal: 6,
-        paddingVertical: 3,
+        paddingVertical: 2,
     },
     categoryText: {
-        fontSize: 11, // Reduced from 12
+        fontSize: 10,
         color: '#E65100',
-        fontWeight: 'bold',
-    },
-    questionCountBadge: {
-        marginLeft: 6, // Reduced from 8
-    },
-    questionCountBadgeGradient: {
-        borderRadius: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 3,
-    },
-    questionCountText: {
-        fontSize: 11, // Reduced from 12
-        color: '#00796B',
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
     trophyContainer: {
         position: 'relative',
+        width: 50,
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     trophyBackground: {
-        width: 45, // Reduced from 50
-        height: 45, // Reduced from 50
-        borderRadius: 22.5, // Half of width/height
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: '#FFE082',
         justifyContent: 'center',
         alignItems: 'center',
     },
     trophyIcon: {
-        width: 35, // Reduced from 40
-        height: 35, // Reduced from 40
+        width: 35,
+        height: 35,
+        resizeMode: 'contain',
     },
     liveIndicator: {
         position: 'absolute',
-        top: -3, // Reduced from -5
-        right: -3, // Reduced from -5
+        top: 2,
+        right: 2,
+        backgroundColor: '#FF4444',
+        borderRadius: 6,
+        paddingHorizontal: 4,
+        paddingVertical: 1,
     },
     liveIndicatorGradient: {
         borderRadius: 8,
@@ -719,28 +706,29 @@ const styles = StyleSheet.create({
     },
     liveText: {
         color: AppColors.white,
-        fontSize: 9, // Reduced from 10
-        fontWeight: 'bold',
+        fontSize: 8,
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
     spotsContainer: {
-        marginTop: 12, // Reduced from 15
+        marginTop: 8,
     },
     spotsHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8, // Reduced from 10
+        marginBottom: 6,
     },
     spotsLeftSection: {
         flex: 1,
     },
     spotsTitle: {
-        fontSize: 13, // Reduced from 14
-        fontWeight: 'bold',
+        fontSize: 12,
+        fontWeight: '600',
         color: AppColors.darkGrey,
     },
     spotsSubtitle: {
-        fontSize: 11, // Reduced from 12
+        fontSize: 10,
         color: AppColors.grey,
     },
     timerSection: {
@@ -847,29 +835,12 @@ const styles = StyleSheet.create({
         marginTop: 8, // Reduced from 10
         flexWrap: 'wrap', // Added to prevent text cutting
     },
-    timerIconContainer: {
-        width: 20, // Reduced from 24
-        height: 20, // Reduced from 24
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 6, // Reduced from 8
-        flexShrink: 0, // Added to prevent icon shrinking
-    },
     timerText: { // Added this style to fix linter error
         flex: 1,
         fontSize: 13, // Reduced from 14
         color: AppColors.darkGrey,
         fontWeight: '500',
         flexWrap: 'wrap', // Added to prevent text cutting
-    },
-    timerLabel: {
-        fontSize: 13, // Reduced from 14
-        color: AppColors.grey,
-    },
-    timerValue: {
-        fontSize: 15, // Reduced from 16
-        fontWeight: 'bold',
-        color: AppColors.primary,
     },
     remainingTime: {
         fontSize: 14,
@@ -1044,7 +1015,7 @@ const styles = StyleSheet.create({
     liveExamBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#4F46E5',
+        backgroundColor: '#FF4444',
         borderRadius: 8,
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -1055,17 +1026,6 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: 'bold',
         marginLeft: 4,
-    },
-    questionBadge: {
-        backgroundColor: 'rgba(102, 126, 234, 0.2)',
-        borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-    },
-    questionBadgeText: {
-        color: AppColors.white,
-        fontSize: 11,
-        fontWeight: 'bold',
     },
     paymentBreakdownEnhanced: {
         backgroundColor: '#f8f9fa',
@@ -1180,72 +1140,75 @@ const styles = StyleSheet.create({
         padding: 20,
         borderTopWidth: 1,
         borderTopColor: '#f0f0f0',
-        gap: 12,
+        gap: 16,
         backgroundColor: AppColors.white,
         position: 'relative',
         zIndex: 1,
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
-                                                                                                                                                                                                                                                                                                                               cancelButtonEnhanced: {
-              flex: 0.5,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#ff6b6b',
-              borderRadius: 8,
-              paddingVertical: 8,
-              paddingHorizontal: 8,
-              borderWidth: 1.5,
-              borderColor: '#ff5252',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 2,
-              minHeight: 36,
-          },
+    cancelButtonEnhanced: {
+        flex: 0.45,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ff6b6b',
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderWidth: 1.5,
+        borderColor: '#ff5252',
+        shadowColor: '#ff6b6b',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+        minHeight: 48,
+    },
     cancelButtonTextEnhanced: {
         fontSize: 16,
         fontWeight: '700',
         color: '#ffffff',
-        marginLeft: 8,
+        marginLeft: 6,
+        letterSpacing: 0.5,
     },
-                                                                                               confirmButtonEnhanced: {
-             flex: 1.0,
-             flexDirection: 'row',
-             alignItems: 'center',
-             justifyContent: 'center',
-             borderRadius: 10,
-             paddingVertical: 12,
-             paddingHorizontal: 16,
-             gap: 8,
-             minHeight: 48,
-             shadowColor: '#4F46E5',
-             shadowOffset: { width: 0, height: 4 },
-             shadowOpacity: 0.3,
-             shadowRadius: 8,
-             elevation: 6,
-         },
-                       confirmButtonGradient: {
-           flexDirection: 'row',
-           alignItems: 'center',
-           justifyContent: 'center',
-           paddingVertical: 12,
-           paddingHorizontal: 16,
-           gap: 8,
-           minHeight: 48,
-           borderRadius: 10,
-       },
+    confirmButtonEnhanced: {
+        flex: 0.5,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        gap: 8,
+        minHeight: 48,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    confirmButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        gap: 8,
+        minHeight: 48,
+        borderRadius: 12,
+    },
      confirmButtonDisabledEnhanced: {
          backgroundColor: '#e9ecef',
          shadowOpacity: 0,
          elevation: 0,
      },
-     confirmButtonTextEnhanced: {
-         fontSize: 17,
-         fontWeight: '700',
-         color: AppColors.white,
-         letterSpacing: 0.5,
-     },
+    confirmButtonTextEnhanced: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: AppColors.white,
+        letterSpacing: 0.5,
+    },
     // Instructions Modal Styles
     instructionsTitle: {
         fontSize: 16,

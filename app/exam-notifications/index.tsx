@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, Linking, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -47,7 +47,7 @@ export default function ExamNotificationsList() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedFilter, setSelectedFilter] = useState('all'); // all, active, urgent, expired
+    const [selectedFilter, setSelectedFilter] = useState('all'); // all, active, urgent (expired removed)
     const [selectedNotification, setSelectedNotification] = useState<any>(null);
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -87,16 +87,20 @@ export default function ExamNotificationsList() {
         }
 
         // Apply status filter
+        // Always filter out expired notifications
+        filtered = filtered.filter(item => {
+            const daysRemaining = getDaysRemaining(item.applyLastDate);
+            return daysRemaining >= 0; // Only show non-expired notifications
+        });
+
         if (filter !== 'all') {
             filtered = filtered.filter(item => {
                 const daysRemaining = getDaysRemaining(item.applyLastDate);
                 const isUrgent = daysRemaining <= 7 && daysRemaining >= 0;
-                const isExpired = daysRemaining < 0;
                 
                 switch (filter) {
-                    case 'active': return !isUrgent && !isExpired;
+                    case 'active': return !isUrgent;
                     case 'urgent': return isUrgent;
-                    case 'expired': return isExpired;
                     default: return true;
                 }
             });
@@ -172,7 +176,7 @@ export default function ExamNotificationsList() {
                             {!isExpired && (
                                 <View style={styles.daysContainer}>
                                     <Ionicons 
-                                        name={isUrgent ? 'time' : 'clock-outline'} 
+                                        name={isUrgent ? 'time' : 'time-outline'} 
                                         size={14} 
                                         color={isUrgent ? '#F59E0B' : '#64748B'} 
                                     />
@@ -256,8 +260,7 @@ export default function ExamNotificationsList() {
                     {[
                         { key: 'all', label: 'All', icon: 'apps' },
                         { key: 'active', label: 'Active', icon: 'checkmark-circle' },
-                        { key: 'urgent', label: 'Urgent', icon: 'warning' },
-                        { key: 'expired', label: 'Expired', icon: 'close-circle' }
+                        { key: 'urgent', label: 'Urgent', icon: 'warning' }
                     ].map((filter) => (
                         <TouchableOpacity
                             key={filter.key}

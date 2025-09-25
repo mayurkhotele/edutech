@@ -1,22 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { apiFetchAuth, uploadFile } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
@@ -215,7 +215,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
       let postData: any = {
         content: content.trim(),
         hashtags: hashtagsArray,
-        isPrivate,
+        isPrivate: false, // Always public
         imageUrl: imageUrl,
         postType: postType,
       };
@@ -357,65 +357,11 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                  <Ionicons name="sparkles" size={16} color="rgba(255,255,255,0.9)" />
                </View>
                
-               {/* Progress Indicator */}
-               <View style={styles.progressContainer}>
-                 <View style={styles.progressBar}>
-                   <Animated.View 
-                     style={[
-                       styles.progressFill,
-                       {
-                         width: `${Math.min((content.length / 1000) * 100, 100)}%`,
-                         opacity: fadeAnim
-                       }
-                     ]}
-                   />
-                 </View>
-                 <Text style={styles.progressText}>
-                   {content.length > 0 ? `${Math.round((content.length / 1000) * 100)}% Complete` : ''}
-                 </Text>
-               </View>
              </Animated.View>
            </View>
          </LinearGradient>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Enhanced User Info Section */}
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }, { scale: scaleAnim }]
-            }}
-          >
-            <LinearGradient
-              colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-              style={styles.userInfoGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <View style={styles.userInfoSection}>
-                <View style={styles.avatarContainer}>
-                  <Image
-                    source={user?.profilePhoto ? { uri: user.profilePhoto } : require('../assets/images/avatar1.jpg')}
-                    style={styles.userAvatar}
-                  />
-                  <View style={styles.onlineIndicator} />
-                </View>
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{user?.name || 'Anonymous'}</Text>
-                  <View style={styles.privacyIndicator}>
-                    <Ionicons
-                      name={isPrivate ? 'lock-closed' : 'globe'}
-                      size={16}
-                      color={isPrivate ? '#EF4444' : '#10B981'}
-                    />
-                    <Text style={styles.privacyText}>
-                      {isPrivate ? 'Private Post' : 'Public Post'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </LinearGradient>
-          </Animated.View>
 
           {/* Post Type Selector */}
           <Animated.View 
@@ -427,15 +373,6 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
               }
             ]}
           >
-            <View style={styles.sectionHeader}>
-              <LinearGradient
-                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                style={styles.iconContainer}
-              >
-                <Ionicons name="layers-outline" size={18} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.sectionTitle}>📝 Post Type</Text>
-            </View>
             
             <View style={styles.postTypeButtons}>
               <TouchableOpacity
@@ -516,29 +453,45 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
               </LinearGradient>
               <Text style={styles.inputLabel}>💭 What's on your mind?</Text>
             </View>
+            
+            {/* Enhanced Input Container with Better Visual Hierarchy */}
             <LinearGradient
-              colors={['#ffffff', '#f8fafc']}
+              colors={['#ffffff', '#f8fafc', '#f1f5f9']}
               style={styles.contentInputContainer}
             >
-              <TextInput
-                style={styles.contentInput}
-                placeholder="✨ Share your thoughts, ideas, or experiences..."
-                placeholderTextColor="#94a3b8"
-                value={content}
-                onChangeText={setContent}
-                multiline
-                textAlignVertical="top"
-                maxLength={1000}
-              />
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.contentInput}
+                  placeholder="✨ Share your thoughts, ideas, or experiences..."
+                  placeholderTextColor="#94a3b8"
+                  value={content}
+                  onChangeText={setContent}
+                  multiline
+                  textAlignVertical="top"
+                  maxLength={1000}
+                />
+                
+                {/* Enhanced Character Counter with Visual Progress */}
+                <View style={styles.charCounterContainer}>
+                  <View style={styles.charCounterBar}>
+                    <LinearGradient
+                      colors={content.length > 800 ? ['#EF4444', '#DC2626'] : content.length > 600 ? ['#F59E0B', '#D97706'] : ['#4F46E5', '#7C3AED']}
+                      style={[
+                        styles.charCounterFill,
+                        { width: `${Math.min((content.length / 1000) * 100, 100)}%` }
+                      ]}
+                    />
+                  </View>
+                  <Text style={[
+                    styles.charCounterText,
+                    { color: content.length > 800 ? '#EF4444' : content.length > 600 ? '#F59E0B' : '#4F46E5' }
+                  ]}>
+                    📝 {content.length}/1000
+                  </Text>
+                </View>
+              </View>
             </LinearGradient>
-            <View style={styles.charCountContainer}>
-              <LinearGradient
-                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                style={styles.charCountGradient}
-              >
-                <Text style={styles.charCount}>📝 {content.length}/1000</Text>
-              </LinearGradient>
-            </View>
+            
           </Animated.View>
 
                      {/* Enhanced Add Photo Section */}
@@ -551,15 +504,6 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                }
              ]}
            >
-             <View style={styles.sectionHeader}>
-               <LinearGradient
-                 colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                 style={styles.iconContainer}
-               >
-                 <Ionicons name="image-outline" size={18} color="#fff" />
-               </LinearGradient>
-               <Text style={styles.sectionTitle}>📸 Add Photo</Text>
-             </View>
              <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
                <LinearGradient
                  colors={['#ffffff', '#f8fafc', '#f1f5f9']}
@@ -657,54 +601,6 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
             )}
           </Animated.View>
 
-          {/* Enhanced Privacy Toggle */}
-          <Animated.View 
-            style={[
-              styles.privacyContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <View style={styles.sectionHeader}>
-              <LinearGradient
-                colors={['#F59E0B', '#D97706', '#B45309']}
-                style={styles.iconContainer}
-              >
-                <Ionicons name="shield" size={18} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.sectionTitle}>🔒 Privacy Settings</Text>
-            </View>
-            <LinearGradient
-              colors={['#ffffff', '#f8fafc', '#f1f5f9']}
-              style={styles.privacyToggleContainer}
-            >
-              <TouchableOpacity
-                style={styles.privacyToggle}
-                onPress={() => setIsPrivate(!isPrivate)}
-              >
-                <View style={styles.privacyInfo}>
-                  <Ionicons
-                    name={isPrivate ? 'lock-closed' : 'globe'}
-                    size={24}
-                    color={isPrivate ? '#EF4444' : '#10B981'}
-                  />
-                  <View style={styles.privacyTextContainer}>
-                    <Text style={styles.privacyToggleText}>
-                      {isPrivate ? '🔒 Private Post' : '🌍 Public Post'}
-                    </Text>
-                    <Text style={styles.privacyDescription}>
-                      {isPrivate ? 'Only you can see this post' : 'Everyone can see this post'}
-                    </Text>
-                  </View>
-                </View>
-                <View style={[styles.toggleSwitch, isPrivate && styles.toggleSwitchActive]}>
-                  <View style={[styles.toggleKnob, isPrivate && styles.toggleKnobActive]} />
-                </View>
-              </TouchableOpacity>
-            </LinearGradient>
-          </Animated.View>
 
           {/* Poll Options Section */}
           {postType === 'POLL' && (
@@ -865,6 +761,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
              }
            ]}
          >
+           {/* Enhanced Submit Button with Better Visual Feedback */}
            <TouchableOpacity
              onPress={handleSubmit}
              disabled={loading || !content.trim()}
@@ -872,26 +769,29 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
            >
              {loading ? (
                <LinearGradient
-                 colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                 colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
                  style={styles.actionButtonGradient}
                  start={{ x: 0, y: 0 }}
-                 end={{ x: 1, y: 0 }}
+                 end={{ x: 1, y: 1 }}
                >
                  <ActivityIndicator size="small" color="#fff" />
-                 <Text style={styles.actionButtonText}>Posting...</Text>
+                 <Text style={styles.actionButtonText}>✨ Creating your amazing post...</Text>
                </LinearGradient>
              ) : (
                <LinearGradient
-                 colors={content.trim() ? ['#4F46E5', '#7C3AED', '#8B5CF6'] : ['#4F46E5', '#7C3AED', '#8B5CF6']}
+                 colors={content.trim() ? ['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7'] : ['#9CA3AF', '#6B7280']}
                  style={styles.actionButtonGradient}
                  start={{ x: 0, y: 0 }}
-                 end={{ x: 1, y: 0 }}
+                 end={{ x: 1, y: 1 }}
                >
                  <Ionicons name="send" size={24} color="#fff" />
-                 <Text style={styles.actionButtonText}>🚀 Create Post</Text>
+                 <Text style={styles.actionButtonText}>
+                   {content.trim() ? '🚀 Share with Community' : '✍️ Write something first...'}
+                 </Text>
                </LinearGradient>
              )}
            </TouchableOpacity>
+           
          </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
@@ -904,8 +804,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
      header: {
-     paddingTop: Platform.OS === 'ios' ? 40 : 12,
-     paddingBottom: 12,
+     paddingTop: Platform.OS === 'ios' ? 20 : 8,
+     paddingBottom: 8,
      position: 'relative',
      overflow: 'hidden',
    },
@@ -948,7 +848,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   headerButton: {
     borderRadius: 25,
@@ -977,7 +877,7 @@ const styles = StyleSheet.create({
    headerCenter: {
      flex: 1,
      alignItems: 'center',
-     marginHorizontal: 20,
+     marginHorizontal: 10,
    },
    titleContainer: {
      marginBottom: 4,
@@ -1543,5 +1443,97 @@ const styles = StyleSheet.create({
   },
   questionTypeButtonTextActive: {
     color: '#fff',
+  },
+  
+  // Enhanced Input Styles
+  inputWrapper: {
+    padding: 16,
+  },
+  charCounterContainer: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  charCounterBar: {
+    width: '100%',
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    marginBottom: 8,
+  },
+  charCounterFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  charCounterText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  tipsContainer: {
+    marginTop: 16,
+  },
+  tipsGradient: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tipsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0EA5E9',
+    marginLeft: 6,
+  },
+  tipsList: {
+    gap: 4,
+  },
+  tipText: {
+    fontSize: 12,
+    color: '#0369A1',
+    lineHeight: 16,
+  },
+  postPreview: {
+    marginTop: 16,
+    marginHorizontal: 20,
+  },
+  previewGradient: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  previewTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0EA5E9',
+    marginLeft: 6,
+  },
+  previewContent: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  previewStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  previewStat: {
+    fontSize: 11,
+    color: '#0369A1',
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
 }); 

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -308,63 +308,104 @@ const TicketDetailsScreen = () => {
             styles.replyContainer,
             item.user.id === user?.id ? styles.userReply : styles.adminReply
         ]}>
-            <View style={[
-                styles.replyBubble,
-                item.user.id === user?.id ? styles.userBubble : styles.adminBubble
-            ]}>
-                <View style={styles.replyHeader}>
-                    <Text style={[
-                        styles.replyAuthor,
-                        item.user.id === user?.id ? styles.userAuthor : styles.adminAuthor
-                    ]}>
-                        {item.user.name}
+            {item.user.id === user?.id ? (
+                <LinearGradient
+                    colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                    style={styles.replyBubble}
+                >
+                    <View style={styles.replyHeader}>
+                        <Text style={styles.userAuthor}>
+                            {item.user.name}
+                        </Text>
+                        <Text style={styles.replyTime}>{formatDate(item.createdAt)}</Text>
+                    </View>
+                    <Text style={styles.userContent}>
+                        {item.content}
                     </Text>
-                    <Text style={styles.replyTime}>{formatDate(item.createdAt)}</Text>
-                </View>
-                <Text style={[
-                    styles.replyContent,
-                    item.user.id === user?.id ? styles.userContent : styles.adminContent
-                ]}>
-                    {item.content}
-                </Text>
-                
-                {/* Render attachments if any */}
-                {item.attachments && item.attachments.length > 0 && (
-                    <View style={styles.replyAttachments}>
-                        {item.attachments.map((attachment, index) => (
-                            <View key={index} style={styles.replyAttachmentItem}>
-                                <View style={styles.replyAttachmentIcon}>
-                                    <Ionicons name="image" size={16} color="#667eea" />
+                    
+                    {/* Render attachments if any */}
+                    {item.attachments && item.attachments.length > 0 && (
+                        <View style={styles.replyAttachments}>
+                            {item.attachments.map((attachment, index) => (
+                                <View key={index} style={styles.replyAttachmentItem}>
+                                    <View style={styles.replyAttachmentIcon}>
+                                        <Ionicons name="image" size={16} color="#FFFFFF" />
+                                    </View>
+                                    <View style={styles.replyAttachmentDetails}>
+                                        <Text style={styles.replyAttachmentName} numberOfLines={1}>
+                                            {attachment.fileName}
+                                        </Text>
+                                        <Text style={styles.replyAttachmentSize}>
+                                            {formatFileSize(attachment.fileSize)}
+                                        </Text>
+                                    </View>
                                 </View>
-                                <View style={styles.replyAttachmentDetails}>
-                                    <Text style={styles.replyAttachmentName} numberOfLines={1}>
-                                        {attachment.fileName}
-                                    </Text>
-                                    <Text style={styles.replyAttachmentSize}>
-                                        {formatFileSize(attachment.fileSize)}
-                                    </Text>
+                            ))}
+                        </View>
+                    )}
+                    
+                    {item.isInternal && (
+                        <View style={styles.internalBadge}>
+                            <Text style={styles.internalText}>Internal Note</Text>
+                        </View>
+                    )}
+                </LinearGradient>
+            ) : (
+                <LinearGradient
+                    colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
+                    style={styles.replyBubble}
+                >
+                    <View style={styles.replyHeader}>
+                        <Text style={styles.adminAuthor}>
+                            {item.user.name}
+                        </Text>
+                        <Text style={styles.adminReplyTime}>{formatDate(item.createdAt)}</Text>
+                    </View>
+                    <Text style={styles.adminContent}>
+                        {item.content}
+                    </Text>
+                    
+                    {/* Render attachments if any */}
+                    {item.attachments && item.attachments.length > 0 && (
+                        <View style={styles.replyAttachments}>
+                            {item.attachments.map((attachment, index) => (
+                                <View key={index} style={styles.replyAttachmentItem}>
+                                    <View style={styles.replyAttachmentIcon}>
+                                        <Ionicons name="image" size={16} color="#4F46E5" />
+                                    </View>
+                                    <View style={styles.replyAttachmentDetails}>
+                                        <Text style={styles.replyAttachmentName} numberOfLines={1}>
+                                            {attachment.fileName}
+                                        </Text>
+                                        <Text style={styles.replyAttachmentSize}>
+                                            {formatFileSize(attachment.fileSize)}
+                                        </Text>
+                                    </View>
                                 </View>
-                            </View>
-                        ))}
-                    </View>
-                )}
-                
-                {item.isInternal && (
-                    <View style={styles.internalBadge}>
-                        <Text style={styles.internalText}>Internal Note</Text>
-                    </View>
-                )}
-            </View>
+                            ))}
+                        </View>
+                    )}
+                    
+                    {item.isInternal && (
+                        <View style={styles.internalBadge}>
+                            <Text style={styles.internalText}>Internal Note</Text>
+                        </View>
+                    )}
+                </LinearGradient>
+            )}
         </View>
     );
 
     if (loading) {
         return (
             <SafeAreaView style={styles.container}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#667eea" />
+                <LinearGradient
+                    colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
+                    style={styles.loadingContainer}
+                >
+                    <ActivityIndicator size="large" color="#FFFFFF" />
                     <Text style={styles.loadingText}>Loading ticket details...</Text>
-                </View>
+                </LinearGradient>
             </SafeAreaView>
         );
     }
@@ -385,7 +426,7 @@ const TicketDetailsScreen = () => {
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <LinearGradient
-                colors={['#667eea', '#764ba2']}
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
                 style={styles.header}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -395,16 +436,24 @@ const TicketDetailsScreen = () => {
                         style={styles.backButton}
                         onPress={() => router.back()}
                     >
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <LinearGradient
+                            colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                            style={styles.backButtonGradient}
+                        >
+                            <Ionicons name="arrow-back" size={24} color="#fff" />
+                        </LinearGradient>
                     </TouchableOpacity>
                     <View style={styles.headerText}>
                         <Text style={styles.headerTitle}>Ticket Details</Text>
                         <Text style={styles.headerSubtitle}>{ticket.ticketId}</Text>
                     </View>
                     <View style={styles.headerStatus}>
-                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ticket.status) }]}>
+                        <LinearGradient
+                            colors={[getStatusColor(ticket.status), getStatusColor(ticket.status) + 'CC']}
+                            style={styles.statusBadge}
+                        >
                             <Text style={styles.statusText}>{getStatusText(ticket.status)}</Text>
-                        </View>
+                        </LinearGradient>
                     </View>
                 </View>
             </LinearGradient>
@@ -420,22 +469,34 @@ const TicketDetailsScreen = () => {
                     contentContainerStyle={styles.scrollViewContent}
                 >
                     {/* Ticket Info */}
-                    <View style={styles.ticketInfo}>
+                    <LinearGradient
+                        colors={['#FFFFFF', '#F8FAFC', '#F1F5F9']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.ticketInfo}
+                    >
                         <View style={styles.ticketHeader}>
                             <View style={styles.titleContainer}>
-                                <Ionicons 
-                                    name={getIssueTypeIcon(ticket.issueType) as any} 
-                                    size={24} 
-                                    color="#667eea" 
-                                    style={styles.issueIcon}
-                                />
+                                <LinearGradient
+                                    colors={['#4F46E5', '#7C3AED']}
+                                    style={styles.issueIconGradient}
+                                >
+                                    <Ionicons 
+                                        name={getIssueTypeIcon(ticket.issueType) as any} 
+                                        size={20} 
+                                        color="#FFFFFF"
+                                    />
+                                </LinearGradient>
                                 <Text style={styles.ticketTitle}>{ticket.title}</Text>
                             </View>
                             
                             <View style={styles.metaContainer}>
-                                <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(ticket.priority) }]}>
+                                <LinearGradient
+                                    colors={[getPriorityColor(ticket.priority), getPriorityColor(ticket.priority) + 'CC']}
+                                    style={styles.priorityBadge}
+                                >
                                     <Text style={styles.priorityText}>{getPriorityText(ticket.priority)} Priority</Text>
-                                </View>
+                                </LinearGradient>
                                 <Text style={styles.createdDate}>Created {formatDate(ticket.createdAt)}</Text>
                             </View>
                         </View>
@@ -444,13 +505,23 @@ const TicketDetailsScreen = () => {
                             <Text style={styles.descriptionLabel}>Description</Text>
                             <Text style={styles.descriptionText}>{ticket.description}</Text>
                         </View>
-                    </View>
+                    </LinearGradient>
 
                     {/* Replies */}
-                    <View style={styles.repliesSection}>
+                    <LinearGradient
+                        colors={['#FFFFFF', '#F8FAFC']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.repliesSection}
+                    >
                         <View style={styles.repliesHeader}>
                             <Text style={styles.repliesTitle}>Conversation</Text>
-                            <Text style={styles.repliesCount}>{ticket.replies.length} replies</Text>
+                            <LinearGradient
+                                colors={['#4F46E5', '#7C3AED']}
+                                style={styles.repliesCountGradient}
+                            >
+                                <Text style={styles.repliesCount}>{ticket.replies.length} replies</Text>
+                            </LinearGradient>
                         </View>
 
                         <FlatList
@@ -461,7 +532,7 @@ const TicketDetailsScreen = () => {
                             showsVerticalScrollIndicator={false}
                             scrollEnabled={false}
                         />
-                    </View>
+                    </LinearGradient>
                     
                     {/* Bottom spacing for input */}
                     <View style={styles.bottomSpacing} />
@@ -469,7 +540,10 @@ const TicketDetailsScreen = () => {
 
                 {/* Reply Input */}
                 {ticket.status !== 'CLOSED' && (
-                    <View style={styles.replyInputContainer}>
+                    <LinearGradient
+                        colors={['#FFFFFF', '#F8FAFC']}
+                        style={styles.replyInputContainer}
+                    >
                         {/* Attachments Preview */}
                         {attachments.length > 0 && (
                             <View style={styles.attachmentsPreview}>
@@ -501,9 +575,9 @@ const TicketDetailsScreen = () => {
                                     disabled={uploading}
                                 >
                                     {uploading ? (
-                                        <ActivityIndicator size="small" color="#667eea" />
+                                        <ActivityIndicator size="small" color="#4F46E5" />
                                     ) : (
-                                        <Ionicons name="camera-outline" size={20} color="#667eea" />
+                                        <Ionicons name="camera-outline" size={20} color="#4F46E5" />
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -515,14 +589,19 @@ const TicketDetailsScreen = () => {
                                 onPress={sendReply}
                                 disabled={(!newReply.trim() && attachments.length === 0) || sendingReply}
                             >
-                                {sendingReply ? (
-                                    <ActivityIndicator size="small" color="#fff" />
-                                ) : (
-                                    <Ionicons name="send" size={20} color="#fff" />
-                                )}
+                                <LinearGradient
+                                    colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                                    style={styles.sendButtonGradient}
+                                >
+                                    {sendingReply ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <Ionicons name="send" size={20} color="#fff" />
+                                    )}
+                                </LinearGradient>
                             </TouchableOpacity>
                         </View>
-                    </View>
+                    </LinearGradient>
                 )}
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -553,7 +632,6 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
@@ -561,6 +639,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
+    },
+    backButtonGradient: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerText: {
         flex: 1,
@@ -599,15 +684,14 @@ const styles = StyleSheet.create({
         flexGrow: 1,
     },
     ticketInfo: {
-        backgroundColor: '#fff',
         margin: 20,
         borderRadius: 18,
         padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        elevation: 3,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
     },
     ticketHeader: {
         marginBottom: 20,
@@ -618,6 +702,15 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     issueIcon: {
+        marginRight: 12,
+        marginTop: 2,
+    },
+    issueIconGradient: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginRight: 12,
         marginTop: 2,
     },
@@ -664,15 +757,14 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     repliesSection: {
-        backgroundColor: '#fff',
         marginHorizontal: 20,
         marginBottom: 20,
         borderRadius: 18,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        elevation: 3,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
     },
     repliesHeader: {
         flexDirection: 'row',
@@ -689,7 +781,13 @@ const styles = StyleSheet.create({
     },
     repliesCount: {
         fontSize: 12,
-        color: '#95a5a6',
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
+    repliesCountGradient: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
     },
     repliesList: {
         padding: 20,
@@ -707,14 +805,6 @@ const styles = StyleSheet.create({
         maxWidth: '80%',
         padding: 16,
         borderRadius: 18,
-    },
-    userBubble: {
-        backgroundColor: '#667eea',
-        borderBottomRightRadius: 6,
-    },
-    adminBubble: {
-        backgroundColor: '#f8f9fa',
-        borderBottomLeftRadius: 6,
     },
     replyHeader: {
         flexDirection: 'row',
@@ -735,6 +825,10 @@ const styles = StyleSheet.create({
     replyTime: {
         fontSize: 10,
         color: 'rgba(255, 255, 255, 0.7)',
+    },
+    adminReplyTime: {
+        fontSize: 10,
+        color: '#6B7280',
     },
     replyContent: {
         fontSize: 14,
@@ -792,14 +886,13 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     replyInputContainer: {
-        backgroundColor: '#fff',
         padding: 20,
         paddingBottom: Platform.OS === 'ios' ? 40 : 30,
         borderTopWidth: 1,
         borderTopColor: '#e9ecef',
-        shadowColor: '#000',
+        shadowColor: '#4F46E5',
         shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.15,
         shadowRadius: 8,
         elevation: 8,
         minHeight: 90,
@@ -891,15 +984,21 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: '#667eea',
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 12,
-        shadowColor: '#667eea',
+        shadowColor: '#4F46E5',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 4,
+    },
+    sendButtonGradient: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     sendButtonDisabled: {
         backgroundColor: '#95a5a6',
@@ -914,7 +1013,8 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 16,
         fontSize: 16,
-        color: '#6c757d',
+        color: '#FFFFFF',
+        fontWeight: '600',
     },
     errorContainer: {
         flex: 1,

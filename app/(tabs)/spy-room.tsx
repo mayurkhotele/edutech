@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Copy, Crown, Mic, MicOff, Plus, Share2, Users, Volume2, VolumeX } from 'lucide-react-native';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Share, Text, TouchableOpacity, View } from 'react-native';
-import SpyChatInterface from '../../components/SpyChatInterface';
+import SpyChatInterface from '../../components/SpyChatInterfaceAgora';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useWebSocket } from '../../context/WebSocketContext';
@@ -21,9 +21,9 @@ export default function SpyRoom() {
         if (parsed && Array.isArray(parsed.players)) return parsed.players;
       }
     } catch {}
-    return [] as Array<{ userId: string; name: string; isHost: boolean }>;
+    return [] as Array<{ userId: string; name: string; isHost: boolean; position?: number }>;
   }, [params.game]);
-  const [players, setPlayers] = useState<Array<{ userId: string; name: string; isHost: boolean }>>(initialPlayers);
+  const [players, setPlayers] = useState<Array<{ userId: string; name: string; isHost: boolean; position?: number }>>(initialPlayers);
   const initialMeta = useMemo(() => {
     try {
       if (params.game) {
@@ -68,17 +68,17 @@ export default function SpyRoom() {
 
   // Example: Subscribe to lobby updates if backend emits them
   useEffect(() => {
-    const handleLobbyUpdate = (data: { players: Array<{ userId: string; name: string; isHost: boolean }> }) => {
+    const handleLobbyUpdate = (data: { players: Array<{ userId: string; name: string; isHost: boolean; position?: number }> }) => {
       setPlayers(data.players || []);
     };
-    const uniquePlayers = (list: Array<{ userId: string; name: string; isHost: boolean }>) => {
-      const map = new Map<string, { userId: string; name: string; isHost: boolean }>();
+    const uniquePlayers = (list: Array<{ userId: string; name: string; isHost: boolean; position?: number }>) => {
+      const map = new Map<string, { userId: string; name: string; isHost: boolean; position?: number }>();
       (list || []).forEach((p) => {
         if (p?.userId) map.set(p.userId, p);
       });
       return Array.from(map.values());
     };
-    const extractPlayers = (payload: any): Array<{ userId: string; name: string; isHost: boolean }> => {
+    const extractPlayers = (payload: any): Array<{ userId: string; name: string; isHost: boolean; position?: number }> => {
       if (!payload) return [];
       if (payload.game && Array.isArray(payload.game.players)) return payload.game.players;
       if (Array.isArray(payload.players)) return payload.players;
@@ -157,10 +157,19 @@ export default function SpyRoom() {
       return undefined;
     };
     const handleWordAssigned = (data: any) => {
+      console.log('🎯 Word assigned event received:', data);
       const w = extractWord(data);
-      if (typeof w === 'string') setMyWord(w);
-      if (typeof data?.isSpy === 'boolean') setIsSpy(data.isSpy);
+      console.log('📝 Extracted word:', w);
+      if (typeof w === 'string') {
+        setMyWord(w);
+        console.log('✅ Word set successfully:', w);
+      }
+      if (typeof data?.isSpy === 'boolean') {
+        setIsSpy(data.isSpy);
+        console.log('🕵️ Spy role set:', data.isSpy);
+      }
       setPhase('WORD_ASSIGNMENT');
+      console.log('🔄 Phase changed to WORD_ASSIGNMENT');
     };
     const handleSpyRole = (data: any) => {
       if (typeof data?.isSpy === 'boolean') setIsSpy(data.isSpy);
@@ -173,6 +182,15 @@ export default function SpyRoom() {
     on('spy_lobby_update' as any, handleLobbyUpdate);
     on('player_joined_spy_game' as any, handlePlayerJoined);
     on('player_left_spy_game' as any, handlePlayerLeft);
+    on('spy_slot_joined' as any, (data: any) => {
+      console.log('🎯 Player joined slot:', data);
+      if (data?.players) {
+        setPlayers(data.players);
+      }
+      if (data?.message) {
+        showSuccess(data.message);
+      }
+    });
     on('spy_game_joined' as any, handleGameJoined);
     on('spy_game_updated' as any, handleGameJoined);
     on('spy_timer_sync' as any, handleTimerSync);
@@ -186,11 +204,20 @@ export default function SpyRoom() {
     on('your_word' as any, handleWordAssigned);
     on('private_word' as any, handleWordAssigned);
     on('spy_game_started' as any, (data: any) => {
+      console.log('🎮 Spy game started event received:', data);
       // Some servers emit at start with personal data
       const w = extractWord(data);
-      if (typeof w === 'string') setMyWord(w);
-      if (typeof data?.isSpy === 'boolean') setIsSpy(data.isSpy);
+      console.log('📝 Extracted word from game started:', w);
+      if (typeof w === 'string') {
+        setMyWord(w);
+        console.log('✅ Word set from game started:', w);
+      }
+      if (typeof data?.isSpy === 'boolean') {
+        setIsSpy(data.isSpy);
+        console.log('🕵️ Spy role set from game started:', data.isSpy);
+      }
       setPhase('WORD_ASSIGNMENT');
+      console.log('🔄 Phase changed to WORD_ASSIGNMENT from game started');
     });
     on('spy_role' as any, handleSpyRole);
     on('spy_game_ended' as any, handleGameEnded);
@@ -213,6 +240,7 @@ export default function SpyRoom() {
       off('spy_lobby_update' as any);
       off('player_joined_spy_game' as any);
       off('player_left_spy_game' as any);
+      off('spy_slot_joined' as any);
       off('spy_game_joined' as any);
       off('spy_game_updated' as any);
       off('spy_timer_sync' as any);
@@ -281,7 +309,26 @@ export default function SpyRoom() {
     } catch {}
   };
 
-  const renderPlayer = ({ item }: { item: { userId: string; name: string; isHost: boolean } }) => (
+  const joinSlot = (position: number) => {
+    try {
+      const socket = require('../../utils/websocket').default.getSocket();
+      if (!socket?.connected) {
+        showError('Not connected to server');
+        return;
+      }
+      socket.emit('join_spy_slot', { 
+        gameId: params.id, 
+        position: position,
+        userId: user?.id,
+        userName: user?.name || 'Player'
+      });
+      showSuccess(`Joining slot ${position}...`);
+    } catch (error) {
+      showError('Failed to join slot');
+    }
+  };
+
+  const renderPlayer = ({ item }: { item: { userId: string; name: string; isHost: boolean; position?: number } }) => (
     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', padding: 12, borderRadius: 12, marginBottom: 8 }}>
       {item.isHost ? <Crown color="#fbbf24" size={18} /> : <Users color="#94a3b8" size={18} />}
       <Text style={{ color: 'white', fontWeight: '700', marginLeft: 8 }}>{item.name}</Text>
@@ -293,6 +340,16 @@ export default function SpyRoom() {
 
   const renderLobby = () => {
     const displaySlots = Math.max(maxPlayers || 8, players.length);
+    
+    // Assign default positions to players who don't have them (backward compatibility)
+    const playersWithPositions = players.map((player, index) => ({
+      ...player,
+      position: player.position || index + 1
+    }));
+    
+    console.log('🎮 Render Lobby - Players:', players.length, 'Display Slots:', displaySlots);
+    console.log('🎮 Players with positions:', playersWithPositions.map(p => ({ name: p.name, position: p.position })));
+    
     return (
       <View style={{ flex: 1, backgroundColor: '#0b1020' }}>
         <Stack.Screen options={{ headerShown: false }} />
@@ -322,8 +379,13 @@ export default function SpyRoom() {
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             {Array.from({ length: displaySlots }).map((_, idx) => {
-              const player = players[idx];
+              // Find player by position, or fallback to array index for backward compatibility
+              const player = playersWithPositions.find(p => p.position === idx + 1) || playersWithPositions[idx];
               const width = '48%';
+              const isMySlot = player?.userId === user?.id;
+              const isSlotEmpty = !player;
+              const canJoinSlot = isSlotEmpty && !playersWithPositions.find(p => p.userId === user?.id); // Can join if slot is empty and user not already in game
+              
               if (player) {
                 const isMe = player.userId === user?.id;
                 const ready = readyByUserId[player.userId];
@@ -334,6 +396,9 @@ export default function SpyRoom() {
                     <View style={{ position: 'absolute', right: 8, top: 8, backgroundColor: badgeColor, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
                       <Text style={{ color: '#0b1020', fontWeight: '900', fontSize: 10 }}>{badgeText}</Text>
                     </View>
+                    <View style={{ position: 'absolute', left: 8, top: 8, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>#{player.position || idx + 1}</Text>
+                    </View>
                     <View style={{ width: 50, height: 50, borderRadius: 999, backgroundColor: isMe ? 'rgba(59,130,246,0.35)' : 'rgba(99,102,241,0.35)', alignItems: 'center', justifyContent: 'center', borderWidth: isMe ? 2 : 0, borderColor: '#60a5fa' }}>
                       <Text style={{ color: 'white', fontWeight: '900', fontSize: 18 }}>{player.name?.charAt(0)?.toUpperCase() || '?'}</Text>
                     </View>
@@ -341,11 +406,33 @@ export default function SpyRoom() {
                   </View>
                 );
               }
-  return (
-                <View key={`slot-${idx}`} style={{ width, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 14, padding: 12, marginBottom: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)' }}>
-                  <Plus color="#94a3b8" size={22} />
-                  <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>Tap to Join</Text>
-                </View>
+              
+              return (
+                <TouchableOpacity 
+                  key={`slot-${idx}`} 
+                  onPress={() => canJoinSlot && joinSlot(idx + 1)}
+                  disabled={!canJoinSlot}
+                  style={{ 
+                    width, 
+                    borderStyle: 'dashed', 
+                    borderWidth: 1, 
+                    borderColor: canJoinSlot ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.2)', 
+                    borderRadius: 14, 
+                    padding: 12, 
+                    marginBottom: 12, 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    backgroundColor: canJoinSlot ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.03)' 
+                  }}
+                >
+                  <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>#{idx + 1}</Text>
+                  </View>
+                  <Plus color={canJoinSlot ? "#22c55e" : "#94a3b8"} size={22} />
+                  <Text style={{ color: canJoinSlot ? "#22c55e" : "#94a3b8", fontSize: 12, marginTop: 4, fontWeight: canJoinSlot ? '700' : '400' }}>
+                    {canJoinSlot ? 'Tap to Join' : 'Occupied'}
+                  </Text>
+                </TouchableOpacity>
               );
             })}
           </View>

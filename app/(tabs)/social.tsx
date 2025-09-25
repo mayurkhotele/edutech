@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import React, { useCallback, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useCallback, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import CreatePost from '../../components/CreatePost';
 import SocialFeed from '../../components/SocialFeed';
@@ -38,7 +39,14 @@ export default function SocialScreen() {
         onPress={() => setCreatePostVisible(true)}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={28} color="#fff" />
+        <LinearGradient
+          colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </LinearGradient>
       </TouchableOpacity>
 
       {/* Create Post Modal */}
@@ -64,10 +72,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#6C63FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#4F46E5',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -76,5 +81,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 10, // Increased elevation for Android
     zIndex: 1000, // Added zIndex for iOS
+  },
+  fabGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 

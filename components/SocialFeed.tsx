@@ -941,10 +941,6 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
             <Ionicons name="paper-plane-outline" size={28} color="#262626" />
           </TouchableOpacity>
         </View>
-        
-        <TouchableOpacity style={styles.instagramBookmarkButton}>
-          <Ionicons name="bookmark-outline" size={28} color="#262626" />
-        </TouchableOpacity>
       </View>
 
       {/* Instagram-Style Likes Count */}
@@ -955,18 +951,15 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
       </View>
 
       {/* Instagram-Style Comments Preview */}
-      <View style={styles.instagramCommentsContainer}>
-        <Text style={styles.instagramCommentsText}>
-          <Text style={styles.instagramCommentsBold}>{item.author?.name}</Text> {item.content}
-        </Text>
-        {item._count?.comments > 0 && (
+      {item._count?.comments > 0 && (
+        <View style={styles.instagramCommentsContainer}>
           <TouchableOpacity onPress={() => openComments(item)}>
             <Text style={styles.instagramViewCommentsText}>
               View all {item._count.comments} comments
             </Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 
@@ -1258,7 +1251,9 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
                 onPress={() => navigation?.navigate('CreatePost')}
               >
                 <LinearGradient
-                  colors={['#667eea', '#764ba2']}
+                  colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
                   style={styles.createPostButtonGradient}
                 >
                   <Ionicons name="create-outline" size={20} color="#fff" />
@@ -1321,9 +1316,11 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
                     style={styles.commentAvatar}
                   />
                   <View style={styles.commentContent}>
-                    <Text style={styles.commentAuthor}>{item.user?.name || 'Unknown'}</Text>
+                    <View style={styles.commentHeader}>
+                      <Text style={styles.commentAuthor}>{item.user?.name || 'Unknown'}</Text>
+                      <Text style={styles.commentTime}>{timeAgo(item.createdAt)}</Text>
+                    </View>
                     <Text style={styles.commentText}>{item.content}</Text>
-                    <Text style={styles.commentTime}>{timeAgo(item.createdAt)}</Text>
                   </View>
                 </View>
               )}
@@ -1346,7 +1343,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
                 {postingComment ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.postCommentButtonText}>Post</Text>
+                  <Text style={styles.postCommentButtonText}>Comment</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1625,46 +1622,68 @@ const styles = StyleSheet.create({
   // Instagram-style posts
   instagramPostCard: {
     backgroundColor: '#fff',
-    marginBottom: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#dbdbdb',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
   },
   instagramPostHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
+    padding: 16,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   instagramAvatarContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#dbdbdb',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 14,
+    borderWidth: 2,
+    borderColor: '#4F46E5',
+    padding: 2,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   instagramAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: '100%',
+    height: '100%',
+    borderRadius: 18,
   },
   instagramAuthorName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#262626',
-    marginBottom: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 2,
+    letterSpacing: 0.3,
   },
   instagramPostLocation: {
     fontSize: 12,
-    color: '#8e8e93',
+    color: '#6B7280',
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   // Instagram-style post content
   instagramPostContent: {
-    fontSize: 14,
-    color: '#262626',
-    lineHeight: 20,
-    paddingHorizontal: 12,
-    paddingBottom: 8,
+    fontSize: 15,
+    color: '#374151',
+    lineHeight: 22,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   instagramMediaContainer: {
     width: '100%',
@@ -2039,42 +2058,51 @@ const styles = StyleSheet.create({
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 16,
+    padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    backgroundColor: '#fff',
+    borderTopColor: 'rgba(79, 70, 229, 0.1)',
+    backgroundColor: '#F8FAFC',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   commentInput: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     marginRight: 12,
-    fontSize: 14,
-    color: '#333',
+    fontSize: 15,
+    color: '#374151',
     maxHeight: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.2)',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   postCommentButton: {
-    backgroundColor: '#667eea',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 2 },
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   postCommentButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#9CA3AF',
     shadowOpacity: 0,
     elevation: 0,
   },
   postCommentButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   storiesContainer: {
     paddingHorizontal: 16,
@@ -2880,67 +2908,91 @@ const styles = StyleSheet.create({
   },
   commentModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 60,
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
+    borderRadius: 20,
+    width: '100%',
+    maxHeight: '85%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.1)',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: 'rgba(79, 70, 229, 0.1)',
+    backgroundColor: '#F8FAFC',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#4F46E5',
   },
   closeButton: {
-    padding: 4,
-  },
-  commentsList: {
-    padding: 16,
-  },
-  commentItem: {
-    flexDirection: 'row',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f8f9fa',
-  },
-  commentAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    marginRight: 12,
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  commentsList: {
+    padding: 16,
+    maxHeight: 500,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    padding: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(79, 70, 229, 0.1)',
+  },
+  commentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 10,
   },
   commentContent: {
     flex: 1,
   },
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   commentAuthor: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#4F46E5',
+    flex: 1,
   },
   commentText: {
     fontSize: 14,
-    color: '#333',
-    lineHeight: 20,
+    color: '#374151',
+    lineHeight: 18,
   },
   commentTime: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '400',
   },
   searchResultsList: {
     paddingBottom: 16,
@@ -3080,28 +3132,40 @@ const styles = StyleSheet.create({
   },
   // Poll and Question Styles
   pollContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-    backgroundColor: '#f8f9fa',
-    marginHorizontal: 12,
-    marginVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    backgroundColor: '#F0F9FF',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#BAE6FD',
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   pollTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#495057',
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0C4A6E',
+    marginBottom: 16,
+    textAlign: 'center',
+    letterSpacing: 0.3,
   },
   pollOption: {
     backgroundColor: '#fff',
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E7FF',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   pollOptionContent: {
     flexDirection: 'row',
@@ -3119,28 +3183,40 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   questionContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-    backgroundColor: '#f8f9fa',
-    marginHorizontal: 12,
-    marginVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    backgroundColor: '#FEF3C7',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#FCD34D',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   questionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#495057',
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: 16,
+    textAlign: 'center',
+    letterSpacing: 0.3,
   },
   questionOption: {
     backgroundColor: '#fff',
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   questionOptionContent: {
     flexDirection: 'row',

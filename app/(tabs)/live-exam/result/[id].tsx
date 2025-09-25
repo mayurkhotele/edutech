@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -168,50 +168,6 @@ export default function LiveExamResultScreen() {
     console.log('🎊 Confetti particles created:', confettiRefs.current.length);
   };
 
-  const handleShare = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await Share.share({
-        message: `I scored ${result?.score}% in ${result?.examTitle}! Check out my performance! 🎯`,
-        title: 'My Exam Results',
-      });
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
-  };
-
-  const handlePlayAgain = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      'Retake Exam',
-      'Are you sure you want to retake this exam?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Retake', 
-          style: 'destructive',
-          onPress: () => {
-            router.back();
-          }
-        },
-      ]
-    );
-  };
-
-  const handleReview = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Review Mode', 'Review mode will be available soon!');
-  };
-
-  const handlePDF = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('PDF Export', 'PDF export feature will be available soon!');
-  };
-
-  const handleLeaderboard = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Leaderboard', 'Leaderboard feature will be available soon!');
-  };
 
   if (!result) {
     return (
@@ -721,116 +677,6 @@ export default function LiveExamResultScreen() {
             </LinearGradient>
           </Animated.View>
 
-          {/* Action Buttons */}
-          <Animated.View 
-            style={[
-              styles.actionSection,
-              { opacity: scoreAnim }
-            ]}
-          >
-            <View style={styles.actionRow}>
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={handlePlayAgain}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#E0E7FF', '#C7D2FE']}
-                  style={styles.actionButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name="refresh" size={24} color="#6366F1" />
-                  <Text style={styles.actionButtonText}>Retake</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={handleReview}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#D1FAE5', '#A7F3D0']}
-                  style={styles.actionButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name="eye" size={24} color="#10B981" />
-                  <Text style={styles.actionButtonText}>Review</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={handleShare}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#FEF3C7', '#FDE68A']}
-                  style={styles.actionButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name="share" size={24} color="#F59E0B" />
-                  <Text style={styles.actionButtonText}>Share</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.actionRow}>
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={handlePDF}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#DBEAFE', '#BFDBFE']}
-                  style={styles.actionButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name="document-text" size={20} color="#3B82F6" />
-                  <Text style={styles.actionButtonText}>PDF</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/(tabs)/home');
-                }}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#F3E8FF', '#E9D5FF']}
-                  style={styles.actionButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name="home" size={20} color="#8B5CF6" />
-                  <Text style={styles.actionButtonText}>Home</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={handleLeaderboard}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#FCE7F3', '#FBCFE8']}
-                  style={styles.actionButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name="trophy" size={20} color="#EC4899" />
-                  <Text style={styles.actionButtonText}>Leaderboard</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
         </Animated.View>
       </ScrollView>
     </LinearGradient>
@@ -1174,44 +1020,6 @@ const styles = StyleSheet.create({
   subjectFill: {
     height: '100%',
     borderRadius: 3,
-  },
-  actionSection: {
-    marginTop: 16,
-    paddingHorizontal: 4,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 20,
-    marginHorizontal: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    borderWidth: 2,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
-  },
-  actionButtonGradient: {
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 80,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '700',
-    marginTop: 8,
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   animatedBg1: {
     position: 'absolute',

@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -198,82 +198,121 @@ const SupportTicketsScreen = () => {
         <TouchableOpacity
             style={styles.ticketCard}
             onPress={() => router.push({ pathname: '/(tabs)/ticket-details', params: { id: item.id } })}
+            activeOpacity={0.95}
         >
-            <View style={styles.ticketHeader}>
-                <View style={styles.ticketIdContainer}>
-                    <Ionicons name="ticket-outline" size={16} color="#667eea" />
-                    <Text style={styles.ticketId}>{item.ticketId}</Text>
-                </View>
-                <View style={styles.statusContainer}>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                        <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+            <LinearGradient
+                colors={['#FFFFFF', '#F8FAFC', '#F1F5F9']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ticketGradient}
+            >
+                <View style={styles.ticketHeader}>
+                    <View style={styles.ticketIdContainer}>
+                        <LinearGradient
+                            colors={['#4F46E5', '#7C3AED']}
+                            style={styles.ticketIdGradient}
+                        >
+                            <Ionicons name="ticket-outline" size={16} color="#FFFFFF" />
+                        </LinearGradient>
+                        <Text style={styles.ticketId}>{item.ticketId}</Text>
+                    </View>
+                    <View style={styles.statusContainer}>
+                        <LinearGradient
+                            colors={[getStatusColor(item.status), getStatusColor(item.status) + 'CC']}
+                            style={styles.statusBadge}
+                        >
+                            <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                        </LinearGradient>
                     </View>
                 </View>
-            </View>
 
-            <View style={styles.ticketContent}>
-                <View style={styles.titleContainer}>
-                    <Ionicons 
-                        name={getIssueTypeIcon(item.issueType) as any} 
-                        size={20} 
-                        color="#667eea" 
-                        style={styles.issueIcon}
-                    />
-                    <Text style={styles.ticketTitle} numberOfLines={2}>
-                        {item.title}
+                <View style={styles.ticketContent}>
+                    <View style={styles.titleContainer}>
+                        <LinearGradient
+                            colors={['#4F46E5', '#7C3AED']}
+                            style={styles.issueIconGradient}
+                        >
+                            <Ionicons 
+                                name={getIssueTypeIcon(item.issueType) as any} 
+                                size={18} 
+                                color="#FFFFFF"
+                            />
+                        </LinearGradient>
+                        <Text style={styles.ticketTitle} numberOfLines={2}>
+                            {item.title}
+                        </Text>
+                    </View>
+
+                    <Text style={styles.ticketDescription} numberOfLines={2}>
+                        {item.description}
                     </Text>
-                </View>
 
-                <Text style={styles.ticketDescription} numberOfLines={2}>
-                    {item.description}
-                </Text>
+                    <View style={styles.ticketMeta}>
+                        <View style={styles.priorityContainer}>
+                            <LinearGradient
+                                colors={[getPriorityColor(item.priority), getPriorityColor(item.priority) + 'CC']}
+                                style={styles.priorityBadge}
+                            >
+                                <Text style={styles.priorityText}>{getPriorityText(item.priority)}</Text>
+                            </LinearGradient>
+                        </View>
 
-                <View style={styles.ticketMeta}>
-                    <View style={styles.priorityContainer}>
-                        <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) }]}>
-                            <Text style={styles.priorityText}>{getPriorityText(item.priority)}</Text>
+                        <View style={styles.repliesContainer}>
+                            <LinearGradient
+                                colors={['#E2E8F0', '#CBD5E1']}
+                                style={styles.repliesGradient}
+                            >
+                                <Ionicons name="chatbubble-outline" size={14} color="#4F46E5" />
+                                <Text style={styles.repliesText}>{item._count.replies} replies</Text>
+                            </LinearGradient>
                         </View>
                     </View>
 
-                    <View style={styles.repliesContainer}>
-                        <Ionicons name="chatbubble-outline" size={14} color="#95a5a6" />
-                        <Text style={styles.repliesText}>{item._count.replies} replies</Text>
+                    <View style={styles.ticketFooter}>
+                        <View style={styles.dateContainer}>
+                            <Ionicons name="time-outline" size={14} color="#6B7280" />
+                            <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+                        </View>
+                        
+                        <LinearGradient
+                            colors={['#4F46E5', '#7C3AED']}
+                            style={styles.arrowContainer}
+                        >
+                            <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+                        </LinearGradient>
                     </View>
                 </View>
-
-                <View style={styles.ticketFooter}>
-                    <View style={styles.dateContainer}>
-                        <Ionicons name="time-outline" size={14} color="#95a5a6" />
-                        <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
-                    </View>
-                    
-                    <View style={styles.arrowContainer}>
-                        <Ionicons name="chevron-forward" size={16} color="#95a5a6" />
-                    </View>
-                </View>
-            </View>
+            </LinearGradient>
         </TouchableOpacity>
     );
 
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
             <LinearGradient
-                colors={['#667eea', '#764ba2']}
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
                 style={styles.emptyGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             >
-                <Ionicons name="ticket-outline" size={64} color="rgba(255, 255, 255, 0.8)" />
+                <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                    style={styles.emptyIconContainer}
+                >
+                    <Ionicons name="headset-outline" size={64} color="rgba(255, 255, 255, 0.9)" />
+                </LinearGradient>
                 <Text style={styles.emptyTitle}>No Support Tickets</Text>
                 <Text style={styles.emptySubtitle}>
-                    You haven't created any support tickets yet.
+                    You haven't created any support tickets yet.{'\n'}We're here to help whenever you need us!
                 </Text>
             </LinearGradient>
         </View>
     );
 
     const renderStatusFilter = () => (
-        <View style={styles.filterContainer}>
+        <LinearGradient
+            colors={['#FFFFFF', '#F8FAFC']}
+            style={styles.filterContainer}
+        >
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map((status) => (
                     <TouchableOpacity
@@ -284,16 +323,26 @@ const SupportTicketsScreen = () => {
                         ]}
                         onPress={() => setSelectedStatus(status)}
                     >
-                        <Text style={[
-                            styles.filterButtonText,
-                            selectedStatus === status && styles.filterButtonTextActive
-                        ]}>
-                            {status === 'ALL' ? 'All' : getStatusText(status)}
-                        </Text>
+                        {selectedStatus === status ? (
+                            <LinearGradient
+                                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.filterButtonGradient}
+                            >
+                                <Text style={styles.filterButtonTextActive}>
+                                    {status === 'ALL' ? 'All' : getStatusText(status)}
+                                </Text>
+                            </LinearGradient>
+                        ) : (
+                            <Text style={styles.filterButtonText}>
+                                {status === 'ALL' ? 'All' : getStatusText(status)}
+                            </Text>
+                        )}
                     </TouchableOpacity>
                 ))}
             </ScrollView>
-        </View>
+        </LinearGradient>
     );
 
     if (loading) {
@@ -311,7 +360,7 @@ const SupportTicketsScreen = () => {
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <LinearGradient
-                colors={['#667eea', '#764ba2']}
+                colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
                 style={styles.header}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -321,17 +370,27 @@ const SupportTicketsScreen = () => {
                         style={styles.backButton}
                         onPress={() => router.back()}
                     >
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <LinearGradient
+                            colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                            style={styles.backButtonGradient}
+                        >
+                            <Ionicons name="arrow-back" size={24} color="#fff" />
+                        </LinearGradient>
                     </TouchableOpacity>
                     <View style={styles.headerText}>
-                        <Text style={styles.headerTitle}>Support Tickets</Text>
-                        <Text style={styles.headerSubtitle}>24/7 Customer Support</Text>
+                        <Text style={styles.headerTitle}>24/7 Support</Text>
+                        <Text style={styles.headerSubtitle}>We're here to help you anytime</Text>
                     </View>
                     <TouchableOpacity
                         style={styles.newTicketButton}
                         onPress={() => router.push('/new-ticket')}
                     >
-                        <Ionicons name="add" size={24} color="#fff" />
+                        <LinearGradient
+                            colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                            style={styles.newTicketButtonGradient}
+                        >
+                            <Ionicons name="add" size={24} color="#fff" />
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </LinearGradient>
@@ -356,9 +415,10 @@ const SupportTicketsScreen = () => {
             <TouchableOpacity
                 style={styles.floatingButton}
                 onPress={() => router.push('/new-ticket')}
+                activeOpacity={0.8}
             >
                 <LinearGradient
-                    colors={['#667eea', '#764ba2']}
+                    colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
                     style={styles.floatingButtonGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
@@ -390,7 +450,13 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    backButtonGradient: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -412,23 +478,28 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    newTicketButtonGradient: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
     },
     filterContainer: {
-        backgroundColor: '#fff',
         paddingVertical: 16,
         paddingHorizontal: 20,
         borderBottomWidth: 1,
         borderBottomColor: '#e9ecef',
     },
     filterButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
         backgroundColor: '#f8f9fa',
-        marginRight: 12,
+        marginRight: 8,
         borderWidth: 1,
         borderColor: '#e9ecef',
     },
@@ -437,33 +508,43 @@ const styles = StyleSheet.create({
         borderColor: '#667eea',
     },
     filterButtonText: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
         color: '#6c757d',
     },
+    filterButtonGradient: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
     filterButtonTextActive: {
+        fontSize: 12,
         color: '#fff',
+        fontWeight: '700',
     },
     listContainer: {
         padding: 20,
     },
     ticketCard: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        marginBottom: 16,
-        shadowColor: '#000',
+        borderRadius: 12,
+        marginBottom: 10,
+        shadowColor: '#4F46E5',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
         elevation: 3,
+        overflow: 'hidden',
+    },
+    ticketGradient: {
+        borderRadius: 16,
         overflow: 'hidden',
     },
     ticketHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#f8f9fa',
     },
@@ -471,11 +552,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    ticketIdGradient: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 6,
+    },
     ticketId: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#667eea',
-        marginLeft: 6,
+        color: '#4F46E5',
     },
     statusContainer: {
         alignItems: 'flex-end',
@@ -491,15 +579,24 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     ticketContent: {
-        padding: 20,
+        padding: 14,
     },
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     issueIcon: {
         marginRight: 12,
+        marginTop: 2,
+    },
+    issueIconGradient: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
         marginTop: 2,
     },
     ticketTitle: {
@@ -538,10 +635,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    repliesGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
     repliesText: {
         fontSize: 12,
-        color: '#95a5a6',
+        color: '#4F46E5',
         marginLeft: 4,
+        fontWeight: '600',
     },
     ticketFooter: {
         flexDirection: 'row',
@@ -579,6 +684,14 @@ const styles = StyleSheet.create({
         padding: 40,
         borderRadius: 20,
         alignItems: 'center',
+    },
+    emptyIconContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
     },
     emptyTitle: {
         fontSize: 20,

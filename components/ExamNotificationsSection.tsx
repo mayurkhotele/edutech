@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -343,14 +343,14 @@ const ExamNotificationsSection = () => {
                     >
                         <View style={styles.buttonContent}>
                             <View style={styles.buttonLeft}>
-                                <Ionicons name="notifications" size={18} color="#FFFFFF" />
+                                <Ionicons name="notifications" size={16} color="#FFFFFF" />
                                 <View style={styles.buttonTextContainer}>
                                     <Text style={styles.viewAllMainText}>View All Notifications</Text>
                                     <Text style={styles.viewAllSubText}>{notifications.length} total notifications</Text>
                                 </View>
                             </View>
                             <View style={styles.arrowContainer}>
-                                <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+                                <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
                             </View>
                         </View>
                     </LinearGradient>
@@ -640,19 +640,21 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     viewAllButton: {
-        marginHorizontal: 20,
-        marginBottom: 18,
-        borderRadius: 16,
+        marginHorizontal: 24,
+        marginBottom: 16,
+        borderRadius: 12,
         overflow: 'hidden',
         shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 4,
+        alignSelf: 'center',
+        maxWidth: '85%',
     },
     viewAllGradient: {
-        paddingHorizontal: 18,
-        paddingVertical: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
     buttonContent: {
         flexDirection: 'row',
@@ -669,26 +671,29 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     viewAllMainText: {
-        fontSize: 16,
+        fontSize: 15,
         color: '#FFFFFF',
         fontWeight: '700',
         letterSpacing: 0.3,
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    viewAllSubText: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: '600',
+        marginTop: 2,
+        letterSpacing: 0.2,
         textShadowColor: 'rgba(0, 0, 0, 0.3)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
     },
-    viewAllSubText: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontWeight: '500',
-        marginTop: 2,
-        letterSpacing: 0.2,
-    },
     arrowContainer: {
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 12,
-        padding: 8,
-        marginLeft: 12,
+        borderRadius: 10,
+        padding: 6,
+        marginLeft: 10,
     },
     loadingContainer: {
         padding: 20,

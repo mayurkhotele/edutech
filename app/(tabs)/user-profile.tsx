@@ -4,18 +4,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
@@ -438,24 +438,6 @@ export default function UserProfileScreen() {
     );
   };
 
-  if (loading || !profile) {
-    return (
-      <View style={styles.enhancedLoadingContainer}>
-        <LinearGradient
-          colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-          style={styles.enhancedLoadingGradient}
-        >
-          <View style={styles.loadingContent}>
-            <View style={styles.loadingAvatar}>
-              <ActivityIndicator size="large" color="#fff" />
-            </View>
-            <Text style={styles.enhancedLoadingText}>Loading Profile...</Text>
-            <Text style={styles.loadingSubtext}>Please wait while we fetch the user's information</Text>
-          </View>
-        </LinearGradient>
-      </View>
-    );
-  }
 
   if (error) {
     return (

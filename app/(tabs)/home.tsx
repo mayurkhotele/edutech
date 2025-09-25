@@ -7,8 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import AdvertisementBanner from '../../components/AdvertisementBanner';
-import EducationBannerSlider from '../../components/EducationBannerSlider';
+import CustomBannerSlider from '../../components/CustomBannerSlider';
 import ExamCard from '../../components/ExamCard';
 import ExamNotificationsSection from '../../components/ExamNotificationsSection';
 import JobCompetitionBanner from '../../components/JobCompetitionBanner';
@@ -112,18 +111,18 @@ export default function HomeScreen() {
                 }
             >
 
-                                {/* Education Banner Slider */}
-                    <EducationBannerSlider onBannerPress={(banner) => {
-                        console.log('Banner pressed:', banner.title);
-                        // Handle banner press - you can navigate to different screens based on banner
-                        switch (banner.id) {
-                            case '1':
+                                {/* Custom Banner Slider */}
+                    <CustomBannerSlider onBannerPress={(banner) => {
+                        console.log('Banner pressed:', banner.action);
+                        // Handle banner press - navigate to different screens based on banner
+                        switch (banner.action) {
+                            case 'practice-exam':
                                 router.push('/(tabs)/practice-exam');
                                 break;
-                            case '2':
+                            case 'exam':
                                 router.push('/(tabs)/exam');
                                 break;
-                            case '3':
+                            case 'profile':
                                 router.push('/(tabs)/profile');
                                 break;
                             default:
@@ -179,12 +178,6 @@ export default function HomeScreen() {
                 // router.push('/leaderboard'); // Example navigation
             }} />
 
-            {/* Premium Advertisement Banner */}
-            <AdvertisementBanner onPress={() => {
-                // You can navigate to premium page or open a link
-                console.log('Navigate to premium features');
-                // router.push('/premium'); // Example navigation
-            }} />
 
             {/* Practice Exam Section */}
             <PracticeExamSection ref={practiceExamRef} />
@@ -220,7 +213,8 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     listContainer: {
-        paddingHorizontal: 15,
+        paddingLeft: 8,
+        paddingRight: 0,
         paddingBottom: 10,
     },
     quickStatsContainer: {

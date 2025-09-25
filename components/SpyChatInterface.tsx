@@ -1,11 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Crown, MessageSquare, Play, Send, Users, Volume2, Mic, MicOff } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, Share, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
-import Constants from 'expo-constants';
-import { WebView } from 'react-native-webview';
-import { BlurView } from 'expo-blur';
+import { Crown, MessageSquare, Mic, MicOff, Play, Send, Users, Volume2 } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 type ChatMessage = {
   id: string;
@@ -74,59 +70,16 @@ export default function SpyChatInterface({
     }
   }, [socketProp]);
 
-  // Daily Prebuilt URL from env (Expo Go friendly)
-  const dailyDomain = (process as any)?.env?.EXPO_PUBLIC_DAILY_DOMAIN || (Constants?.expoConfig as any)?.extra?.dailyDomain; // e.g. your-subdomain.daily.co
-  const dailyRoomUrlEnv = (process as any)?.env?.EXPO_PUBLIC_DAILY_ROOM_URL || (Constants?.expoConfig as any)?.extra?.dailyRoomUrl; // e.g. https://sub.daily.co/room
-  const dailyUrl = useMemo(() => {
-    const displayName = encodeURIComponent(user?.name || 'Player');
-    if (dailyRoomUrlEnv) {
-      const hasQuery = String(dailyRoomUrlEnv).includes('?');
-      return `${dailyRoomUrlEnv}${hasQuery ? '&' : '?'}embed=1&startVideoOff=1&startAudioOff=1&hideLeaveButton=1&hideFullscreenButton=1&showLeaveButton=0&displayName=${displayName}`;
-    }
-    if (!dailyDomain) return null;
-    const roomName = `spy-${game?.id || 'demo'}`;
-    return `https://${dailyDomain}/${roomName}?embed=1&startVideoOff=1&startAudioOff=1&hideLeaveButton=1&hideFullscreenButton=1&showLeaveButton=0&displayName=${displayName}`;
-  }, [dailyDomain, dailyRoomUrlEnv, game?.id, user?.name]);
-
-  const webViewRef = useRef<WebView>(null);
+  // Agora.io configuration
+  const AGORA_APP_ID = 'YOUR_AGORA_APP_ID'; // Replace with your Agora App ID
+  const channelName = `spy-${game?.id || 'demo'}`;
+  const uid = user?.id ? parseInt(user.id.replace(/\D/g, '').slice(-8), 10) || Math.floor(Math.random() * 100000) : Math.floor(Math.random() * 100000);
+  
   const INPUT_BAR_HEIGHT = 64;
 
-  // Turn-based mic gating for Daily Prebuilt (best-effort; user may still need to tap inside WebView)
-  useEffect(() => {
-    if (!dailyUrl) return;
-    if (currentPhase !== 'DESCRIBING') return;
-    const js = (isMyTurn && micOn)
-      ? "try{(window.callFrame&&window.callFrame.setLocalAudio(true))||(window.daily&&window.daily.setLocalAudio&&window.daily.setLocalAudio(true));}catch(e){}"
-      : "try{(window.callFrame&&window.callFrame.setLocalAudio(false))||(window.daily&&window.daily.setLocalAudio&&window.daily.setLocalAudio(false));}catch(e){}";
-    try {
-      webViewRef.current?.injectJavaScript(js);
-    } catch {}
-  }, [dailyUrl, currentPhase, isMyTurn, micOn]);
+  // Agora voice chat is now handled by the AgoraVoiceChat component
 
-  const toggleMic = () => {
-    if (!dailyUrl) return;
-    if (!isMyTurn) return;
-    const next = !micOn;
-    setMicOn(next);
-    const js = next
-      ? "try{(window.callFrame&&window.callFrame.setLocalAudio(true))||(window.daily&&window.daily.setLocalAudio&&window.daily.setLocalAudio(true));}catch(e){}"
-      : "try{(window.callFrame&&window.callFrame.setLocalAudio(false))||(window.daily&&window.daily.setLocalAudio&&window.daily.setLocalAudio(false));}catch(e){}";
-    try { webViewRef.current?.injectJavaScript(js); } catch {}
-  };
-
-  // Push-to-talk handlers
-  const pttDown = () => {
-    if (!dailyUrl || !isMyTurn) return;
-    setMicOn(true);
-    try { webViewRef.current?.injectJavaScript("try{(window.callFrame&&window.callFrame.setLocalAudio(true))||(window.daily&&window.daily.setLocalAudio&&window.daily.setLocalAudio(true));}catch(e){}"); } catch {}
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
-  };
-  const pttUp = () => {
-    if (!dailyUrl) return;
-    setMicOn(false);
-    try { webViewRef.current?.injectJavaScript("try{(window.callFrame&&window.callFrame.setLocalAudio(false))||(window.daily&&window.daily.setLocalAudio&&window.daily.setLocalAudio(false));}catch(e){}"); } catch {}
-    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-  };
+  // Voice chat is now handled by AgoraVoiceChat component
 
   // Listen to socket events
   useEffect(() => {
@@ -337,7 +290,43 @@ export default function SpyChatInterface({
           )}
         </View>
 
-        {/* Word card removed as requested */}
+        {/* Word Card */}
+        {myWord && (
+          <View style={{ marginTop: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+              <MessageSquare color="#94a3b8" size={14} />
+              <Text style={{ color: 'white', fontWeight: '600', marginLeft: 6, fontSize: 12 }}>
+                Your Word
+              </Text>
+            </View>
+            <View style={{ 
+              backgroundColor: 'rgba(34,197,94,0.15)', 
+              borderWidth: 1, 
+              borderColor: 'rgba(34,197,94,0.3)', 
+              borderRadius: 8, 
+              padding: 8,
+              alignItems: 'center'
+            }}>
+              <Text style={{ 
+                color: '#86efac', 
+                fontSize: 14, 
+                fontWeight: '800',
+                textAlign: 'center',
+                letterSpacing: 0.5
+              }}>
+                {myWord.toUpperCase()}
+              </Text>
+              <Text style={{ 
+                color: '#94a3b8', 
+                fontSize: 10, 
+                marginTop: 2,
+                textAlign: 'center'
+              }}>
+                Describe this word without saying it directly
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Chat + Input */}
@@ -355,8 +344,16 @@ export default function SpyChatInterface({
           <View style={{ padding: 12, backgroundColor: 'rgba(109,40,217,0.15)', borderBottomWidth: 1, borderBottomColor: 'rgba(109,40,217,0.35)' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: '#22c55e', marginRight: 8 }} />
-                <Text style={{ color: 'white', fontWeight: '700' }}>{isMyTurn ? 'Your Turn' : `Player ${currentTurn + 1}'s Turn`}</Text>
+                <View style={{ 
+                  width: 8, 
+                  height: 8, 
+                  borderRadius: 999, 
+                  backgroundColor: isMyTurn ? '#22c55e' : '#f59e0b', 
+                  marginRight: 8
+                }} />
+                <Text style={{ color: 'white', fontWeight: '700' }}>
+                  {isMyTurn ? 'Your Turn - Speak Now!' : `Player ${currentTurn + 1}'s Turn - Listen`}
+                </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={{ color: 'white', fontWeight: '800', marginRight: 8 }}>{timeLeft}s</Text>
@@ -372,9 +369,25 @@ export default function SpyChatInterface({
             </View>
             {/* Voice controls */}
             <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'center' }}>
-              <TouchableOpacity onPress={() => { setShowVoice(true); if (isMyTurn) { setMicOn(true); try { webViewRef.current?.injectJavaScript("try{(window.callFrame&&window.callFrame.setLocalAudio(true))||(window.daily&&window.daily.setLocalAudio&&window.daily.setLocalAudio(true));}catch(e){}"); } catch {} } }} style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, marginRight: 8 }}>
+              <TouchableOpacity onPress={() => { 
+                console.log('🎤 Connect Voice button pressed');
+                setShowVoice(true); 
+                if (isMyTurn) { 
+                  setMicOn(true); 
+                  console.log('🎤 Mic enabled for current turn');
+                  try { 
+                    webViewRef.current?.injectJavaScript("try{(window.callFrame&&window.callFrame.setLocalAudio(true))||(window.daily&&window.daily.setLocalAudio&&window.daily.setLocalAudio(true));console.log('Voice connected and mic enabled');}catch(e){console.log('Voice connection error:',e);}"); 
+                  } catch (error) {
+                    console.error('🎤 Error connecting voice:', error);
+                  } 
+                } else {
+                  console.log('🎤 Not your turn, voice connection only');
+                }
+              }} style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, marginRight: 8 }}>
                 <Volume2 color="#fff" size={16} />
-                <Text style={{ color: 'white', marginLeft: 6 }}>Connect Voice</Text>
+                <Text style={{ color: 'white', marginLeft: 6 }}>
+                  {isMyTurn ? 'Connect & Speak' : 'Connect Voice'}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 disabled={!isMyTurn}
@@ -385,6 +398,62 @@ export default function SpyChatInterface({
               >
                 {micOn ? <Mic color="#fff" size={16} /> : <MicOff color="#fff" size={16} />}
                 <Text style={{ color: 'white', marginLeft: 6 }}>{micOn ? 'Mic On' : 'Mic Off'}</Text>
+              </TouchableOpacity>
+              
+              {/* Debug: Test Mic Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  console.log('🎤 Testing mic manually...');
+                  console.log('🎤 WebView ref available:', !!webViewRef.current);
+                  try {
+                    const js = `
+                      try {
+                        console.log('Manual mic test...');
+                        console.log('Window object:', typeof window);
+                        console.log('CallFrame available:', typeof window.callFrame);
+                        console.log('Daily available:', typeof window.daily);
+                        
+                        if (window.callFrame) {
+                          window.callFrame.setLocalAudio(true);
+                          console.log('Manual mic enabled via callFrame');
+                        } else if (window.daily) {
+                          window.daily.setLocalAudio(true);
+                          console.log('Manual mic enabled via daily');
+                        } else {
+                          console.log('No Daily.co API found for manual test');
+                        }
+                      } catch(e) {
+                        console.log('Manual mic test error:', e);
+                      }
+                    `;
+                    console.log('🎤 Injecting manual test JavaScript...');
+                    webViewRef.current?.injectJavaScript(js);
+                    console.log('🎤 Manual test JavaScript injected');
+                  } catch (error) {
+                    console.error('🎤 Manual mic test error:', error);
+                  }
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, marginLeft: 8, backgroundColor: 'rgba(59,130,246,0.2)' }}
+              >
+                <Text style={{ color: 'white', fontSize: 12 }}>Test Mic</Text>
+              </TouchableOpacity>
+              
+              {/* Debug: Simple Test Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  console.log('🎤 Simple WebView test...');
+                  try {
+                    const js = `console.log('Hello from WebView!');`;
+                    console.log('🎤 Injecting simple test...');
+                    webViewRef.current?.injectJavaScript(js);
+                    console.log('🎤 Simple test injected');
+                  } catch (error) {
+                    console.error('🎤 Simple test error:', error);
+                  }
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, marginLeft: 8, backgroundColor: 'rgba(34,197,94,0.2)' }}
+              >
+                <Text style={{ color: 'white', fontSize: 12 }}>Test WebView</Text>
               </TouchableOpacity>
             </View>
             {/* Inline input under Connect Voice */}
@@ -519,7 +588,91 @@ export default function SpyChatInterface({
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           mediaCapturePermissionGrantType="grant"
+          allowsProtectedMedia
+          allowsAirPlayForMediaPlayback
           ref={webViewRef}
+          onLoadStart={() => {
+            console.log('🎤 Voice WebView loading...');
+            console.log('🎤 Daily URL:', dailyUrl);
+          }}
+          onLoadEnd={() => {
+            console.log('🎤 Voice WebView loaded successfully');
+            console.log('🎤 Current turn:', currentTurn, 'Is my turn:', isMyTurn);
+            
+            // Request mic permission after WebView loads
+            setTimeout(() => {
+              console.log('🎤 Attempting to request mic permission...');
+              try {
+                const js = `
+                  try {
+                    console.log('Requesting mic permission...');
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                      .then(stream => {
+                        console.log('Mic permission granted');
+                        stream.getTracks().forEach(track => track.stop());
+                      })
+                      .catch(err => {
+                        console.log('Mic permission denied:', err);
+                      });
+                  } catch(e) {
+                    console.log('Mic permission error:', e);
+                  }
+                `;
+                console.log('🎤 Injecting mic permission JavaScript...');
+                webViewRef.current?.injectJavaScript(js);
+                console.log('🎤 Mic permission JavaScript injected');
+              } catch (error) {
+                console.error('🎤 Error requesting mic permission:', error);
+              }
+            }, 3000);
+            
+            // Try to access Daily.co API directly
+            setTimeout(() => {
+              console.log('🎤 Attempting to access Daily.co API...');
+              try {
+                const js = `
+                  try {
+                    console.log('Checking Daily.co API...');
+                    console.log('Window object:', typeof window);
+                    console.log('CallFrame available:', typeof window.callFrame);
+                    console.log('Daily available:', typeof window.daily);
+                    
+                    if (window.callFrame) {
+                      console.log('CallFrame found, enabling audio...');
+                      window.callFrame.setLocalAudio(true);
+                      console.log('Audio enabled via CallFrame');
+                    } else if (window.daily) {
+                      console.log('Daily found, enabling audio...');
+                      window.daily.setLocalAudio(true);
+                      console.log('Audio enabled via Daily');
+                    } else {
+                      console.log('No Daily.co API found');
+                    }
+                  } catch(e) {
+                    console.log('Daily.co API error:', e);
+                  }
+                `;
+                console.log('🎤 Injecting Daily.co API JavaScript...');
+                webViewRef.current?.injectJavaScript(js);
+                console.log('🎤 Daily.co API JavaScript injected');
+              } catch (error) {
+                console.error('🎤 Error accessing Daily.co API:', error);
+              }
+            }, 5000);
+          }}
+          onError={(error) => {
+            console.error('🎤 Voice WebView error:', error);
+            console.error('🎤 Error details:', error.nativeEvent);
+          }}
+          onMessage={(event) => {
+            console.log('🎤 Voice WebView message:', event.nativeEvent.data);
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              console.log('🎤 Parsed WebView message:', data);
+            } catch (e) {
+              console.log('🎤 Raw WebView message:', event.nativeEvent.data);
+            }
+          }}
         />
       )}
       {/* Category Vote Modal */}

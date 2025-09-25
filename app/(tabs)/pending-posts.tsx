@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -60,12 +60,15 @@ export default function PendingPostsScreen() {
   }, []);
 
   const renderPendingPost = ({ item }: { item: any }) => (
-    <View style={styles.pendingPostCard}>
+    <LinearGradient
+      colors={['#FFFFFF', '#F8FAFC', '#F1F5F9']}
+      style={styles.pendingPostCard}
+    >
       {/* Pending Post Header */}
       <View style={styles.pendingPostHeader}>
         <View style={styles.pendingPostAuthorSection}>
           <LinearGradient
-            colors={['#F59E0B', '#D97706']}
+            colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
             style={styles.pendingPostAuthorAvatarRing}
           >
             <Image
@@ -76,14 +79,14 @@ export default function PendingPostsScreen() {
           <View style={styles.pendingPostAuthorInfo}>
             <Text style={styles.pendingPostAuthorName}>Your Post</Text>
             <View style={styles.pendingPostMetaRow}>
-              <Ionicons name="time-outline" size={14} color="#F59E0B" />
+              <Ionicons name="time-outline" size={14} color="#4F46E5" />
               <Text style={styles.pendingPostTime}>{timeAgo(item.createdAt)}</Text>
             </View>
           </View>
         </View>
         <View style={styles.pendingPostStatus}>
           <LinearGradient
-            colors={['#F59E0B', '#D97706']}
+            colors={['#F59E0B', '#D97706', '#B45309']}
             style={styles.pendingStatusGradient}
           >
             <Ionicons name="time-outline" size={14} color="#FFFFFF" />
@@ -108,21 +111,33 @@ export default function PendingPostsScreen() {
       {item.hashtags && item.hashtags.length > 0 && (
         <View style={styles.pendingHashtagsContainer}>
           {item.hashtags.map((tag: string) => (
-            <View key={tag} style={styles.pendingHashtagChip}>
+            <LinearGradient
+              key={tag}
+              colors={['#4F46E5', '#7C3AED']}
+              style={styles.pendingHashtagChip}
+            >
               <Text style={styles.pendingHashtagText}>#{tag}</Text>
-            </View>
+            </LinearGradient>
           ))}
         </View>
       )}
 
       {/* Pending Post Info */}
-      <View style={styles.pendingPostInfo}>
+      <LinearGradient
+        colors={['#FEF3C7', '#FDE68A', '#FCD34D']}
+        style={styles.pendingPostInfo}
+      >
         <View style={styles.pendingPostInfoItem}>
-          <Ionicons name="information-circle-outline" size={16} color="#F59E0B" />
+          <LinearGradient
+            colors={['#F59E0B', '#D97706']}
+            style={styles.pendingPostInfoIcon}
+          >
+            <Ionicons name="information-circle-outline" size={16} color="#FFFFFF" />
+          </LinearGradient>
           <Text style={styles.pendingPostInfoText}>This post is awaiting review by moderators</Text>
         </View>
-      </View>
-    </View>
+      </LinearGradient>
+    </LinearGradient>
   );
 
   if (loading) {
@@ -143,7 +158,7 @@ export default function PendingPostsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={['#F59E0B', '#D97706']}
+        colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
         style={styles.header}
       >
         <TouchableOpacity
@@ -151,7 +166,12 @@ export default function PendingPostsScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+            style={styles.backButtonGradient}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Pending for Review</Text>
@@ -181,7 +201,7 @@ export default function PendingPostsScreen() {
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIcon}>
             <LinearGradient
-              colors={['#F59E0B', '#D97706']}
+              colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
               style={styles.emptyIconGradient}
             >
               <Ionicons name="checkmark-circle" size={64} color="#FFFFFF" />
@@ -228,10 +248,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 16,
+    overflow: 'hidden',
+  },
+  backButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
   },
   headerContent: {
     flex: 1,
@@ -285,19 +310,18 @@ const styles = StyleSheet.create({
   },
   // Pending Post Card Styles
   pendingPostCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.2)',
+    borderColor: 'rgba(79, 70, 229, 0.2)',
     borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: '#4F46E5',
   },
   pendingPostHeader: {
     flexDirection: 'row',
@@ -339,7 +363,7 @@ const styles = StyleSheet.create({
   },
   pendingPostTime: {
     fontSize: 13,
-    color: '#F59E0B',
+    color: '#4F46E5',
     marginLeft: 6,
     fontWeight: '500',
   },
@@ -386,34 +410,50 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pendingHashtagChip: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     marginRight: 8,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   pendingHashtagText: {
-    color: '#F59E0B',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
   pendingPostInfo: {
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(245, 158, 11, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   pendingPostInfoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+  },
+  pendingPostInfoIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pendingPostInfoText: {
     fontSize: 14,
-    color: '#F59E0B',
-    fontWeight: '500',
-    fontStyle: 'italic',
+    color: '#B45309',
+    fontWeight: '600',
+    flex: 1,
   },
 });

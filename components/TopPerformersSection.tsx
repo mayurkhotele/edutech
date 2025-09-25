@@ -1,25 +1,44 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Animated,
     Dimensions,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { apiFetchAuth } from '../constants/api';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
-interface Performer {
-    id: string;
+interface Winner {
+    userId: string;
     name: string;
-    score: number;
     rank: number;
-    avatar: string;
-    level: string;
-    examsTaken: number;
+    score: number;
+    prizeAmount: number;
+}
+
+interface ExamLeaderboard {
+    examId: string;
+    examTitle: string;
+    examDate: string;
+    totalParticipants: number;
+    prizePool: number;
+    winners: Winner[];
+}
+
+interface WeeklyLeaderboardData {
+    currentWeek: string;
+    weekStart: string;
+    weekEnd: string;
+    totalExams: number;
+    leaderboard: ExamLeaderboard[];
 }
 
 interface TopPerformersSectionProps {
@@ -27,6 +46,10 @@ interface TopPerformersSectionProps {
 }
 
 const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) => {
+    const { user } = useAuth();
+    const [leaderboardData, setLeaderboardData] = useState<WeeklyLeaderboardData | null>(null);
+    const [loading, setLoading] = useState(true);
+    
     const cardAnimation = useRef(new Animated.Value(0)).current;
     const trophyAnimation = useRef(new Animated.Value(0)).current;
     const crownAnimation = useRef(new Animated.Value(0)).current;
@@ -36,56 +59,28 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
     const headerSparkleAnim = useRef(new Animated.Value(0)).current;
     const headerFloatAnim = useRef(new Animated.Value(0)).current;
 
-
-
-    // Dummy data for top performers
-    const topPerformers: Performer[] = [
-        {
-            id: '1',
-            name: 'Rahul Sharma',
-            score: 2850,
-            rank: 1,
-            avatar: '👨‍💼',
-            level: 'Expert',
-            examsTaken: 45
-        },
-        {
-            id: '2',
-            name: 'Priya Singh',
-            score: 2720,
-            rank: 2,
-            avatar: '👩‍💼',
-            level: 'Advanced',
-            examsTaken: 38
-        },
-        {
-            id: '3',
-            name: 'Amit Kumar',
-            score: 2580,
-            rank: 3,
-            avatar: '👨‍🎓',
-            level: 'Advanced',
-            examsTaken: 42
-        },
-        {
-            id: '4',
-            name: 'Sneha Patel',
-            score: 2450,
-            rank: 4,
-            avatar: '👩‍🎓',
-            level: 'Intermediate',
-            examsTaken: 35
-        },
-        {
-            id: '5',
-            name: 'Arjun Reddy',
-            score: 2380,
-            rank: 5,
-            avatar: '👨‍💻',
-            level: 'Intermediate',
-            examsTaken: 33
+    // Fetch weekly leaderboard data
+    const fetchLeaderboardData = async () => {
+        try {
+            if (!user?.token) return;
+            
+            const response = await apiFetchAuth('/student/weekly-leaderboard', user.token);
+            
+            if (response.ok) {
+                setLeaderboardData(response.data);
+            } else {
+                console.error('Failed to fetch leaderboard data:', response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching leaderboard data:', error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    useEffect(() => {
+        fetchLeaderboardData();
+    }, [user?.token]);
 
     useEffect(() => {
         // Header animations - same as Offer Soon
@@ -120,15 +115,11 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
         );
 
         // Card entrance animation
-        const cardEntrance = Animated.stagger(200, 
-            topPerformers.map((_, index) =>
-                Animated.timing(cardAnimation, {
-                    toValue: 1,
-                    duration: 800,
-                    useNativeDriver: true,
-                })
-            )
-        );
+        const cardEntrance = Animated.timing(cardAnimation, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+        });
 
         // Simple trophy pulse animation
         const trophyPulse = Animated.loop(
@@ -190,11 +181,11 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
     const getRankIcon = (rank: number) => {
         switch (rank) {
             case 1:
-                return '🏆';
+                return '🎓';
             case 2:
-                return '🥈';
+                return '📚';
             case 3:
-                return '🥉';
+                return '📜';
             default:
                 return '⭐';
         }
@@ -203,24 +194,32 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
     const getRankColors = (rank: number): [string, string] => {
         switch (rank) {
             case 1:
-                return ['#FFD700', '#FFA500']; // Gold
+                return ['#10B981', '#059669']; // Green for excellence
             case 2:
-                return ['#C0C0C0', '#A8A8A8']; // Silver
+                return ['#06B6D4', '#0891B2']; // Blue for achievement
             case 3:
-                return ['#CD7F32', '#B8860B']; // Bronze
+                return ['#8B5CF6', '#7C3AED']; // Purple for progress
             default:
                 return ['#E8E8E8', '#D0D0D0']; // Default
         }
     };
 
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+        });
+    };
+
     const getLevelColor = (level: string) => {
         switch (level) {
-            case 'Expert':
+            case 'Scholar':
                 return '#10B981';
-            case 'Advanced':
-                return '#3B82F6';
-            case 'Intermediate':
-                return '#F59E0B';
+            case 'Achiever':
+                return '#06B6D4';
+            case 'Learner':
+                return '#8B5CF6';
             default:
                 return '#6B7280';
         }
@@ -276,7 +275,7 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
 
                                     {/* Header with Offer Soon Style Gradient & Animation */}
                     <LinearGradient
-                        colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                        colors={['#10B981', '#06B6D4', '#4F46E5']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.headerGradient}
@@ -316,8 +315,8 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                     <View style={styles.headerLeft}>
                         <View style={styles.headerIconContainer}>
                             <LinearGradient
-                                colors={['#FFD700', '#FF6B6B']}
-                                style={styles.iconGradient}
+                            colors={['#10B981', '#06B6D4']}
+                            style={styles.iconGradient}
                             >
                                 <Animated.View
                                     style={[
@@ -326,7 +325,7 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                                         }
                                     ]}
                                 >
-                                    <Ionicons name="trophy" size={22} color="#FFFFFF" />
+                                    <Ionicons name="school" size={22} color="#FFFFFF" />
                                 </Animated.View>
                             </LinearGradient>
                         </View>
@@ -338,13 +337,13 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                                     }
                                 ]}
                             >
-                                <Text style={styles.headerTitle}>Top Performers</Text>
-                                <Text style={styles.headerSubtitle}>This week's champions</Text>
+                                <Text style={styles.headerTitle}>Academic Excellence</Text>
+                                <Text style={styles.headerSubtitle}>Top learning achievers</Text>
                             </Animated.View>
                     </View>
                     <TouchableOpacity style={styles.viewAllButton} onPress={onPress}>
                         <LinearGradient
-                            colors={['#FFD700', '#FF6B6B']}
+                            colors={['#10B981', '#06B6D4']}
                             style={styles.viewAllGradient}
                         >
                             <Text style={styles.viewAllText}>View All</Text>
@@ -353,17 +352,24 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                     </TouchableOpacity>
                 </LinearGradient>
 
-                {/* Top 3 Podium */}
-                <View style={styles.podiumContainer}>
-                    {topPerformers.slice(0, 3).map((performer, index) => {
-                        const isWinner = performer.rank === 1;
-                        const podiumHeight = isWinner ? 80 : performer.rank === 2 ? 60 : 40;
-                        
-                        return (
+                {/* Exam-wise Toppers with Horizontal Scroll */}
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#4F46E5" />
+                        <Text style={styles.loadingText}>Loading exam toppers...</Text>
+                    </View>
+                ) : leaderboardData?.leaderboard && leaderboardData.leaderboard.length > 0 ? (
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.examScrollContainer}
+                        style={styles.examScrollView}
+                    >
+                        {leaderboardData.leaderboard.map((exam, examIndex) => (
                             <Animated.View
-                                key={performer.id}
+                                key={exam.examId}
                                 style={[
-                                    styles.podiumItem,
+                                    styles.examCard,
                                     {
                                         transform: [
                                             { scale: cardAnimation },
@@ -373,101 +379,66 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                                     }
                                 ]}
                             >
-                                <View style={styles.performerCard}>
-                                    <View style={styles.avatarContainer}>
-                                        <Text style={styles.avatar}>{performer.avatar}</Text>
-                                        <View style={styles.rankBadge}>
-                                            <Text style={styles.rankIcon}>{getRankIcon(performer.rank)}</Text>
-                                        </View>
-                                        {isWinner && (
-                                            <>
-                                                <Animated.View
-                                                    style={[
-                                                        styles.winnerCrown,
-                                                        {
-                                                            transform: [
-                                                                { translateY: crownTranslateY },
-                                                                { scale: trophyScale }
-                                                            ],
-                                                        }
-                                                    ]}
-                                                >
-                                                    <Text style={styles.crownEmoji}>👑</Text>
-                                                </Animated.View>
-
-                                            </>
-                                        )}
-                                    </View>
-                                    <Text style={styles.performerName} numberOfLines={1}>
-                                        {performer.name.split(' ')[0]}
-                                    </Text>
-                                    <View style={styles.scoreContainer}>
-                                        <Text style={styles.scoreText}>{performer.score.toLocaleString()}</Text>
-                                        <Text style={styles.scoreLabel}>pts</Text>
-                                    </View>
-                                </View>
                                 <LinearGradient
-                                    colors={getRankColors(performer.rank)}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={[styles.podium, { height: podiumHeight }]}
+                                    colors={['#FFFFFF', '#F8FAFC']}
+                                    style={styles.examCardGradient}
                                 >
-                                    <View style={styles.podiumContent}>
-                                        <Text style={styles.podiumRank}>{performer.rank}</Text>
-                                        {isWinner && (
-                                            <Animated.View
-                                                style={[
-                                                    styles.winnerGlow,
-                                                    {
-                                                        opacity: 0.6,
-                                                        transform: [{ scale: 1.1 }]
-                                                    }
-                                                ]}
-                                            />
-                                        )}
+                                    {/* Exam Header */}
+                                    <View style={styles.examHeader}>
+                                        <View style={styles.examIconContainer}>
+                                            <Ionicons name="book" size={20} color="#4F46E5" />
+                                        </View>
+                                        <View style={styles.examInfoContainer}>
+                                            <Text style={styles.examTitle} numberOfLines={2}>
+                                                {exam.examTitle}
+                                            </Text>
+                                            <Text style={styles.examDate}>
+                                                {formatDate(exam.examDate)}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    {/* Top 5 Winners */}
+                                    <View style={styles.winnersContainer}>
+                                        {exam.winners.slice(0, 5).map((winner, winnerIndex) => (
+                                            <View key={winner.userId} style={styles.winnerItem}>
+                                                <View style={styles.winnerRankContainer}>
+                                                    <Text style={styles.winnerRank}>{winner.rank}</Text>
+                                                </View>
+                                                <View style={styles.winnerInfo}>
+                                                    <Text style={styles.winnerName} numberOfLines={1}>
+                                                        {winner.name.split(' ')[0]}
+                                                    </Text>
+                                                    <Text style={styles.winnerScore}>
+                                                        {winner.score} pts
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        ))}
+                                    </View>
+
+                                    {/* Exam Stats */}
+                                    <View style={styles.examStats}>
+                                        <View style={styles.statItem}>
+                                            <Text style={styles.statValue}>{exam.totalParticipants}</Text>
+                                            <Text style={styles.statLabel}>Participants</Text>
+                                        </View>
+                                        <View style={styles.statItem}>
+                                            <Text style={styles.statValue}>₹{exam.prizePool}</Text>
+                                            <Text style={styles.statLabel}>Prize Pool</Text>
+                                        </View>
                                     </View>
                                 </LinearGradient>
                             </Animated.View>
-                        );
-                    })}
-                </View>
-
-                {/* Other Performers List */}
-                <View style={styles.otherPerformers}>
-                    {topPerformers.slice(3).map((performer, index) => (
-                        <Animated.View
-                            key={performer.id}
-                            style={[
-                                styles.performerRow,
-                                {
-                                    transform: [{ translateY: cardAnimation.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [50, 0],
-                                    })}],
-                                    opacity: cardAnimation,
-                                }
-                            ]}
-                        >
-                            <View style={styles.performerLeft}>
-                                <View style={styles.rankNumber}>
-                                    <Text style={styles.rankText}>{performer.rank}</Text>
-                                </View>
-                                <Text style={styles.performerAvatar}>{performer.avatar}</Text>
-                                <View style={styles.performerInfo}>
-                                    <Text style={styles.performerRowName}>{performer.name}</Text>
-                                    <View style={styles.levelContainer}>
-                                        <View style={[styles.levelDot, { backgroundColor: getLevelColor(performer.level) }]} />
-                                        <Text style={styles.levelText}>{performer.level}</Text>
-                                    </View>
-                                </View>
-                            </View>
-                            <View style={styles.performerRight}>
-                                <Text style={styles.performerScore}>{performer.score.toLocaleString()}</Text>
-                                <Text style={styles.examCount}>{performer.examsTaken} exams</Text>
-                            </View>
-                        </Animated.View>
-                    ))}
-                </View>
+                        ))}
+                    </ScrollView>
+                ) : (
+                    <View style={styles.noDataContainer}>
+                        <Ionicons name="trophy-outline" size={48} color="#9CA3AF" />
+                        <Text style={styles.noDataText}>No exam toppers this week</Text>
+                        <Text style={styles.noDataSubtext}>Check back after exams are completed</Text>
+                    </View>
+                )}
             </LinearGradient>
         </View>
     );
@@ -638,8 +609,8 @@ const styles = StyleSheet.create({
         marginBottom: 15,
         width: 100,
         borderWidth: 3,
-        borderColor: 'rgba(255, 215, 0, 0.4)',
-        shadowColor: '#FFD700',
+        borderColor: 'rgba(16, 185, 129, 0.4)',
+        shadowColor: '#10B981',
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.25,
         shadowRadius: 12,
@@ -712,8 +683,8 @@ const styles = StyleSheet.create({
     scoreText: {
         fontSize: 17,
         fontWeight: '900',
-        color: '#FF6B35',
-        textShadowColor: 'rgba(255, 107, 53, 0.4)',
+        color: '#059669',
+        textShadowColor: 'rgba(5, 150, 105, 0.4)',
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 4,
         letterSpacing: 0.5,
@@ -723,7 +694,7 @@ const styles = StyleSheet.create({
         color: '#4A5568',
         fontWeight: '700',
         letterSpacing: 0.4,
-        textShadowColor: 'rgba(255, 107, 53, 0.1)',
+        textShadowColor: 'rgba(5, 150, 105, 0.1)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 1,
     },
@@ -845,7 +816,7 @@ const styles = StyleSheet.create({
         color: '#4A5568',
         fontWeight: '700',
         letterSpacing: 0.3,
-        textShadowColor: 'rgba(255, 107, 53, 0.1)',
+        textShadowColor: 'rgba(5, 150, 105, 0.1)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 1,
     },
@@ -855,8 +826,8 @@ const styles = StyleSheet.create({
     performerScore: {
         fontSize: 17,
         fontWeight: '900',
-        color: '#FF6B35',
-        textShadowColor: 'rgba(255, 107, 53, 0.4)',
+        color: '#059669',
+        textShadowColor: 'rgba(5, 150, 105, 0.4)',
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 3,
         letterSpacing: 0.5,
@@ -867,9 +838,152 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginTop: 3,
         letterSpacing: 0.2,
-        textShadowColor: 'rgba(255, 107, 53, 0.1)',
+        textShadowColor: 'rgba(5, 150, 105, 0.1)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 1,
+    },
+    // New styles for exam-wise toppers
+    loadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+    },
+    loadingText: {
+        fontSize: 16,
+        color: '#6B7280',
+        marginTop: 12,
+        fontWeight: '600',
+    },
+    examScrollView: {
+        marginTop: 10,
+    },
+    examScrollContainer: {
+        paddingHorizontal: 15,
+        gap: 15,
+    },
+    examCard: {
+        width: 280,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    examCardGradient: {
+        padding: 16,
+        borderRadius: 16,
+    },
+    examHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    examIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    examInfoContainer: {
+        flex: 1,
+    },
+    examTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1F2937',
+        marginBottom: 4,
+        lineHeight: 20,
+    },
+    examDate: {
+        fontSize: 12,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    winnersContainer: {
+        marginBottom: 16,
+    },
+    winnerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        backgroundColor: 'rgba(79, 70, 229, 0.05)',
+        borderRadius: 8,
+        marginBottom: 4,
+    },
+    winnerRankContainer: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#4F46E5',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    winnerRank: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#FFFFFF',
+    },
+    winnerInfo: {
+        flex: 1,
+    },
+    winnerName: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#1F2937',
+        marginBottom: 1,
+    },
+    winnerScore: {
+        fontSize: 11,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    examStats: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(79, 70, 229, 0.1)',
+    },
+    statItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    statValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#4F46E5',
+        marginBottom: 2,
+    },
+    statLabel: {
+        fontSize: 11,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    noDataContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+        paddingHorizontal: 20,
+    },
+    noDataText: {
+        fontSize: 16,
+        color: '#6B7280',
+        fontWeight: '600',
+        marginTop: 12,
+        textAlign: 'center',
+    },
+    noDataSubtext: {
+        fontSize: 14,
+        color: '#9CA3AF',
+        marginTop: 4,
+        textAlign: 'center',
     },
 });
 

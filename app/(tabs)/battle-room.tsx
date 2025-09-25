@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -275,13 +275,13 @@ export default function BattleRoomScreen() {
     console.log('🎯 Match ID for connection:', matchId);
     
     if (user?.token) {
-      console.log('🚀 Initializing socket connection...');
-      console.log('   - Server URL: http://192.168.1.3:3001');
+      console.log('🚀 Initializing battle room socket connection...');
+      console.log('   - Server URL: http://192.168.1.6:3001');
       console.log('   - Auth token length:', user.token.length);
       console.log('   - User ID:', user.id);
       console.log('   - Match ID:', matchId);
       
-      const newSocket = io('http://192.168.1.3:3001', {
+      const newSocket = io('http://192.168.1.6:3001', {
         auth: {
           token: user.token
         },
@@ -292,7 +292,7 @@ export default function BattleRoomScreen() {
       });
 
       newSocket.on('connect', () => {
-        console.log('✅ Socket connected:', newSocket.id);
+        console.log('✅ Battle Room Socket connected:', newSocket.id);
         console.log('🔗 Socket connection details:');
         console.log('   - Socket ID:', newSocket.id);
         console.log('   - Connected:', newSocket.connected);
@@ -301,7 +301,13 @@ export default function BattleRoomScreen() {
         console.log('   - User ID:', user?.id);
         console.log('   - Match ID:', matchId);
         setIsConnected(true);
-        newSocket.emit('register_user', user?.id);
+        setError(null);
+        
+        // Register user immediately after connection (like matchmaking.tsx)
+        if (user?.id) {
+          console.log('👤 Registering user for battle room:', user.id);
+          newSocket.emit('register_user', user.id);
+        }
         // Join the match room
         console.log('�� Joining match room:', matchId);
         newSocket.emit('join_match', { matchId, userId: user?.id });
@@ -309,18 +315,23 @@ export default function BattleRoomScreen() {
       });
 
       newSocket.on('disconnect', () => {
-        console.log('❌ Socket disconnected');
+        console.log('❌ Battle Room Socket disconnected');
         setIsConnected(false);
       });
 
       newSocket.on('error', (error) => {
-        console.error('🔥 Socket error:', error);
+        console.error('🔥 Battle Room Socket error:', error);
         setError('Socket error occurred.');
       });
       
       newSocket.on('connect_error', (error) => {
-        console.error('🔥 Socket connection error:', error);
-        setError('Connection failed. Please try again.');
+        console.error('🔥 Battle Room Socket connection error:', error);
+        setError('Connection failed. Please check your internet connection and try again.');
+        setIsConnected(false);
+      });
+
+      newSocket.on('pong', () => {
+        console.log('🏓 Received pong from server - battle room socket connection is working');
       });
 
       setSocket(newSocket);
@@ -330,7 +341,7 @@ export default function BattleRoomScreen() {
         newSocket.disconnect();
       };
     } else {
-      console.log('❌ No user token available for socket connection');
+      console.log('❌ No user token available for battle room socket connection');
       setError('Authentication required.');
     }
   }, [user?.token, matchId]);

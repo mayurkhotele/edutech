@@ -5,17 +5,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -471,7 +471,7 @@ const ExamCategoryPage = () => {
 
         {/* Enhanced Header Section */}
         <LinearGradient
-          colors={categoryColors}
+          colors={[...categoryColors, '#A855F7']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.enhancedHeader}
@@ -494,31 +494,54 @@ const ExamCategoryPage = () => {
         </LinearGradient>
 
         {/* Stats Section */}
-        <View style={styles.statsSection}>
+        <LinearGradient
+          colors={['#FFFFFF', '#F8FAFC']}
+          style={styles.statsSection}
+        >
           <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <View style={styles.statIconContainer}>
-                <Ionicons name="library" size={20} color="#8B5CF6" />
-              </View>
+            <LinearGradient
+              colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+              style={styles.statItemGradient}
+            >
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.statIconContainer}
+              >
+                <Ionicons name="library" size={20} color="#FFFFFF" />
+              </LinearGradient>
               <Text style={styles.statValue}>{exams.length}</Text>
               <Text style={styles.statLabel}>Total Exams</Text>
-            </View>
-            <View style={styles.statItem}>
-              <View style={styles.statIconContainer}>
-                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-              </View>
+            </LinearGradient>
+            
+            <LinearGradient
+              colors={['#10B981', '#059669', '#047857']}
+              style={styles.statItemGradient}
+            >
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.statIconContainer}
+              >
+                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+              </LinearGradient>
               <Text style={styles.statValue}>{attemptedExams}</Text>
               <Text style={styles.statLabel}>Completed</Text>
-            </View>
-            <View style={styles.statItem}>
-              <View style={styles.statIconContainer}>
-                <Ionicons name="time" size={20} color="#F59E0B" />
-              </View>
+            </LinearGradient>
+            
+            <LinearGradient
+              colors={['#F59E0B', '#D97706', '#B45309']}
+              style={styles.statItemGradient}
+            >
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.statIconContainer}
+              >
+                <Ionicons name="time" size={20} color="#FFFFFF" />
+              </LinearGradient>
               <Text style={styles.statValue}>{exams.length - attemptedExams}</Text>
               <Text style={styles.statLabel}>Pending</Text>
-            </View>
+            </LinearGradient>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Enhanced Exam List */}
         {exams.length > 0 ? (
@@ -544,22 +567,25 @@ const ExamCategoryPage = () => {
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={exam.attempted ? ['#F0FDF4', '#FFFFFF'] : ['#FFFFFF', '#F8FAFC']}
+                    colors={exam.attempted ? ['#F0FDF4', '#FFFFFF', '#F8FAFC'] : ['#FFFFFF', '#F8FAFC', '#F1F5F9']}
                     style={styles.examCardGradient}
                   >
                     {/* Card Header */}
                     <View style={styles.enhancedExamHeader}>
                       <View style={styles.examLeftSection}>
-                        <View style={[
-                          styles.enhancedExamIcon,
-                          exam.attempted && styles.completedExamIcon
-                        ]}>
+                        <LinearGradient
+                          colors={exam.attempted ? ['#10B981', '#059669'] : ['#4F46E5', '#7C3AED']}
+                          style={[
+                            styles.enhancedExamIcon,
+                            exam.attempted && styles.completedExamIcon
+                          ]}
+                        >
                           <Ionicons 
                             name={getCategoryIcon(exam.category)} 
                             size={24} 
-                            color={exam.attempted ? "#10B981" : "#8B5CF6"} 
+                            color="#FFFFFF" 
                           />
-                        </View>
+                        </LinearGradient>
                         <View style={styles.examInfoSection}>
                           <Text style={[
                             styles.enhancedExamTitle,
@@ -573,14 +599,17 @@ const ExamCategoryPage = () => {
                           ]}>
                             {exam.subcategory}
                           </Text>
-                          <View style={styles.categoryTag}>
-                          <Text style={[
-                              styles.categoryTagText,
-                              exam.attempted && styles.completedCategoryTagText
-                          ]}>
-                            {exam.category}
-                          </Text>
-                        </View>
+                          <LinearGradient
+                            colors={exam.attempted ? ['#10B981', '#059669'] : ['#4F46E5', '#7C3AED']}
+                            style={styles.categoryTag}
+                          >
+                            <Text style={[
+                                styles.categoryTagText,
+                                exam.attempted && styles.completedCategoryTagText
+                            ]}>
+                              {exam.category}
+                            </Text>
+                          </LinearGradient>
                       </View>
                         </View>
                       
@@ -1205,18 +1234,30 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 16,
+    borderRadius: 16,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
+    gap: 12,
+  },
+  statItemGradient: {
+    alignItems: 'center',
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 6,
   },
   statItem: {
     alignItems: 'center',
@@ -1234,12 +1275,15 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -1322,22 +1366,25 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 18,
-    shadowColor: '#8B5CF6',
+    shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
   },
   completedExamIcon: {
     backgroundColor: 'rgba(16, 185, 129, 0.18)',
     shadowColor: '#10B981',
     borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  completedExamTitle: {
+    color: '#10B981',
+  },
+  completedExamSubcategory: {
+    color: '#059669',
   },
   examInfoSection: {
     flex: 1,
@@ -1360,28 +1407,28 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   categoryTag: {
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
     alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.25)',
-    shadowColor: '#8B5CF6',
+    shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   categoryTagText: {
     fontSize: 13,
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   completedCategoryTagText: {
-    color: '#10B981',
+    color: '#FFFFFF',
   },
   enhancedStatusBadge: {
     flexDirection: 'row',
