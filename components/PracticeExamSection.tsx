@@ -271,7 +271,7 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.headerIconContainer}>
-            <Ionicons name="library-outline" size={24} color={AppColors.white} />
+            <Ionicons name="library-outline" size={24} color="#4F46E5" />
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>Practice Exams</Text>
@@ -280,18 +280,6 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
             </Text>
           </View>
         </View>
-        <TouchableOpacity 
-          style={[styles.refreshButton, refreshing && styles.refreshingButton]} 
-          onPress={handleRefresh}
-          disabled={refreshing}
-        >
-          <Ionicons 
-            name={refreshing ? "sync" : "refresh"} 
-            size={20} 
-            color={AppColors.white} 
-            style={refreshing && styles.rotatingIcon}
-          />
-        </TouchableOpacity>
       </View>
 
       {/* Progress Overview */}
@@ -369,7 +357,7 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
       <TouchableOpacity style={styles.viewAllButton} onPress={handleButtonPress}>
         <Animated.View style={[{ transform: [{ scale: buttonScale }] }]}>
           <LinearGradient
-            colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+            colors={['#FF6B6B', '#FF8E53']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.viewAllGradient}
@@ -446,7 +434,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerIconContainer: {
-    backgroundColor: AppColors.primary,
+    backgroundColor: '#E0E7FF',
     borderRadius: 12,
     padding: 8,
     marginRight: 12,
@@ -455,31 +443,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: AppColors.darkGrey,
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.05)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+    fontFamily: 'System',
+    lineHeight: 22,
   },
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: AppColors.grey,
-    marginTop: 4,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  refreshButton: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 20,
-    padding: 10,
-  },
-  refreshingButton: {
-    opacity: 0.7,
-  },
-  rotatingIcon: {
-    transform: [{ rotate: '360deg' }],
+    marginTop: 5,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+    fontFamily: 'System',
+    lineHeight: 20,
   },
   progressOverview: {
     marginBottom: 20,
@@ -619,6 +603,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   viewAllContent: {
     flexDirection: 'row',
@@ -628,12 +617,12 @@ const styles = StyleSheet.create({
   viewAllText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '800',
     marginRight: 6,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-    letterSpacing: 0.2,
+    textShadowRadius: 1,
+    letterSpacing: 0.4,
   },
   viewAllIconContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',

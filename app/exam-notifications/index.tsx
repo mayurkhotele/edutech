@@ -1,3 +1,4 @@
+import CustomTabBar from '@/components/CustomTabBar';
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,6 +51,40 @@ export default function ExamNotificationsList() {
     const [selectedFilter, setSelectedFilter] = useState('all'); // all, active, urgent (expired removed)
     const [selectedNotification, setSelectedNotification] = useState<any>(null);
     const [modalVisible, setModalVisible] = useState(false);
+
+    // Mock navigation state for CustomTabBar
+    const mockNavigationState = {
+        routes: [
+            { key: 'home', name: 'home' },
+            { key: 'exam', name: 'exam' },
+            { key: 'quiz', name: 'quiz' },
+            { key: 'social', name: 'social' },
+            { key: 'profile', name: 'profile' }
+        ],
+        index: 1 // Highlight exam tab
+    };
+
+    const mockDescriptors = {
+        home: { options: { title: 'Home' } },
+        exam: { options: { title: 'Exam' } },
+        quiz: { options: { title: 'Quiz' } },
+        social: { options: { title: 'Social' } },
+        profile: { options: { title: 'Profile' } }
+    };
+
+    const mockNavigation = {
+        emit: (event: any) => {
+            // Return an object with defaultPrevented property that CustomTabBar expects
+            return { defaultPrevented: false };
+        },
+        navigate: (routeName: string) => {
+            if (routeName === 'home') router.push('/(tabs)/home');
+            else if (routeName === 'exam') router.push('/(tabs)/exam');
+            else if (routeName === 'quiz') router.push('/(tabs)/quiz');
+            else if (routeName === 'social') router.push('/(tabs)/social');
+            else if (routeName === 'profile') router.push('/(tabs)/profile');
+        }
+    };
 
     const fetchNotifications = async () => {
         if (!user?.token) { setLoading(false); return; }
@@ -189,9 +224,12 @@ export default function ExamNotificationsList() {
                     </View>
 
                     {/* Action Button */}
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity 
+                        style={styles.actionButton}
+                        onPress={() => openNotificationModal(item)}
+                    >
                         <LinearGradient
-                            colors={["#4F46E5", "#7C3AED"] as [string, string]}
+                            colors={["#10B981", "#059669"] as [string, string]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.actionButtonGradient}
@@ -218,26 +256,7 @@ export default function ExamNotificationsList() {
                 }}
             />
             <View style={styles.container}>
-                {/* Enhanced Header */}
-                <LinearGradient
-                colors={["#4F46E5", "#7C3AED", "#8B5CF6"] as [string, string, string]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.headerGradient}
-            >
-                <View style={styles.headerContent}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <View style={styles.headerTextContainer}>
-                        <Text style={styles.headerText}>Exam Notifications</Text>
-                        <Text style={styles.headerSubtext}>{filteredNotifications.length} notifications found</Text>
-                    </View>
-                    <View style={{ width: 32 }} />
-                </View>
-            </LinearGradient>
-
-            {/* Search and Filter Section */}
+                {/* Search and Filter Section */}
             <View style={styles.searchSection}>
                 <View style={styles.searchContainer}>
                     <Ionicons name="search" size={20} color="#64748B" style={styles.searchIcon} />
@@ -430,6 +449,13 @@ export default function ExamNotificationsList() {
                     </View>
                 </View>
             </Modal>
+            
+            {/* Bottom Navigation */}
+            <CustomTabBar 
+                state={mockNavigationState}
+                descriptors={mockDescriptors}
+                navigation={mockNavigation}
+            />
         </>
     );
 }
@@ -438,39 +464,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F8FAFC',
-    },
-    headerGradient: {
-        paddingTop: 100,
-        paddingBottom: 20,
-        paddingHorizontal: 20,
-    },
-    headerContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    backButton: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 12,
-        padding: 12,
-        marginRight: 16,
-    },
-    headerTextContainer: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    headerText: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#fff',
-        letterSpacing: 0.5,
-        textAlign: 'center',
-    },
-    headerSubtext: {
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.8)',
-        marginTop: 4,
-        fontWeight: '500',
     },
     refreshButton: {
         backgroundColor: 'rgba(255,255,255,0.2)',
@@ -482,6 +475,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         paddingHorizontal: 20,
         paddingVertical: 16,
+        paddingTop: 100, // Much more padding to move search bar well down
         borderBottomWidth: 1,
         borderBottomColor: '#E2E8F0',
     },

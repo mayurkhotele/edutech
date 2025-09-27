@@ -321,7 +321,23 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
            </Animated.View>
 
            <View style={styles.headerContent}>
-             {/* Enhanced Close Button */}
+             {/* Enhanced Center Content - Moved to Left */}
+             <Animated.View 
+               style={[
+                 styles.headerCenter,
+                 {
+                   opacity: fadeAnim,
+                   transform: [{ translateY: slideAnim }]
+                 }
+               ]}
+             >
+               <View style={styles.titleContainer}>
+                 <Text style={styles.headerTitle}>📝 Create Post</Text>
+               </View>
+               
+             </Animated.View>
+             
+             {/* Enhanced Close Button - Moved to Right */}
              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
                  <LinearGradient
@@ -335,28 +351,6 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                    </View>
                  </LinearGradient>
                </TouchableOpacity>
-             </Animated.View>
-             
-             {/* Enhanced Center Content */}
-             <Animated.View 
-               style={[
-                 styles.headerCenter,
-                 {
-                   opacity: fadeAnim,
-                   transform: [{ translateY: slideAnim }]
-                 }
-               ]}
-             >
-               <View style={styles.titleContainer}>
-                 <Text style={styles.headerTitle}>✨ Create Amazing Post</Text>
-               </View>
-               
-               <View style={styles.subtitleContainer}>
-                 <Ionicons name="sparkles" size={16} color="rgba(255,255,255,0.9)" />
-                 <Text style={styles.headerSubtitle}>Share your thoughts with the community</Text>
-                 <Ionicons name="sparkles" size={16} color="rgba(255,255,255,0.9)" />
-               </View>
-               
              </Animated.View>
            </View>
          </LinearGradient>
@@ -451,7 +445,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
               >
                 <Ionicons name="create-outline" size={20} color="#fff" />
               </LinearGradient>
-              <Text style={styles.inputLabel}>💭 What's on your mind?</Text>
+              <Text style={styles.inputLabel}>What's on your mind?</Text>
             </View>
             
             {/* Enhanced Input Container with Better Visual Hierarchy */}
@@ -462,7 +456,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.contentInput}
-                  placeholder="✨ Share your thoughts, ideas, or experiences..."
+                  placeholder="Share your thoughts, ideas, or experiences..."
                   placeholderTextColor="#94a3b8"
                   value={content}
                   onChangeText={setContent}
@@ -486,7 +480,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                     styles.charCounterText,
                     { color: content.length > 800 ? '#EF4444' : content.length > 600 ? '#F59E0B' : '#4F46E5' }
                   ]}>
-                    📝 {content.length}/1000
+                    {content.length}/1000
                   </Text>
                 </View>
               </View>
@@ -510,7 +504,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                  style={styles.addPhotoButtonGradient}
                >
                  <Ionicons name="camera-outline" size={32} color="#667eea" />
-                 <Text style={styles.addPhotoText}>📸 Add a photo to your post</Text>
+                 <Text style={styles.addPhotoText}>Add a photo to your post</Text>
                  <Text style={styles.addPhotoSubtext}>Tap to select from gallery</Text>
                </LinearGradient>
              </TouchableOpacity>
@@ -566,7 +560,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
               >
                 <Ionicons name="pricetag" size={18} color="#fff" />
               </LinearGradient>
-              <Text style={styles.sectionTitle}>🏷️ Hashtags</Text>
+              <Text style={styles.sectionTitle}>Hashtags</Text>
             </View>
             <LinearGradient
               colors={['#ffffff', '#f8fafc', '#f1f5f9']}
@@ -574,7 +568,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
             >
               <TextInput
                 style={styles.hashtagsInput}
-                placeholder="🏷️ Enter hashtags separated by commas (e.g., study, math, exam)"
+                placeholder="Enter hashtags separated by commas (e.g., study, math, exam)"
                 placeholderTextColor="#94a3b8"
                 value={hashtags}
                 onChangeText={setHashtags}
@@ -591,7 +585,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                         colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                         style={styles.hashtagChip}
                       >
-                        <Text style={styles.hashtagText}>🏷️ #{cleanTag}</Text>
+                        <Text style={styles.hashtagText}>#{cleanTag}</Text>
                       </LinearGradient>
                     );
                   }
@@ -620,7 +614,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                 >
                   <Ionicons name="bar-chart-outline" size={18} color="#fff" />
                 </LinearGradient>
-                <Text style={styles.sectionTitle}>📊 Poll Options</Text>
+                <Text style={styles.sectionTitle}>Poll Options</Text>
               </View>
               
               <View style={styles.optionsContainer}>
@@ -692,7 +686,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                 >
                   <Ionicons name="help-circle-outline" size={18} color="#fff" />
                 </LinearGradient>
-                <Text style={styles.sectionTitle}>❓ Question Options</Text>
+                <Text style={styles.sectionTitle}>Question Options</Text>
               </View>
 
               <View style={styles.questionTypeSelector}>
@@ -769,24 +763,24 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
            >
              {loading ? (
                <LinearGradient
-                 colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
+                 colors={['#FF6B6B', '#FF8E53']}
                  style={styles.actionButtonGradient}
                  start={{ x: 0, y: 0 }}
                  end={{ x: 1, y: 1 }}
                >
                  <ActivityIndicator size="small" color="#fff" />
-                 <Text style={styles.actionButtonText}>✨ Creating your amazing post...</Text>
+                 <Text style={styles.actionButtonText}>Creating your post...</Text>
                </LinearGradient>
              ) : (
                <LinearGradient
-                 colors={content.trim() ? ['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7'] : ['#9CA3AF', '#6B7280']}
+                 colors={content.trim() ? ['#FF6B6B', '#FF8E53'] : ['#9CA3AF', '#6B7280']}
                  style={styles.actionButtonGradient}
                  start={{ x: 0, y: 0 }}
                  end={{ x: 1, y: 1 }}
                >
                  <Ionicons name="send" size={24} color="#fff" />
                  <Text style={styles.actionButtonText}>
-                   {content.trim() ? '🚀 Share with Community' : '✍️ Write something first...'}
+                   {content.trim() ? 'Share with Community' : 'Write something first...'}
                  </Text>
                </LinearGradient>
              )}
@@ -876,7 +870,7 @@ const styles = StyleSheet.create({
    },
    headerCenter: {
      flex: 1,
-     alignItems: 'center',
+     alignItems: 'flex-start',
      marginHorizontal: 10,
    },
    titleContainer: {
@@ -916,18 +910,23 @@ const styles = StyleSheet.create({
      fontWeight: '600',
    },
    headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '900',
     color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+    letterSpacing: 0.5,
+    lineHeight: 26,
+    fontFamily: 'System',
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
-    marginTop: 1,
+    marginTop: 2,
     fontWeight: '500',
+    letterSpacing: 0.3,
+    fontFamily: 'System',
   },
   postButton: {
     borderRadius: 25,
@@ -1047,10 +1046,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   inputLabel: {
-    fontSize: 17,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#1f2937',
     marginLeft: 10,
+    letterSpacing: 0.3,
+    fontFamily: 'System',
   },
   inputIconContainer: {
     width: 36,
@@ -1151,9 +1152,11 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   sectionTitle: {
-    fontSize: 19,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#1f2937',
+    letterSpacing: 0.3,
+    fontFamily: 'System',
   },
   hashtagsInputContainer: {
     borderRadius: 16,
@@ -1288,9 +1291,11 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 17,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     marginLeft: 10,
+    letterSpacing: 0.3,
+    fontFamily: 'System',
   },
   sendIcon: {
     marginRight: 6,

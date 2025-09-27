@@ -5,13 +5,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  Easing,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Animated,
+    Dimensions,
+    Easing,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 
@@ -530,17 +530,88 @@ export default function MatchmakingScreen() {
   console.log('🔄 Current matchmaking state:', matchmakingState);
 
   if (error) {
+    // Check if it's an insufficient balance error
+    const isInsufficientBalance = error.toLowerCase().includes('insufficient') || 
+                                  error.toLowerCase().includes('balance') ||
+                                  error.toLowerCase().includes('required') ||
+                                  error.toLowerCase().includes('available');
+    
+    // Check if it's a "No opponent found" error
+    const isNoOpponentError = error.toLowerCase().includes('no opponent found') || 
+                             error.toLowerCase().includes('within 2 minutes');
+    
     return (
       <LinearGradient
-        colors={['#0f172a', '#1e293b', '#334155']}
+        colors={isInsufficientBalance ? ['#4F46E5', '#7C3AED', '#8B5CF6'] : 
+                isNoOpponentError ? ['#4F46E5', '#7C3AED', '#8B5CF6'] : 
+                ['#0f172a', '#1e293b', '#334155']}
         style={styles.container}
       >
         <View style={styles.errorContainer}>
           <Animated.View style={[styles.errorIconContainer, { transform: [{ scale: pulseAnim }] }]}>
-            <Ionicons name="alert-circle" size={80} color="#ef4444" />
+            <Ionicons 
+              name={isInsufficientBalance ? "wallet-outline" : 
+                    isNoOpponentError ? "people-outline" : "alert-circle"} 
+              size={80} 
+              color={isInsufficientBalance ? "#ffffff" : 
+                     isNoOpponentError ? "#ffffff" : "#ef4444"} 
+            />
           </Animated.View>
-          <Text style={styles.errorTitle}>Matchmaking Error</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
+          
+          <Text style={styles.errorTitle}>
+            {isInsufficientBalance ? "Insufficient Balance" : 
+             isNoOpponentError ? "No Opponent Found" : "Matchmaking Error"}
+          </Text>
+          
+          <Text style={styles.errorMessage}>
+            {isInsufficientBalance 
+              ? "You don't have enough balance to join this battle. Please add money to your wallet to continue."
+              : isNoOpponentError 
+              ? "We couldn't find a suitable opponent within 2 minutes. Don't worry, this happens sometimes!"
+              : error
+            }
+          </Text>
+          
+          {isNoOpponentError && (
+            <View style={styles.suggestionsContainer}>
+              <Text style={styles.suggestionsTitle}>💡 Try These Tips:</Text>
+              <View style={styles.suggestionItem}>
+                <Ionicons name="time-outline" size={16} color="#10B981" />
+                <Text style={styles.suggestionText}>Try again during peak hours (7-9 PM)</Text>
+              </View>
+              <View style={styles.suggestionItem}>
+                <Ionicons name="refresh-outline" size={16} color="#10B981" />
+                <Text style={styles.suggestionText}>Refresh and search again</Text>
+              </View>
+              <View style={styles.suggestionItem}>
+                <Ionicons name="people-outline" size={16} color="#10B981" />
+                <Text style={styles.suggestionText}>Try a different category or amount</Text>
+              </View>
+            </View>
+          )}
+          
+          {isInsufficientBalance && (
+            <View style={styles.balanceInfoContainer}>
+              <View style={styles.balanceInfoCard}>
+                <View style={styles.balanceInfoRow}>
+                  <Ionicons name="wallet" size={20} color="#10B981" />
+                  <Text style={styles.balanceInfoLabel}>Required Amount:</Text>
+                  <Text style={styles.balanceInfoValue}>₹{amount}</Text>
+                </View>
+                <View style={styles.balanceInfoRow}>
+                  <Ionicons name="cash-outline" size={20} color="#F59E0B" />
+                  <Text style={styles.balanceInfoLabel}>Available:</Text>
+                  <Text style={styles.balanceInfoValue}>₹0.00</Text>
+                </View>
+                <View style={styles.balanceDivider} />
+                <View style={styles.balanceInfoRow}>
+                  <Ionicons name="calculator" size={20} color="#8B5CF6" />
+                  <Text style={styles.balanceInfoLabel}>Need to Add:</Text>
+                  <Text style={styles.balanceInfoValue}>₹{amount}</Text>
+                </View>
+              </View>
+            </View>
+          )}
           
           <View style={styles.errorButtons}>
             <TouchableOpacity
@@ -548,7 +619,7 @@ export default function MatchmakingScreen() {
               onPress={() => router.back()}
             >
               <LinearGradient
-                colors={['#3b82f6', '#1d4ed8']}
+                colors={['#ef4444', '#dc2626']}
                 style={styles.errorButtonGradient}
               >
                 <Ionicons name="arrow-back" size={16} color="#fff" />
@@ -556,30 +627,40 @@ export default function MatchmakingScreen() {
               </LinearGradient>
             </TouchableOpacity>
             
-                         <TouchableOpacity
-               style={styles.errorButtonOutline}
-               onPress={handleRetrySearch}
-             >
-               <Text style={styles.errorButtonOutlineText}>Try Again</Text>
-             </TouchableOpacity>
-             
-             <TouchableOpacity
-               style={[styles.errorButtonOutline, { marginTop: 10 }]}
-               onPress={() => {
-                 console.log('🔍 Debug info:');
-                 console.log('Socket connected:', socket?.connected);
-                 console.log('User token:', !!user?.token);
-                 console.log('User ID:', user?.id);
-                 console.log('Category:', category);
-                 console.log('Mode:', mode);
-                 console.log('Amount:', amount);
-                 if (socket) {
-                   socket.emit('ping');
-                 }
-               }}
-             >
-               <Text style={styles.errorButtonOutlineText}>Debug Connection</Text>
-             </TouchableOpacity>
+            {isInsufficientBalance ? (
+              <TouchableOpacity
+                style={styles.errorButtonPrimary}
+                onPress={() => router.push('/(tabs)/wallet')}
+              >
+                <LinearGradient
+                  colors={['#10b981', '#059669']}
+                  style={styles.errorButtonGradient}
+                >
+                  <Ionicons name="add-circle" size={16} color="#fff" />
+                  <Text style={styles.errorButtonText}>Add Money</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : isNoOpponentError ? (
+              <TouchableOpacity
+                style={styles.errorButtonPrimary}
+                onPress={handleRetrySearch}
+              >
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  style={styles.errorButtonGradient}
+                >
+                  <Ionicons name="refresh" size={16} color="#fff" />
+                  <Text style={styles.errorButtonText}>Try Again</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.errorButtonOutline}
+                onPress={handleRetrySearch}
+              >
+                <Text style={styles.errorButtonOutlineText}>Try Again</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </LinearGradient>
@@ -1383,6 +1464,88 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  suggestionsContainer: {
+    marginTop: 20,
+    marginBottom: 30,
+    paddingHorizontal: 20,
+    width: '100%',
+  },
+  suggestionsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 15,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginLeft: 10,
+    flex: 1,
+    fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  balanceInfoContainer: {
+    marginVertical: 20,
+    width: '100%',
+  },
+  balanceInfoCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  balanceInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  balanceInfoLabel: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginLeft: 8,
+    flex: 1,
+    fontWeight: '600',
+  },
+  balanceInfoValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  balanceDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginVertical: 8,
+  },
+  errorButtonPrimary: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
               statusTitle: {
      fontSize: 18,

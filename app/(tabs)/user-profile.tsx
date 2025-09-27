@@ -41,6 +41,16 @@ export default function UserProfileScreen() {
   console.log('🔍 User Profile - Received params:', { userId, originalUserData });
   
   const [profile, setProfile] = useState<any>(originalUserData || null);
+  
+  // Add null check to prevent crashes
+  if (!profile) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    );
+  }
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -2348,10 +2358,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 20,
+  },
   loadingText: {
-    color: '#667eea',
+    color: '#4F46E5',
     fontSize: 16,
     marginTop: 10,
+    fontWeight: '600',
   },
   emptyMessages: {
     alignItems: 'center',

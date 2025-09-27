@@ -1,10 +1,10 @@
+import { ShadowUtils } from '@/utils/shadowUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
-const TAB_BAR_HEIGHT = 65;
+const TAB_BAR_HEIGHT = 75;
 const ICON_SIZE = 22;
 
 const CustomTabBar = ({ state, descriptors, navigation }: any) => {
@@ -99,12 +99,12 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
                                 <Ionicons 
                                     name={iconName} 
                                     size={ICON_SIZE} 
-                                    color={isFocused ? "#4F46E5" : "#666666"}
+                                    color={isFocused ? "#6366F1" : "#64748B"}
                                 />
                             </View>
                             <Text style={[
                                 styles.label, 
-                                { color: isFocused ? "#4F46E5" : "#666666" }
+                                { color: isFocused ? "#6366F1" : "#64748B" }
                             ]}>
                                 {label}
                             </Text>
@@ -131,15 +131,11 @@ const styles = StyleSheet.create({
         width: width,
         height: TAB_BAR_HEIGHT,
         backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 10,
-        borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        ...ShadowUtils.topShadow(),
+        borderTopWidth: 2,
+        borderTopColor: '#F1F5F9',
     },
     backgroundPattern: {
         position: 'absolute',
@@ -194,89 +190,82 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 4,
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
-        borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.1)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        marginBottom: 6,
+        backgroundColor: 'rgba(248, 250, 252, 0.8)',
+        borderWidth: 1.5,
+        borderColor: 'rgba(226, 232, 240, 0.6)',
+        ...ShadowUtils.cardShadow(),
     },
     activeIconContainer: {
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-        borderColor: 'rgba(79, 70, 229, 0.3)',
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 3,
+        backgroundColor: 'rgba(99, 102, 241, 0.12)',
+        borderColor: 'rgba(99, 102, 241, 0.4)',
+        ...ShadowUtils.coloredShadow('#6366F1', 0.25),
+        transform: [{ scale: 1.05 }],
     },
     label: {
-        fontSize: 11,
-        fontWeight: '700',
+        fontSize: 12,
+        fontWeight: '800',
         textAlign: 'center',
         textShadowColor: 'rgba(0, 0, 0, 0.1)',
         textShadowOffset: { width: 0, height: 0.5 },
         textShadowRadius: 1,
-        letterSpacing: 0.3,
-        marginTop: 2,
+        letterSpacing: 0.4,
+        marginTop: 3,
+        fontFamily: 'System',
+        lineHeight: 14,
     },
     centerTab: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 30,
-        shadowColor: '#FF6B35',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
+        marginBottom: 32,
+        ...ShadowUtils.coloredShadow('#FF6B35', 0.35),
     },
     centerTabGradient: {
         width: '100%',
         height: '100%',
-        borderRadius: 30,
+        borderRadius: 32,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 3,
+        borderWidth: 3.5,
         borderColor: '#FFFFFF',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-        elevation: 4,
+        shadowColor: '#1E293B',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 6,
     },
     centerLabel: {
-        fontSize: 10,
+        fontSize: 11,
         color: '#FFFFFF',
-        marginTop: 3,
-        fontWeight: '800',
-        textShadowColor: 'rgba(0, 0, 0, 0.4)',
+        marginTop: 4,
+        fontWeight: '900',
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
         textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-        letterSpacing: 0.4,
+        textShadowRadius: 3,
+        letterSpacing: 0.5,
+        fontFamily: 'System',
+        lineHeight: 12,
     },
     activeIndicator: {
         position: 'absolute',
-        bottom: -3,
-        width: 4,
-        height: 4,
-        borderRadius: 2,
-        backgroundColor: '#4F46E5',
-        shadowColor: '#4F46E5',
+        bottom: -4,
+        width: 5,
+        height: 5,
+        borderRadius: 2.5,
+        backgroundColor: '#6366F1',
+        shadowColor: '#6366F1',
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 2,
-        elevation: 3,
+        shadowOpacity: 0.9,
+        shadowRadius: 3,
+        elevation: 4,
     },
 });
 

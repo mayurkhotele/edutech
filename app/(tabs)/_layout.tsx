@@ -1,7 +1,7 @@
 import CustomTabBar from '@/components/CustomTabBar';
 import { Tabs } from 'expo-router';
 
-export default function TabLayout() {
+function TabLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -110,4 +110,6 @@ export default function TabLayout() {
       />
     </Tabs>
   );
-} 
+}
+
+export default TabLayout; 

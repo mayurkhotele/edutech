@@ -5,16 +5,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -57,11 +57,9 @@ const ExamCategoryPage = () => {
   const router = useRouter();
   const { user } = useAuth();
   const [exams, setExams] = useState<PracticeExam[]>([]);
-  const [filteredExams, setFilteredExams] = useState<PracticeExam[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
-  const [subcategories, setSubcategories] = useState<string[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'completed' | 'pending'>('all');
 
   // Animation values
   const fadeAnim = new Animated.Value(0);
@@ -109,58 +107,21 @@ const ExamCategoryPage = () => {
       if (!user?.token) return;
       
       setLoading(true);
-      const apiUrl = `/student/practice-exams?category=${encodeURIComponent(category || '')}`;
-      console.log('🔗 API URL:', apiUrl);
-      console.log('🔗 Category being sent:', category);
-      const response = await apiFetchAuth(apiUrl, user.token);
+      const response = await apiFetchAuth(`/student/practice-exams?category=${encodeURIComponent(category || '')}`, user.token);
       
       if (response.ok) {
         console.log('📚 Exams fetched successfully:', response.data);
-        console.log('📊 Category:', category);
-        console.log('📊 Total exams received:', response.data?.length);
-        const examData = response.data || [];
-        setExams(examData);
-        
-        // Extract unique subcategories
-        const uniqueSubcategories = [...new Set(examData.map((exam: PracticeExam) => exam.subcategory))] as string[];
-        setSubcategories(uniqueSubcategories);
-        
-        // Set exams first
-        setExams(examData);
-        
-        // Apply initial filtering
-        applyFilters(examData, 'all');
-        
+        setExams(response.data || []);
       } else {
         console.error('❌ Failed to fetch exams:', response.data);
         setExams([]);
-        setFilteredExams([]);
-        setSubcategories([]);
       }
     } catch (error) {
       console.error('❌ Error fetching exams:', error);
       setExams([]);
-      setFilteredExams([]);
-      setSubcategories([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const applyFilters = (examList: PracticeExam[], subcategoryFilter: string) => {
-    let filtered = examList;
-
-    // Apply subcategory filter
-    if (subcategoryFilter !== 'all') {
-      filtered = filtered.filter(exam => exam.subcategory === subcategoryFilter);
-    }
-
-    setFilteredExams(filtered);
-  };
-
-  const handleSubcategoryFilter = (subcategory: string) => {
-    setSelectedSubcategory(subcategory);
-    applyFilters(exams, subcategory);
   };
 
   const onRefresh = async () => {
@@ -256,89 +217,43 @@ const ExamCategoryPage = () => {
           </View>
         </LinearGradient>
 
-         {/* Modern Stats Cards */}
-         <View style={styles.modernStatsContainer}>
-           <View style={styles.modernStatsRow}>
-             <View style={styles.modernStatCard}>
-               <LinearGradient
-                 colors={['#4F46E5', '#7C3AED']}
-                 style={styles.modernStatGradient}
-               >
-                 <Ionicons name="library" size={24} color="#FFFFFF" />
-                 <Text style={styles.modernStatValue}>{exams.length}</Text>
-                 <Text style={styles.modernStatLabel}>Total Exams</Text>
-               </LinearGradient>
-             </View>
-             
-             <View style={styles.modernStatCard}>
-               <LinearGradient
-                 colors={['#10B981', '#059669']}
-                 style={styles.modernStatGradient}
-               >
-                 <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-                 <Text style={styles.modernStatValue}>{attemptedExams}</Text>
-                 <Text style={styles.modernStatLabel}>Completed</Text>
-               </LinearGradient>
-             </View>
-             
-             <View style={styles.modernStatCard}>
-               <LinearGradient
-                 colors={['#F59E0B', '#D97706']}
-                 style={styles.modernStatGradient}
-               >
-                 <Ionicons name="time" size={24} color="#FFFFFF" />
-                 <Text style={styles.modernStatValue}>{exams.length - attemptedExams}</Text>
-                 <Text style={styles.modernStatLabel}>Pending</Text>
-               </LinearGradient>
-             </View>
-           </View>
-         </View>
-
-         {/* Subcategory Filter */}
-         {subcategories.length > 1 && (
-           <View style={styles.subcategoryFilterContainer}>
-             <Text style={styles.subcategoryFilterTitle}>Filter by Subcategory</Text>
-             <ScrollView 
-               horizontal 
-               showsHorizontalScrollIndicator={false}
-               contentContainerStyle={styles.subcategoryFilterScroll}
-             >
-               <TouchableOpacity
-                 style={[
-                   styles.subcategoryFilterChip,
-                   selectedSubcategory === 'all' && styles.subcategoryFilterChipActive
-                 ]}
-                 onPress={() => handleSubcategoryFilter('all')}
-               >
-                 <Text style={[
-                   styles.subcategoryFilterChipText,
-                   selectedSubcategory === 'all' && styles.subcategoryFilterChipTextActive
-                 ]}>
-                   All
-                 </Text>
-               </TouchableOpacity>
-               
-               {subcategories.map((subcategory) => (
-                 <TouchableOpacity
-                   key={subcategory}
-                   style={[
-                     styles.subcategoryFilterChip,
-                     selectedSubcategory === subcategory && styles.subcategoryFilterChipActive
-                   ]}
-                   onPress={() => handleSubcategoryFilter(subcategory)}
-                 >
-                   <Text style={[
-                     styles.subcategoryFilterChipText,
-                     selectedSubcategory === subcategory && styles.subcategoryFilterChipTextActive
-                   ]}>
-                     {subcategory}
-                   </Text>
-                 </TouchableOpacity>
-               ))}
-             </ScrollView>
-           </View>
-         )}
-
+        {/* Modern Stats Cards */}
+        <View style={styles.modernStatsContainer}>
+          <View style={styles.modernStatsRow}>
+            <View style={styles.modernStatCard}>
+              <LinearGradient
+                colors={['#4F46E5', '#7C3AED']}
+                style={styles.modernStatGradient}
+              >
+                <Ionicons name="library" size={24} color="#FFFFFF" />
+                <Text style={styles.modernStatValue}>{exams.length}</Text>
+                <Text style={styles.modernStatLabel}>Total Exams</Text>
+              </LinearGradient>
+            </View>
+            
+            <View style={styles.modernStatCard}>
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                style={styles.modernStatGradient}
+              >
+                <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                <Text style={styles.modernStatValue}>{attemptedExams}</Text>
+                <Text style={styles.modernStatLabel}>Completed</Text>
+              </LinearGradient>
+            </View>
+            
+            <View style={styles.modernStatCard}>
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                style={styles.modernStatGradient}
+              >
+                <Ionicons name="time" size={24} color="#FFFFFF" />
+                <Text style={styles.modernStatValue}>{exams.length - attemptedExams}</Text>
+                <Text style={styles.modernStatLabel}>Pending</Text>
+              </LinearGradient>
+            </View>
+          </View>
+        </View>
 
         {/* Modern Exam List */}
         <ScrollView
@@ -354,20 +269,28 @@ const ExamCategoryPage = () => {
             />
           }
         >
-           {exams.length > 0 ? (
-             <View style={styles.modernExamList}>
-               <Text style={styles.modernListTitle}>
-                 {selectedSubcategory !== 'all' ? `${selectedSubcategory} Exams` : 'Available Exams'}
-               </Text>
-               
-               {exams.map((exam, index) => (
-                <View 
+          {exams.length > 0 ? (
+            <View style={styles.modernExamList}>
+              <Text style={styles.modernListTitle}>Available Exams</Text>
+              
+              {exams.map((exam, index) => (
+                <Animated.View 
                   key={exam.id} 
-                  style={styles.modernExamCard}
+                  style={[
+                    styles.modernExamCard,
+                    {
+                      opacity: fadeAnim,
+                      transform: [
+                        { translateY: slideAnim },
+                        { scale: scaleAnim }
+                      ]
+                    }
+                  ]}
                 >
                   <TouchableOpacity
                     style={styles.modernExamTouchable}
                     onPress={() => {
+                      console.log('🎯 Exam card pressed:', exam.title);
                       exam.attempted ? handleReviewExam(exam) : handleStartExam(exam);
                     }}
                     activeOpacity={0.9}
@@ -392,11 +315,6 @@ const ExamCategoryPage = () => {
                           <Text style={styles.modernExamSubtitle}>
                             {exam.subcategory}
                           </Text>
-                          {exam.description && (
-                            <Text style={styles.modernExamDescription} numberOfLines={1}>
-                              {exam.description}
-                            </Text>
-                          )}
                         </View>
                       </View>
                       
@@ -415,22 +333,19 @@ const ExamCategoryPage = () => {
                       </View>
                     </View>
 
-
-                    {/* Spots Progress Bar */}
-                    <View style={styles.spotsProgressContainer}>
-                      <View style={styles.spotsProgressHeader}>
-                        <Text style={styles.spotsProgressLabel}>Available Spots</Text>
-                        <Text style={styles.spotsProgressText}>{exam.spotsLeft}/{exam.spots}</Text>
+                    {/* Card Details */}
+                    <View style={styles.modernCardDetails}>
+                      <View style={styles.modernDetailItem}>
+                        <Ionicons name="calendar" size={16} color="#6B7280" />
+                        <Text style={styles.modernDetailText}>{formatDate(exam.startTime)}</Text>
                       </View>
-                      <View style={styles.spotsProgressBar}>
-                        <View 
-                          style={[
-                            styles.spotsProgressFill, 
-                            { 
-                              width: `${((exam.spots - exam.spotsLeft) / exam.spots) * 100}%` 
-                            }
-                          ]} 
-                        />
+                      <View style={styles.modernDetailItem}>
+                        <Ionicons name="people" size={16} color="#6B7280" />
+                        <Text style={styles.modernDetailText}>{exam.spotsLeft}/{exam.spots} spots</Text>
+                      </View>
+                      <View style={styles.modernDetailItem}>
+                        <Ionicons name="time" size={16} color="#6B7280" />
+                        <Text style={styles.modernDetailText}>Practice</Text>
                       </View>
                     </View>
 
@@ -456,8 +371,8 @@ const ExamCategoryPage = () => {
                       </View>
                     </LinearGradient>
                   </TouchableOpacity>
-                </View>
-               ))}
+                </Animated.View>
+              ))}
             </View>
           ) : (
             <View style={styles.modernNoExamsContainer}>
@@ -655,12 +570,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
-  modernExamDescription: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 2,
-    fontStyle: 'italic',
-  },
   modernStatusContainer: {
     alignItems: 'flex-end',
   },
@@ -681,53 +590,22 @@ const styles = StyleSheet.create({
   modernAvailableBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   modernAvailableText: {
     fontSize: 12,
-    color: '#059669',
+    color: '#4F46E5',
     fontWeight: '600',
     marginLeft: 4,
   },
   modernCardDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 20,
     paddingHorizontal: 4,
-  },
-  spotsProgressContainer: {
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  spotsProgressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  spotsProgressLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  spotsProgressText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  spotsProgressBar: {
-    height: 6,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  spotsProgressFill: {
-    height: '100%',
-    backgroundColor: '#4F46E5',
-    borderRadius: 3,
   },
   modernDetailItem: {
     flexDirection: 'row',
@@ -786,55 +664,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-   modernRefreshText: {
-     fontSize: 16,
-     fontWeight: '600',
-     color: '#FFFFFF',
-     marginLeft: 8,
-   },
-   // Filter styles
-   subcategoryFilterContainer: {
-     paddingHorizontal: 20,
-     paddingVertical: 16,
-     backgroundColor: '#FFFFFF',
-     marginHorizontal: 20,
-     borderRadius: 16,
-     shadowColor: '#000',
-     shadowOffset: { width: 0, height: 2 },
-     shadowOpacity: 0.1,
-     shadowRadius: 4,
-     elevation: 2,
-   },
-   subcategoryFilterTitle: {
-     fontSize: 16,
-     fontWeight: '700',
-     color: '#1F2937',
-     marginBottom: 12,
-   },
-   subcategoryFilterScroll: {
-     paddingRight: 20,
-   },
-   subcategoryFilterChip: {
-     paddingHorizontal: 16,
-     paddingVertical: 8,
-     borderRadius: 20,
-     backgroundColor: '#F3F4F6',
-     marginRight: 8,
-     borderWidth: 1,
-     borderColor: '#E5E7EB',
-   },
-   subcategoryFilterChipActive: {
-     backgroundColor: '#4F46E5',
-     borderColor: '#4F46E5',
-   },
-   subcategoryFilterChipText: {
-     fontSize: 14,
-     fontWeight: '600',
-     color: '#6B7280',
-   },
-   subcategoryFilterChipTextActive: {
-     color: '#FFFFFF',
-   },
- });
+  modernRefreshText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+});
 
 export default ExamCategoryPage;

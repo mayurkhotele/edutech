@@ -239,38 +239,28 @@ const ExamNotificationsSection = () => {
 
     return (
         <View style={styles.container}>
-            {/* App Theme Header */}
+            {/* Header Section */}
             <LinearGradient
                 colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.headerGradient}
+                style={styles.header}
             >
-                <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <View style={styles.headerIconContainer}>
+                <View style={styles.headerContent}>
+                    <View style={styles.headerLeft}>
                         <LinearGradient
                             colors={['#FFD700', '#FF6B6B']}
-                            style={styles.iconGradient}
+                            style={styles.headerIcon}
                         >
-                            <Ionicons name="notifications" size={22} color="#FFFFFF" />
+                            <Ionicons name="notifications" size={16} color="#FFFFFF" />
                         </LinearGradient>
+                        <View>
+                            <Text style={styles.headerTitle}>Exam Notifications</Text>
+                        </View>
                     </View>
-                    <View style={styles.headerTextContainer}>
-                        <Text style={styles.headerTitle}>Exam Notifications</Text>
-                    </View>
-                </View>
-                <View style={styles.monthBadge}>
-                    <LinearGradient
-                        colors={['#FFD700', '#FF6B6B']}
-                        style={styles.monthGradient}
-                    >
-                        <Text style={styles.monthText}>{monthYear}</Text>
-                    </LinearGradient>
-                </View>
                 </View>
             </LinearGradient>
-
+            
             {/* Dynamic Notifications (Max 5) */}
             <View style={styles.notificationsList}>
                 {displayNotifications.slice(0, Math.min(5, notifications.length)).map((item, index) => {
@@ -508,78 +498,67 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(79, 70, 229, 0.1)',
     },
-    headerGradient: {
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-    },
     header: {
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+    },
+    headerContent: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         alignItems: 'center',
     },
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 1,
     },
-    headerIconContainer: {
-        borderRadius: 14,
-        marginRight: 15,
-        overflow: 'hidden',
+    headerIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
         shadowColor: '#FFD700',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
-        elevation: 4,
-    },
-    iconGradient: {
-        padding: 10,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerTextContainer: {
-        flex: 1,
+        elevation: 3,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '700',
         color: '#FFFFFF',
+        letterSpacing: 0.3,
         textShadowColor: 'rgba(0, 0, 0, 0.3)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
-        letterSpacing: 0.3,
+        fontFamily: 'System',
     },
     headerSubtitle: {
-        fontSize: 14,
+        fontSize: 12,
         color: 'rgba(255, 255, 255, 0.9)',
-        marginTop: 3,
         fontWeight: '600',
+        marginTop: 2,
+        letterSpacing: 0.3,
+        fontFamily: 'System',
     },
     monthBadge: {
-        borderRadius: 12,
+        borderRadius: 20,
         overflow: 'hidden',
-        shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 4,
     },
     monthGradient: {
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
+        borderRadius: 20,
     },
     monthText: {
         fontSize: 12,
-        color: '#FFFFFF',
         fontWeight: '700',
+        color: '#FFFFFF',
         letterSpacing: 0.3,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 1,
+        fontFamily: 'System',
     },
     notificationsList: {
         marginBottom: 10,
@@ -750,13 +729,15 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     modalHeaderTitle: {
-        fontSize: 20,
-        fontWeight: '800',
+        fontSize: 22,
+        fontWeight: '900',
         color: '#FFFFFF',
-        letterSpacing: 0.6,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        letterSpacing: 0.7,
+        textShadowColor: 'rgba(0, 0, 0, 0.4)',
         textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
+        textShadowRadius: 5,
+        fontFamily: 'System',
+        lineHeight: 26,
     },
     modalCloseBtn: {
         backgroundColor: 'rgba(255, 255, 255, 0.2)',

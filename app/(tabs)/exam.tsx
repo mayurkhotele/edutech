@@ -5,7 +5,7 @@ import { applyExamFilters } from '@/utils/examFilter';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
@@ -50,18 +50,22 @@ export default function ExamScreen() {
                 setExams(response.data);
                 setFilteredExams(response.data);
                 
-                // Extract unique categories from exams
+                // Extract unique categories from actual exam data only
                 const uniqueCategories = [...new Set(
                     response.data
                         .map((exam: any) => exam.category)
                         .filter((category: any) => category && typeof category === 'string')
                 )] as string[];
                 
+                // Debug: Log available categories from exam data
+                console.log('Available exam categories from data:', uniqueCategories);
+                console.log('Total exams:', response.data.length);
+                
                 // Check if there are any uncategorized exams
                 const hasUncategorized = response.data.some((exam: any) => !exam.category || exam.category === null);
-                const allCategories = hasUncategorized ? [...uniqueCategories, 'uncategorized'] : uniqueCategories;
+                const finalCategories = hasUncategorized ? [...uniqueCategories, 'Uncategorized'] : uniqueCategories;
                 
-                setCategories(allCategories);
+                setCategories(finalCategories);
             } else {
                 setError(response.data?.message || 'Failed to fetch exams');
             }
@@ -188,14 +192,12 @@ export default function ExamScreen() {
     };
 
     const renderExamCard = ({ item }: { item: any }) => (
-        <View style={styles.examCardContainer}>
-            <ExamCard exam={item} navigation={router} />
-        </View>
+        <ExamCard exam={item} navigation={router} />
     );
 
     const renderCategoryButton = (category: string) => {
         const isSelected = selectedCategory === category;
-        const displayName = category === 'uncategorized' ? 'Uncategorized' : category;
+        const displayName = category === 'Uncategorized' ? 'Uncategorized' : category;
         return (
             <TouchableOpacity
                 key={category}
@@ -249,53 +251,6 @@ export default function ExamScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* Enhanced Header */}
-            <LinearGradient
-                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.header}
-            >
-                <View style={styles.headerContent}>
-                    <View style={styles.headerLeft}>
-                        <Animated.View 
-                            style={[
-                                styles.headerIconContainer,
-                                {
-                                    transform: [{ scale: pulseAnim }]
-                                }
-                            ]}
-                        >
-                            <LinearGradient
-                                colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)']}
-                                style={styles.headerIconGradient}
-                            >
-                                <Ionicons name="school-outline" size={28} color={AppColors.white} />
-                            </LinearGradient>
-                        </Animated.View>
-                        <Animated.View 
-                            style={[
-                                styles.headerTextContainer,
-                                {
-                                    transform: [{ 
-                                        translateY: floatAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0, -3],
-                                        }) 
-                                    }]
-                                }
-                            ]}
-                        >
-                            <Text style={styles.headerTitle}>Live Exams</Text>
-                            <Text style={styles.headerSubtitle}>
-                                {filteredExams.length} exam{filteredExams.length !== 1 ? 's' : ''} available
-                                {remainingTime && ` • Ends in ${remainingTime}`}
-                            </Text>
-                        </Animated.View>
-                    </View>
-                </View>
-            </LinearGradient>
-
             {/* Enhanced Search Bar */}
             <View style={styles.searchContainer}>
                 <LinearGradient
@@ -394,7 +349,7 @@ export default function ExamScreen() {
                     data={filteredExams}
                     renderItem={renderExamCard}
                     keyExtractor={(item) => item.id}
-                    contentContainerStyle={{ paddingBottom: 32 }}
+                    contentContainerStyle={styles.examListContainer}
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                     }
@@ -408,6 +363,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: AppColors.lightGrey,
+    },
+    examListContainer: {
+        paddingBottom: 32,
+        paddingHorizontal: 16,
     },
     loadingContainer: {
         flex: 1,
@@ -444,61 +403,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 16,
     },
-    header: {
-        paddingTop: 12,
-        paddingBottom: 20,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.2,
-        shadowRadius: 16,
-        elevation: 8,
-        position: 'relative',
-        overflow: 'hidden',
-    },
 
-    headerContent: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        zIndex: 3,
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        zIndex: 4,
-    },
-    headerIconContainer: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 15,
-    },
-    headerIconGradient: {
-        borderRadius: 25,
-        padding: 5,
-    },
-    headerTextContainer: {
-        flex: 1,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: AppColors.white,
-        marginBottom: 4,
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    headerRight: {
-        alignItems: 'center',
-    },
     statsBadge: {
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         borderRadius: 15,
@@ -607,9 +512,6 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         padding: 15,
-    },
-    examCardContainer: {
-        marginBottom: 15,
     },
     categoryContainer: {
         paddingVertical: 15,

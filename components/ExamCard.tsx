@@ -1,6 +1,7 @@
 import { apiFetchAuth } from '@/constants/api';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
+import { useFonts } from '@/hooks/useFonts';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -10,6 +11,7 @@ import { ActivityIndicator, Alert, Animated, Image, Modal, ScrollView, StyleShee
 const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
     const router = useRouter();
     const { user } = useAuth();
+    const fonts = useFonts();
     const [remainingTime, setRemainingTime] = useState('');
     const [showInstructionsModal, setShowInstructionsModal] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -277,17 +279,17 @@ const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
             <View style={styles.header}>
                 <View style={styles.headerContent}>
                     <View style={styles.titleContainer}>
-                        <Text style={styles.title} numberOfLines={2}>{exam.title}</Text>
+                        <Text style={fonts.subheaderLarge} numberOfLines={2}>{exam.title}</Text>
                         <View style={styles.categoryContainer}>
                             <View style={styles.categoryBadge}>
-                                <Text style={styles.categoryText}>{exam.category || 'General Knowledge'}</Text>
+                                <Text style={fonts.captionSmall}>{exam.category || 'General Knowledge'}</Text>
                             </View>
                         </View>
                     </View>
                     <View style={styles.trophyContainer}>
                         <Image source={require('../assets/images/trophy.jpg')} style={styles.trophyIcon} />
                         <View style={styles.liveIndicator}>
-                            <Text style={styles.liveText}>LIVE</Text>
+                            <Text style={fonts.captionSmall}>LIVE</Text>
                         </View>
                     </View>
                 </View>
@@ -297,24 +299,24 @@ const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
             <View style={styles.spotsContainer}>
                 <View style={styles.spotsHeader}>
                     <View style={styles.spotsLeftSection}>
-                        <Text style={styles.spotsTitle}>Available Spots</Text>
+                        <Text style={fonts.bodySmall}>Available Spots</Text>
                     </View>
                     <View style={styles.timerSection}>
                         <View style={styles.timerIconContainer}>
                             <Ionicons name="alarm-outline" size={16} color="#FF6B6B" />
                         </View>
                         <View style={styles.timerTextContainer}>
-                            <Text style={styles.timerLabel}>Ends in</Text>
-                            <Text style={styles.timerValue}>{remainingTime}</Text>
+                            <Text style={fonts.greySmall}>Ends in</Text>
+                            <Text style={fonts.subheaderMedium}>{remainingTime}</Text>
                         </View>
                     </View>
                 </View>
                 <View style={styles.spotsProgressContainer}>
                     <View style={styles.spotsTextContainer}>
-                        <Text style={styles.spotsLeft}>
-                            <Text style={styles.spotsNumber}>{exam.spotsLeft}</Text> spots left
+                        <Text style={fonts.bodyMedium}>
+                            <Text style={fonts.subheaderMedium}>{exam.spotsLeft}</Text> spots left
                         </Text>
-                        <Text style={styles.totalSpots}>out of {exam.spots}</Text>
+                        <Text style={fonts.greySmall}>out of {exam.spots}</Text>
                     </View>
                     <View style={styles.progressBarContainer}>
                         <View style={styles.progressBar}>
@@ -339,12 +341,12 @@ const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
                 {!hideAttemptButton && (
                     <TouchableOpacity style={styles.attemptButton} onPress={handleAttemptLiveExam}>
                         <LinearGradient
-                            colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
+                            colors={['#10B981', '#059669']}
                             style={styles.attemptButtonGradient}
                         >
-                            <Text style={styles.attemptButtonText}>Attempt Now</Text>
-                            <View style={styles.attemptButtonIcon}>
-                                <Ionicons name="arrow-forward" size={16} color="#fff" />
+                            <View style={styles.attemptButtonContent}>
+                                <Text style={styles.attemptButtonText}>Attempt Now</Text>
+                                <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
                             </View>
                         </LinearGradient>
                     </TouchableOpacity>
@@ -615,14 +617,15 @@ const styles = StyleSheet.create({
         backgroundColor: AppColors.white,
         borderRadius: 12,
         padding: 12,
-        marginVertical: 6,
-        marginHorizontal: 4,
+        marginVertical: 8,
+        marginHorizontal: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
         shadowRadius: 4,
         elevation: 2,
-        width: 360, // Maximum width for optimal screen coverage
+        width: '100%', // Full width within parent container
+        alignSelf: 'center', // Center the card
     },
     header: {
         flexDirection: 'row',
@@ -648,13 +651,6 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         marginRight: 8,
     },
-    title: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1E293B',
-        marginBottom: 6,
-        lineHeight: 20,
-    },
     categoryContainer: {
         flexDirection: 'row',
     },
@@ -664,11 +660,6 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         paddingHorizontal: 6,
         paddingVertical: 2,
-    },
-    categoryText: {
-        fontSize: 10,
-        color: '#E65100',
-        fontWeight: '600',
     },
     trophyContainer: {
         position: 'relative',
@@ -704,12 +695,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 6,
         paddingVertical: 3,
     },
-    liveText: {
-        color: AppColors.white,
-        fontSize: 8,
-        fontWeight: '700',
-        letterSpacing: 0.5,
-    },
     spotsContainer: {
         marginTop: 8,
     },
@@ -721,11 +706,6 @@ const styles = StyleSheet.create({
     },
     spotsLeftSection: {
         flex: 1,
-    },
-    spotsTitle: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: AppColors.darkGrey,
     },
     spotsSubtitle: {
         fontSize: 10,
@@ -748,15 +728,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    timerLabel: {
-        fontSize: 13, // Reduced from 14
-        color: AppColors.grey,
-    },
-    timerValue: {
-        fontSize: 15, // Reduced from 16
-        fontWeight: 'bold',
-        color: AppColors.primary,
-    },
     spotsProgressContainer: {
         marginTop: 8, // Reduced from 10
     },
@@ -765,20 +736,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 4, // Reduced from 5
-    },
-    spotsLeft: {
-        color: '#E67E22',
-        fontWeight: 'bold',
-        fontSize: 13, // Reduced from 14
-    },
-    spotsNumber: {
-        fontSize: 15, // Reduced from 16
-        fontWeight: 'bold',
-        color: '#E67E22',
-    },
-    totalSpots: {
-        color: AppColors.grey,
-        fontSize: 11, // Reduced from 12
     },
     progressBarContainer: {
         alignItems: 'center',
@@ -871,45 +828,33 @@ const styles = StyleSheet.create({
         marginTop: 3, // Reduced from 4
     },
     attemptButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8, // Increased for better touch target
-        paddingHorizontal: 16, // Increased for better proportions
-        borderRadius: 12, // Increased for modern look
+        borderRadius: 8,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        elevation: 4,
         overflow: 'hidden',
-        shadowColor: '#8B5CF6',
-        shadowOffset: { width: 0, height: 4 }, // Enhanced shadow
-        shadowOpacity: 0.4, // Increased shadow opacity
-        shadowRadius: 8, // Increased shadow radius
-        elevation: 6, // Increased elevation
-        borderWidth: 1, // Added border
-        borderColor: 'rgba(139, 92, 246, 0.3)', // Subtle border
     },
     attemptButtonGradient: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+    },
+    attemptButtonContent: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 8, // Increased for better proportions
-        paddingHorizontal: 16, // Increased for better spacing
-        gap: 8, // Increased gap between text and icon
-        minHeight: 40, // Added minimum height
+        gap: 6,
     },
     attemptButtonText: {
-        color: AppColors.white,
-        fontWeight: '800', // Made bolder
-        fontSize: 15, // Increased font size
-        letterSpacing: 0.5, // Increased letter spacing
-        textShadowColor: 'rgba(0, 0, 0, 0.3)', // Enhanced text shadow
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 3,
-    },
-    attemptButtonIcon: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: 2,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)', // Added subtle background
-        borderRadius: 8, // Rounded background
-        padding: 4, // Added padding around icon
+        color: '#FFFFFF', // White text on green background
+        fontWeight: '700',
+        fontSize: 14,
+        letterSpacing: 0.3,
+        textShadowColor: 'rgba(0, 0, 0, 0.2)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
     // Modal Styles
     modalOverlay: {

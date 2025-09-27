@@ -3,7 +3,7 @@ import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ExamCard from '../../../components/ExamCard';
 
@@ -241,8 +241,8 @@ const ExamDetailScreen = () => {
                                         <InfoRow label="Test Cost" value={`₹ ${exam.entryFee.toFixed(2)}`} isCost />
                                     </View>
                                     
-                                    {/* Start Exam Button for Participants */}
-                                    {isParticipant && (
+                                    {/* Start Exam Button for Participants - Only show if not completed */}
+                                    {isParticipant && status !== 'COMPLETED' && (
                                         <View style={styles.startExamContainer}>
                                             <TouchableOpacity 
                                                 style={styles.startExamButton}

@@ -2,9 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import CreatePost from '../../components/CreatePost';
 import SocialFeed from '../../components/SocialFeed';
+
+const { width } = Dimensions.get('window');
 
 export default function SocialScreen() {
   const navigation = useNavigation<any>();
@@ -33,14 +35,14 @@ export default function SocialScreen() {
     <View style={styles.container}>
       <SocialFeed refreshTrigger={refreshTrigger} navigation={navigation} />
       
-      {/* Floating Action Button */}
+      {/* Enhanced Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => setCreatePostVisible(true)}
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
+          colors={['#FF6B6B', '#FF8E53']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.fabGradient}
@@ -62,31 +64,36 @@ export default function SocialScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F8FB',
+    backgroundColor: '#F8FAFC',
     position: 'relative',
   },
   fab: {
     position: 'absolute',
-    bottom: 100, // Increased from 30 to avoid tab bar
+    bottom: 100,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    shadowColor: '#4F46E5',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    shadowColor: '#FF6B6B',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 6,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10, // Increased elevation for Android
-    zIndex: 1000, // Added zIndex for iOS
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
+    zIndex: 1000,
   },
   fabGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 }); 

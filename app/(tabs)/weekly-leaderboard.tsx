@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  RefreshControl,
-  TouchableOpacity,
-  Dimensions,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/context/AuthContext';
 import { apiFetchAuth } from '@/constants/api';
+import { useAuth } from '@/context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Dimensions,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -119,30 +118,6 @@ export default function WeeklyLeaderboardScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
-        style={styles.headerGradient}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.trophyIconContainer}>
-              <LinearGradient
-                colors={['#FFD700', '#FFA500']}
-                style={styles.trophyGradient}
-              >
-                <Ionicons name="trophy" size={32} color="#FFFFFF" />
-              </LinearGradient>
-            </View>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>🏆 Weekly Leaderboard</Text>
-              <Text style={styles.headerSubtitle}>
-                {leaderboardData?.currentWeek} • {leaderboardData?.totalExams} exams
-              </Text>
-            </View>
-          </View>
-        </View>
-      </LinearGradient>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -288,69 +263,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F1F5F9',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-  },
   loadingText: {
     fontSize: 18,
     color: '#8B5CF6',
     marginTop: 16,
     fontWeight: '600',
   },
-  headerGradient: {
-    paddingTop: 0,
-    paddingBottom: 28,
-    paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  loadingContainer: {
     flex: 1,
-  },
-  trophyIconContainer: {
-    marginRight: 16,
-  },
-  trophyGradient: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '500',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
   },
   scrollView: {
     flex: 1,
@@ -398,17 +321,6 @@ const styles = StyleSheet.create({
   weekTextContainer: {
     flex: 1,
   },
-  weekTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E40AF',
-    marginBottom: 4,
-  },
-  weekDates: {
-    fontSize: 14,
-    color: '#475569',
-    fontWeight: '500',
-  },
   weekStatsContainer: {
     alignItems: 'center',
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -418,17 +330,6 @@ const styles = StyleSheet.create({
   },
   weekStatItem: {
     alignItems: 'center',
-  },
-  weekStatValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E40AF',
-  },
-  weekStatLabel: {
-    fontSize: 12,
-    color: '#475569',
-    marginTop: 2,
-    fontWeight: '600',
   },
   examCard: {
     marginBottom: 16,
@@ -469,17 +370,6 @@ const styles = StyleSheet.create({
   examInfoContainer: {
     flex: 1,
   },
-  examTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 6,
-  },
-  examDate: {
-    fontSize: 15,
-    color: '#64748B',
-    fontWeight: '500',
-  },
   examStatsContainer: {
     flexDirection: 'row',
     gap: 20,
@@ -492,22 +382,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     flex: 1,
-  },
-  examStatValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  examStatLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  prizeAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#059669',
   },
   winnersSection: {
     borderTopWidth: 2,
@@ -524,11 +398,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-  },
-  winnersTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E293B',
   },
   winnersList: {
     gap: 12,
@@ -582,6 +451,83 @@ const styles = StyleSheet.create({
   winnerInfo: {
     flex: 1,
   },
+  winnerRight: {
+    alignItems: 'flex-end',
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  noWinnersSection: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(139, 92, 246, 0.1)',
+    marginTop: 8,
+    backgroundColor: 'rgba(139, 92, 246, 0.02)',
+    borderRadius: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 80,
+    backgroundColor: 'rgba(139, 92, 246, 0.02)',
+    borderRadius: 20,
+    marginTop: 20,
+  },
+  weekTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1E40AF',
+    marginBottom: 4,
+  },
+  weekDates: {
+    fontSize: 14,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  weekStatValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1E40AF',
+  },
+  weekStatLabel: {
+    fontSize: 12,
+    color: '#475569',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  examTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 6,
+  },
+  examDate: {
+    fontSize: 15,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  examStatValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
+  examStatLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  prizeAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#059669',
+  },
+  winnersTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
   winnerName: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -593,26 +539,10 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '500',
   },
-  winnerRight: {
-    alignItems: 'flex-end',
-    backgroundColor: 'rgba(5, 150, 105, 0.1)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
   winnerPrize: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#059669',
-  },
-  noWinnersSection: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    borderTopWidth: 2,
-    borderTopColor: 'rgba(139, 92, 246, 0.1)',
-    marginTop: 8,
-    backgroundColor: 'rgba(139, 92, 246, 0.02)',
-    borderRadius: 16,
   },
   noWinnersText: {
     fontSize: 18,
@@ -626,13 +556,6 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
     fontWeight: '500',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 80,
-    backgroundColor: 'rgba(139, 92, 246, 0.02)',
-    borderRadius: 20,
-    marginTop: 20,
   },
   emptyStateTitle: {
     fontSize: 24,

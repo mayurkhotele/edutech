@@ -2,13 +2,13 @@ import { AppColors } from '@/constants/Colors'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { AntDesign, FontAwesome, Ionicons } from '@expo/vector-icons'
+import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
-import * as Haptics from 'expo-haptics'
-import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native'
+import { useState } from 'react'
+import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
-const login = () => {
+const Login = () => {
     const auth = useAuth();
     const { showError, showSuccess } = useToast();
     console.log('Auth context received:', auth);
@@ -333,4 +333,4 @@ const styles = StyleSheet.create({
     },
 })
 
-export default login; 
+export default Login; 

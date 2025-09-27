@@ -420,8 +420,18 @@ const MyExamsScreen = () => {
     const handleViewDetails = (exam: MyExam) => {
         try {
             const targetId = exam.examId || exam.id;
-            router.push({ pathname: '/(tabs)/exam/[id]' as any, params: { id: String(targetId), from: 'my-exams', status: exam.status } });
-        } catch {
+            
+            // Navigate to different routes based on exam type
+            if (exam.examType === 'LIVE') {
+                router.push({ pathname: '/(tabs)/exam/[id]' as any, params: { id: String(targetId), from: 'my-exams', status: exam.status } });
+            } else if (exam.examType === 'PRACTICE') {
+                router.push({ pathname: '/(tabs)/practice-exam/[id]' as any, params: { id: String(targetId), from: 'my-exams', status: exam.status } });
+            } else {
+                // Fallback to live exam route for unknown types
+                router.push({ pathname: '/(tabs)/exam/[id]' as any, params: { id: String(targetId), from: 'my-exams', status: exam.status } });
+            }
+        } catch (error) {
+            console.error('Navigation error:', error);
             setSelectedExam(exam);
             setShowDetails(true);
         }

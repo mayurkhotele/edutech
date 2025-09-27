@@ -101,6 +101,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
   const [messageRequests, setMessageRequests] = useState<MessageRequest[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+
+  // Debug newMessage state
+  useEffect(() => {
+    console.log('💬 New message state changed:', newMessage);
+    console.log('🔍 Send button should be enabled:', !!newMessage.trim() && !sending);
+  }, [newMessage, sending]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -394,8 +400,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
 
     // Send message function
   const sendMessage = async () => {
+    console.log('🚀 Send message function called');
+    console.log('🔍 Validation check - userId:', userId, 'newMessage:', newMessage.trim(), 'currentUser:', !!currentUser);
+    
     // Validation check
-    if (!userId || !newMessage.trim() || !currentUser) return;
+    if (!userId || !newMessage.trim() || !currentUser) {
+      console.log('❌ Validation failed - not sending message');
+      return;
+    }
 
     setSending(true);
     const content = newMessage.trim();
@@ -425,25 +437,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
     setMessages(prev => [...prev, optimisticMessage]);
 
          try {
-       // Try WebSocket first if connected
-       if (isConnected) {
-         console.log('📤 Sending message via WebSocket...');
-         const webSocketSuccess = sendWebSocketMessage({
-           content: content,
-           receiverId: userId,
-           messageType: 'TEXT'
-         });
-
-         if (webSocketSuccess) {
-           console.log('✅ Message sent via WebSocket');
-           // WebSocket will handle the confirmation via event listeners
-           return;
-         } else {
-           console.log('❌ WebSocket send failed, falling back to REST API');
-         }
-       } else {
-         console.log('🔌 WebSocket not connected, using REST API');
-       }
+       // Force REST API for now (WebSocket can be enabled later)
+       console.log('🔌 Using REST API for message sending');
 
        // Fallback to REST API if WebSocket is not available
        console.log('📤 Sending message via REST API...');
@@ -453,7 +448,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
 
       const messagePayload = {
         receiverId: userId,
-        content: content
+        content: content,
+        messageType: 'TEXT'
       };
 
       console.log('📤 Sending message payload:', messagePayload);
@@ -514,6 +510,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
 
   // Handle typing indicator
   const handleTypingChange = (text: string) => {
+    console.log('⌨️ Typing change:', text);
     setNewMessage(text);
 
     // Send typing indicator via WebSocket
@@ -695,20 +692,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
          </TouchableOpacity>
       </View>
 
-             {/* WebSocket Status Indicator */}
-       <View style={[styles.websocketStatus, { backgroundColor: isConnected ? '#d4edda' : '#fff3cd' }]}>
-         <Ionicons 
-           name={isConnected ? "wifi" : "wifi-outline"} 
-           size={16} 
-           color={isConnected ? "#155724" : "#856404"} 
-         />
-         <Text style={[styles.websocketStatusText, { color: isConnected ? "#155724" : "#856404" }]}>
-           {isConnected 
-             ? 'Real-time messaging connected' 
-             : 'Real-time messaging unavailable • Using polling'
-           }
-         </Text>
-       </View>
 
        {/* Messages */}
        <View style={styles.messagesContainer}>
@@ -787,7 +770,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
           
           <TouchableOpacity
             style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
-            onPress={sendMessage}
+            onPress={() => {
+              console.log('🔘 Send button pressed');
+              console.log('🔍 Button state - newMessage:', newMessage.trim(), 'sending:', sending);
+              console.log('🔍 Button disabled state:', !newMessage.trim() || sending);
+              sendMessage();
+            }}
             disabled={!newMessage.trim() || sending}
           >
             {sending ? (
@@ -798,15 +786,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
           </TouchableOpacity>
         </View>
         
-                 {/* Message Request Indicator */}
-         {!isFollowing && (
-           <View style={styles.messageRequestIndicator}>
-             <Ionicons name="information-circle-outline" size={16} color="#f39c12" />
-             <Text style={styles.messageRequestText}>
-               This will be sent as a message request
-             </Text>
-           </View>
-         )}
 
          {/* Typing Indicator */}
          {isTyping && (

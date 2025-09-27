@@ -1,15 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Animated,
     Dimensions,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { apiFetchAuth } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
@@ -50,14 +49,7 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
     const [leaderboardData, setLeaderboardData] = useState<WeeklyLeaderboardData | null>(null);
     const [loading, setLoading] = useState(true);
     
-    const cardAnimation = useRef(new Animated.Value(0)).current;
-    const trophyAnimation = useRef(new Animated.Value(0)).current;
-    const crownAnimation = useRef(new Animated.Value(0)).current;
-    const floatingAnimation = useRef(new Animated.Value(0)).current;
-    
-    // Header animations - same as Offer Soon
-    const headerSparkleAnim = useRef(new Animated.Value(0)).current;
-    const headerFloatAnim = useRef(new Animated.Value(0)).current;
+    // All animations removed for better performance
 
     // Fetch weekly leaderboard data
     const fetchLeaderboardData = async () => {
@@ -83,99 +75,7 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
     }, [user?.token]);
 
     useEffect(() => {
-        // Header animations - same as Offer Soon
-        const headerSparkleAnimation = Animated.loop(
-            Animated.sequence([
-                Animated.timing(headerSparkleAnim, {
-                    toValue: 1,
-                    duration: 2000,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(headerSparkleAnim, {
-                    toValue: 0,
-                    duration: 2000,
-                    useNativeDriver: true,
-                }),
-            ])
-        );
-
-        const headerFloatAnimation = Animated.loop(
-            Animated.sequence([
-                Animated.timing(headerFloatAnim, {
-                    toValue: 1,
-                    duration: 3000,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(headerFloatAnim, {
-                    toValue: 0,
-                    duration: 3000,
-                    useNativeDriver: true,
-                }),
-            ])
-        );
-
-        // Card entrance animation
-        const cardEntrance = Animated.timing(cardAnimation, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-        });
-
-        // Simple trophy pulse animation
-        const trophyPulse = Animated.loop(
-            Animated.sequence([
-                Animated.timing(trophyAnimation, {
-                    toValue: 1,
-                    duration: 2000,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(trophyAnimation, {
-                    toValue: 0,
-                    duration: 2000,
-                    useNativeDriver: true,
-                }),
-            ])
-        );
-
-        // Gentle crown floating animation
-        const crownFloat = Animated.loop(
-            Animated.sequence([
-                Animated.timing(crownAnimation, {
-                    toValue: 1,
-                    duration: 3000,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(crownAnimation, {
-                    toValue: 0,
-                    duration: 3000,
-                    useNativeDriver: true,
-                }),
-            ])
-        );
-
-        // Subtle floating cards animation
-        const floatingCards = Animated.loop(
-            Animated.sequence([
-                Animated.timing(floatingAnimation, {
-                    toValue: 1,
-                    duration: 5000,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(floatingAnimation, {
-                    toValue: 0,
-                    duration: 5000,
-                    useNativeDriver: true,
-                }),
-            ])
-        );
-
-        // Start all animations
-        headerSparkleAnimation.start();
-        headerFloatAnimation.start();
-        cardEntrance.start();
-        trophyPulse.start();
-        crownFloat.start();
-        floatingCards.start();
+        // All animations removed for better performance
     }, []);
 
     const getRankIcon = (rank: number) => {
@@ -225,31 +125,7 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
         }
     };
 
-    const trophyScale = trophyAnimation.interpolate({
-        inputRange: [0, 1],
-        outputRange: [1, 1.1],
-    });
-
-    const crownTranslateY = crownAnimation.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, -5],
-    });
-
-    const floatingTranslateY = floatingAnimation.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, -3],
-    });
-
-    // Header animation interpolations - same as Offer Soon
-    const headerSparkleTranslateY = headerSparkleAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, -10],
-    });
-
-    const headerFloatTranslateY = headerFloatAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, -5],
-    });
+    // All animation interpolations removed for better performance
 
 
 
@@ -280,66 +156,36 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                         end={{ x: 1, y: 1 }}
                         style={styles.headerGradient}
                     >
-                        {/* Animated Background Pattern - same as Offer Soon */}
-                        <View style={styles.headerPatternContainer}>
-                            {[...Array(8)].map((_, index) => (
-                                <Animated.View
-                                    key={index}
-                                    style={[
-                                        styles.headerSparkle,
-                                        {
-                                            left: `${Math.random() * 100}%`,
-                                            top: `${Math.random() * 100}%`,
-                                            transform: [
-                                                {
-                                                    translateY: headerSparkleTranslateY,
-                                                },
-                                                {
-                                                    scale: headerSparkleAnim.interpolate({
-                                                        inputRange: [0, 0.5, 1],
-                                                        outputRange: [0.8, 1.2, 0.8],
-                                                    }),
-                                                },
-                                            ],
-                                            opacity: headerSparkleAnim.interpolate({
-                                                inputRange: [0, 0.5, 1],
-                                                outputRange: [0.3, 1, 0.3],
-                                            }),
-                                        },
-                                    ]}
-                                >
-                                    <Text style={styles.sparkleText}>✨</Text>
-                                </Animated.View>
-                            ))}
-                        </View>
+                        {/* Background pattern removed for better performance */}
                     <View style={styles.headerLeft}>
                         <View style={styles.headerIconContainer}>
                             <LinearGradient
                             colors={['#10B981', '#06B6D4']}
                             style={styles.iconGradient}
                             >
-                                <Animated.View
+                                {/* <Animated.View
                                     style={[
                                         {
                                             transform: [{ scale: trophyScale }]
                                         }
                                     ]}
-                                >
+                                > */}
                                     <Ionicons name="school" size={22} color="#FFFFFF" />
-                                </Animated.View>
+                                {/* </Animated.View> */}
                             </LinearGradient>
                         </View>
-                                                    <Animated.View 
+                                                    {/* <Animated.View 
                                 style={[
                                     styles.headerTextContainer,
                                     {
                                         transform: [{ translateY: headerFloatTranslateY }]
                                     }
                                 ]}
-                            >
-                                <Text style={styles.headerTitle}>Academic Excellence</Text>
-                                <Text style={styles.headerSubtitle}>Top learning achievers</Text>
-                            </Animated.View>
+                            > */}
+                                <View style={styles.headerTextContainer}>
+                                    <Text style={styles.headerTitle}>Toppers</Text>
+                                </View>
+                            {/* </Animated.View> */}
                     </View>
                     <TouchableOpacity style={styles.viewAllButton} onPress={onPress}>
                         <LinearGradient
@@ -366,18 +212,9 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                         style={styles.examScrollView}
                     >
                         {leaderboardData.leaderboard.map((exam, examIndex) => (
-                            <Animated.View
+                            <View
                                 key={exam.examId}
-                                style={[
-                                    styles.examCard,
-                                    {
-                                        transform: [
-                                            { scale: cardAnimation },
-                                            { translateY: floatingTranslateY }
-                                        ],
-                                        opacity: cardAnimation,
-                                    }
-                                ]}
+                                style={styles.examCard}
                             >
                                 <LinearGradient
                                     colors={['#FFFFFF', '#F8FAFC']}
@@ -429,7 +266,7 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                                         </View>
                                     </View>
                                 </LinearGradient>
-                            </Animated.View>
+                            </View>
                         ))}
                     </ScrollView>
                 ) : (
@@ -479,13 +316,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         zIndex: 1,
     },
-    sparkleText: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-        textShadowColor: 'rgba(255, 255, 255, 0.8)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 4,
-    },
+    // sparkleText style removed
 
 
 
@@ -503,18 +334,7 @@ const styles = StyleSheet.create({
         position: 'relative',
         overflow: 'hidden',
     },
-    headerPatternContainer: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 1,
-    },
-    headerSparkle: {
-        position: 'absolute',
-        zIndex: 2,
-    },
+    // Animation styles removed for better performance
 
     headerLeft: {
         flexDirection: 'row',
@@ -544,26 +364,30 @@ const styles = StyleSheet.create({
         zIndex: 3,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '800',
+        fontSize: 20,
+        fontWeight: '900',
         color: '#FFFFFF',
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowColor: 'rgba(0, 0, 0, 0.4)',
         textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
-        letterSpacing: 0.6,
+        textShadowRadius: 5,
+        letterSpacing: 0.7,
         includeFontPadding: false,
         textAlignVertical: 'center',
+        fontFamily: 'System',
+        lineHeight: 24,
     },
     headerSubtitle: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.9)',
-        fontWeight: '600',
-        marginTop: 2,
-        letterSpacing: 0.3,
-        textShadowColor: 'rgba(0, 0, 0, 0.15)',
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.95)',
+        fontWeight: '700',
+        marginTop: 3,
+        letterSpacing: 0.4,
+        textShadowColor: 'rgba(0, 0, 0, 0.2)',
         textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
+        textShadowRadius: 3,
         includeFontPadding: false,
+        fontFamily: 'System',
+        lineHeight: 16,
     },
     viewAllButton: {
         borderRadius: 11,

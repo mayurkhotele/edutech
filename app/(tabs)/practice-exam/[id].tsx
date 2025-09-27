@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -345,7 +345,9 @@ const PracticeExamDetailsScreen = () => {
                     >
                         {/* Enhanced Header with Purple Theme */}
                         <LinearGradient
-                            colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
+                            colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
                             style={styles.modalHeaderGradient}
                         >
                             <View style={styles.enhancedModalHeader}>
@@ -379,10 +381,6 @@ const PracticeExamDetailsScreen = () => {
                             >
                                 {/* Instructions Section */}
                                 <View style={styles.instructionsSection}>
-                                    <View style={styles.instructionsHeader}>
-                                        <Ionicons name="list-circle" size={24} color="#8B5CF6" />
-                                        <Text style={styles.instructionsTitle}>Important Instructions</Text>
-                                    </View>
                                     
                                     <View style={styles.instructionsCard}>
                                         <View style={styles.instructionItem}>
@@ -444,17 +442,6 @@ const PracticeExamDetailsScreen = () => {
                         {/* Enhanced Action Buttons */}
                         <View style={styles.enhancedModalActions}>
                             <TouchableOpacity 
-                                style={styles.enhancedCancelButton}
-                                onPress={() => setShowInstructionsModal(false)}
-                                activeOpacity={0.8}
-                            >
-                                <View style={styles.cancelButtonContent}>
-                                    <Ionicons name="close" size={20} color="#6B7280" />
-                                    <Text style={styles.enhancedCancelButtonText}>Cancel</Text>
-                                </View>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity 
                                 style={[
                                     styles.enhancedBeginButton,
                                     joiningExam && styles.enhancedBeginButtonDisabled
@@ -464,7 +451,9 @@ const PracticeExamDetailsScreen = () => {
                                 activeOpacity={0.8}
                             >
                                 <LinearGradient
-                                    colors={joiningExam ? ['#9CA3AF', '#6B7280'] : ['#8B5CF6', '#7C3AED']}
+                                    colors={joiningExam ? ['#9CA3AF', '#6B7280'] : ['#4F46E5', '#7C3AED', '#8B5CF6']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
                                     style={styles.beginButtonGradient}
                                 >
                                     {joiningExam ? (
@@ -475,10 +464,21 @@ const PracticeExamDetailsScreen = () => {
                                     ) : (
                                         <View style={styles.beginButtonContent}>
                                             <Ionicons name="play" size={20} color="#fff" />
-                                            <Text style={styles.enhancedBeginButtonText}>Begin Exam</Text>
+                                            <Text style={styles.enhancedBeginButtonText}>Start</Text>
                                         </View>
                                     )}
                                 </LinearGradient>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity 
+                                style={styles.enhancedCancelButton}
+                                onPress={() => setShowInstructionsModal(false)}
+                                activeOpacity={0.8}
+                            >
+                                <View style={styles.cancelButtonContent}>
+                                    <Ionicons name="close" size={20} color="#6B7280" />
+                                    <Text style={styles.enhancedCancelButtonText}>Cancel</Text>
+                                </View>
                             </TouchableOpacity>
                         </View>
                     </TouchableOpacity>
@@ -3017,23 +3017,30 @@ const styles = StyleSheet.create({
         paddingTop: 120,
     },
     enhancedModalContent: {
-        width: '90%',
-        maxHeight: '75%',
+        width: '92%',
+        maxHeight: '80%',
         backgroundColor: AppColors.white,
-        borderRadius: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 15 },
-        shadowOpacity: 0.3,
-        shadowRadius: 25,
-        elevation: 15,
+        borderRadius: 28,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.25,
+        shadowRadius: 30,
+        elevation: 20,
         flexDirection: 'column',
-        paddingBottom: 20,
+        paddingBottom: 0,
+        borderWidth: 1,
+        borderColor: 'rgba(79, 70, 229, 0.1)',
     },
     modalHeaderGradient: {
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
     },
     enhancedModalHeader: {
         flexDirection: 'row',
@@ -3047,15 +3054,30 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     enhancedModalTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 20,
+        fontWeight: '800',
         color: '#fff',
-        marginLeft: 10,
+        marginLeft: 12,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.9)',
+        marginLeft: 12,
+        marginTop: 2,
+        fontWeight: '500',
     },
     enhancedCloseButton: {
-        padding: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 20,
+        padding: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        borderRadius: 22,
+        shadowColor: 'rgba(0, 0, 0, 0.2)',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 4,
     },
     modalBodyContainer: {
         flex: 1,
@@ -3080,10 +3102,17 @@ const styles = StyleSheet.create({
     },
     instructionsCard: {
         backgroundColor: '#F8FAFC',
-        borderRadius: 12,
-        padding: 16,
-        borderLeftWidth: 4,
-        borderLeftColor: '#8B5CF6',
+        borderRadius: 16,
+        padding: 20,
+        borderLeftWidth: 5,
+        borderLeftColor: '#4F46E5',
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: 'rgba(79, 70, 229, 0.1)',
     },
     instructionItem: {
         flexDirection: 'row',
@@ -3091,14 +3120,19 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     instructionNumber: {
-        backgroundColor: '#8B5CF6',
-        borderRadius: 12,
-        width: 24,
-        height: 24,
+        backgroundColor: '#4F46E5',
+        borderRadius: 14,
+        width: 28,
+        height: 28,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 14,
         flexShrink: 0,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
     },
     instructionNumberText: {
         fontSize: 12,
@@ -3106,10 +3140,11 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     instructionText: {
-        fontSize: 14,
+        fontSize: 15,
         color: '#374151',
         flex: 1,
-        lineHeight: 20,
+        lineHeight: 22,
+        fontWeight: '500',
     },
     tipsSection: {
         marginBottom: 20,
@@ -3276,31 +3311,34 @@ const styles = StyleSheet.create({
     },
     enhancedCancelButton: {
         flex: 1,
-        paddingVertical: 8,
-        paddingHorizontal: 32,
-        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#667eea',
+        borderColor: '#6B7280',
         backgroundColor: 'transparent',
         alignItems: 'center',
-        marginRight: 6,
+        justifyContent: 'center',
+        marginLeft: 8,
+        minWidth: 100,
     },
     enhancedCancelButtonText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#667eea',
+        color: '#6B7280',
         marginLeft: 4,
     },
     enhancedBeginButton: {
-        flex: 2,
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 14,
-        paddingHorizontal: 20,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
         borderRadius: 12,
         backgroundColor: 'transparent',
-        gap: 8,
+        marginRight: 8,
+        minWidth: 100,
     },
     enhancedBeginButtonDisabled: {
         backgroundColor: '#bdc3c7',

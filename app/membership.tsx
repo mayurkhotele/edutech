@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     Dimensions,
     SafeAreaView,
@@ -149,90 +149,111 @@ export default function MembershipScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
       
-              {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Choose Your Plan</Text>
-          </View>
-        </View>
 
-      {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-
+      {/* Enhanced Content */}
+      <ScrollView style={styles.enhancedContent} showsVerticalScrollIndicator={false}>
 
         {/* Membership Tiers */}
         <View style={styles.tiersSection}>
-          <Text style={styles.premiumTitle}>Premium Membership</Text>
+          <Text style={styles.premiumTitle}>Choose Your Plan</Text>
           <View style={styles.tiersContainer}>
             {membershipTiers.map(renderMembershipCard)}
           </View>
         </View>
 
-        {/* FAQ Section */}
-        <View style={styles.faqSection}>
-          <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+        {/* Enhanced FAQ Section */}
+        <View style={styles.enhancedFaqSection}>
+          <Text style={styles.enhancedSectionTitle}>Frequently Asked Questions</Text>
           
-          <View style={styles.faqItem}>
-            <View style={styles.faqHeader}>
-              <Text style={styles.faqQuestion}>
-                Can I cancel my subscription anytime?
+          <View style={styles.enhancedFaqItem}>
+            <LinearGradient
+              colors={['#FFFFFF', '#F8FAFC']}
+              style={styles.faqCard}
+            >
+              <View style={styles.faqHeader}>
+                <View style={styles.faqIconContainer}>
+                  <Ionicons name="help-circle" size={20} color="#4F46E5" />
+                </View>
+                <Text style={styles.enhancedFaqQuestion}>
+                  Can I cancel my subscription anytime?
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#6B7280" />
+              </View>
+              <Text style={styles.enhancedFaqAnswer}>
+                Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period.
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#6B7280" />
-            </View>
-            <Text style={styles.faqAnswer}>
-              Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period.
-            </Text>
+            </LinearGradient>
           </View>
 
-          <View style={styles.faqItem}>
-            <View style={styles.faqHeader}>
-              <Text style={styles.faqQuestion}>
-                Do you offer refunds?
+          <View style={styles.enhancedFaqItem}>
+            <LinearGradient
+              colors={['#FFFFFF', '#F8FAFC']}
+              style={styles.faqCard}
+            >
+              <View style={styles.faqHeader}>
+                <View style={styles.faqIconContainer}>
+                  <Ionicons name="help-circle" size={20} color="#4F46E5" />
+                </View>
+                <Text style={styles.enhancedFaqQuestion}>
+                  Do you offer refunds?
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#6B7280" />
+              </View>
+              <Text style={styles.enhancedFaqAnswer}>
+                We offer a 7-day money-back guarantee for all new subscriptions. If you're not satisfied, contact our support team.
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#6B7280" />
-            </View>
-            <Text style={styles.faqAnswer}>
-              We offer a 7-day money-back guarantee for all new subscriptions. If you're not satisfied, contact our support team.
-            </Text>
+            </LinearGradient>
           </View>
 
-          <View style={styles.faqItem}>
-            <View style={styles.faqHeader}>
-              <Text style={styles.faqQuestion}>
-                What payment methods do you accept?
+          <View style={styles.enhancedFaqItem}>
+            <LinearGradient
+              colors={['#FFFFFF', '#F8FAFC']}
+              style={styles.faqCard}
+            >
+              <View style={styles.faqHeader}>
+                <View style={styles.faqIconContainer}>
+                  <Ionicons name="help-circle" size={20} color="#4F46E5" />
+                </View>
+                <Text style={styles.enhancedFaqQuestion}>
+                  What payment methods do you accept?
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#6B7280" />
+              </View>
+              <Text style={styles.enhancedFaqAnswer}>
+                We accept all major credit cards, debit cards, UPI, and digital wallets including Paytm, PhonePe, and Google Pay.
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#6B7280" />
-            </View>
-            <Text style={styles.faqAnswer}>
-              We accept all major credit cards, debit cards, UPI, and digital wallets including Paytm, PhonePe, and Google Pay.
-            </Text>
+            </LinearGradient>
           </View>
         </View>
 
-        {/* Contact Support */}
-        <View style={styles.supportSection}>
+        {/* Enhanced Contact Support */}
+        <View style={styles.enhancedSupportSection}>
           <LinearGradient
-            colors={['#F3F4F6', '#E5E7EB']}
-            style={styles.supportCard}
+            colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+            style={styles.enhancedSupportCard}
           >
-            <View style={styles.supportIcon}>
-              <Ionicons name="headset-outline" size={32} color="#4F46E5" />
+            <View style={styles.supportIconContainer}>
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.supportIconGradient}
+              >
+                <Ionicons name="headset" size={32} color="#FFFFFF" />
+              </LinearGradient>
             </View>
-            <Text style={styles.supportTitle}>Need Help?</Text>
-            <Text style={styles.supportDescription}>
-              Our support team is available 24/7 to help you with any questions
+            <Text style={styles.enhancedSupportTitle}>Need Help?</Text>
+            <Text style={styles.enhancedSupportDescription}>
+              Our support team is available 24/7 to help you with any questions about your membership
             </Text>
-            <TouchableOpacity style={styles.contactButton}>
-              <Text style={styles.contactButtonText}>Contact Support</Text>
+            <TouchableOpacity style={styles.enhancedContactButton}>
+              <LinearGradient
+                colors={['#FFFFFF', '#F8FAFC']}
+                style={styles.contactButtonGradient}
+              >
+                <Ionicons name="chatbubble" size={20} color="#4F46E5" />
+                <Text style={styles.enhancedContactButtonText}>Contact Support</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </LinearGradient>
         </View>
@@ -244,37 +265,67 @@ export default function MembershipScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
   },
-  header: {
-    paddingTop: 15,
-    paddingBottom: 15,
+  enhancedHeader: {
+    paddingTop: 20,
+    paddingBottom: 30,
     paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    position: 'relative',
   },
-  backButton: {
+  enhancedBackButton: {
     position: 'absolute',
-    top: 15,
+    top: 20,
     left: 20,
     zIndex: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+  },
+  backButtonGradient: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  headerContent: {
+  enhancedHeaderContent: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 20,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1F2937',
+  headerIconContainer: {
+    marginBottom: 16,
+  },
+  headerIconGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  enhancedHeaderTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
     textAlign: 'center',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  enhancedHeaderSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    lineHeight: 22,
+    fontWeight: '500',
   },
   headerSubtitle: {
     fontSize: 16,
@@ -316,6 +367,62 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  enhancedContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  benefitsSection: {
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  benefitsTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  benefitsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  benefitCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.1)',
+  },
+  benefitIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  benefitTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  benefitDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 16,
   },
   content: {
     flex: 1,
@@ -518,5 +625,98 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  enhancedFaqSection: {
+    marginBottom: 40,
+  },
+  enhancedSectionTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  enhancedFaqItem: {
+    marginBottom: 16,
+  },
+  faqCard: {
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.1)',
+  },
+  faqIconContainer: {
+    marginRight: 12,
+  },
+  enhancedFaqQuestion: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    flex: 1,
+    marginRight: 12,
+  },
+  enhancedFaqAnswer: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  enhancedSupportSection: {
+    marginBottom: 40,
+  },
+  enhancedSupportCard: {
+    padding: 30,
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  supportIconContainer: {
+    marginBottom: 20,
+  },
+  supportIconGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  enhancedSupportTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  enhancedSupportDescription: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  enhancedContactButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  contactButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  enhancedContactButtonText: {
+    color: '#4F46E5',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

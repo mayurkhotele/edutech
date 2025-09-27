@@ -1,20 +1,21 @@
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
+import { useFonts } from '@/hooks/useFonts';
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  RefreshControl,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    RefreshControl,
+    SafeAreaView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -31,6 +32,7 @@ interface Transaction {
 export default function TransactionsScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const fonts = useFonts();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -250,14 +252,14 @@ export default function TransactionsScreen() {
               )}
             </View>
             <View style={styles.transactionInfo}>
-              <Text style={styles.transactionType}>{formatTransactionType(item.type)}</Text>
-              <Text style={styles.transactionDate}>{formatTransactionDate(item.createdAt)}</Text>
+              <Text style={fonts.subheaderLarge}>{formatTransactionType(item.type)}</Text>
+              <Text style={fonts.greyMedium}>{formatTransactionDate(item.createdAt)}</Text>
             </View>
           </View>
           
           <View style={styles.transactionRight}>
             <Text style={[
-              styles.amountText,
+              fonts.amountSmall,
               { color: getTransactionColor(item.type, item.amount) }
             ]}>
               {item.amount > 0 ? '+' : ''}₹{Math.abs(item.amount).toFixed(2)}
@@ -266,7 +268,7 @@ export default function TransactionsScreen() {
               styles.statusBadge,
               { backgroundColor: getStatusColor(item.status) }
             ]}>
-              <Text style={styles.statusText}>{item.status}</Text>
+              <Text style={fonts.captionSmall}>{item.status}</Text>
             </View>
           </View>
         </View>
@@ -325,25 +327,25 @@ export default function TransactionsScreen() {
             style={[styles.filterTab, activeFilter === 'all' && styles.activeFilterTab]}
             onPress={() => setActiveFilter('all')}
           >
-            <Text style={[styles.filterText, activeFilter === 'all' && styles.activeFilterText]}>All</Text>
+            <Text style={[fonts.bodyMedium, activeFilter === 'all' && styles.activeFilterText]}>All</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterTab, activeFilter === 'deposit' && styles.activeFilterTab]}
             onPress={() => setActiveFilter('deposit')}
           >
-            <Text style={[styles.filterText, activeFilter === 'deposit' && styles.activeFilterText]}>Deposits</Text>
+            <Text style={[fonts.bodyMedium, activeFilter === 'deposit' && styles.activeFilterText]}>Deposits</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterTab, activeFilter === 'withdrawal' && styles.activeFilterTab]}
             onPress={() => setActiveFilter('withdrawal')}
           >
-            <Text style={[styles.filterText, activeFilter === 'withdrawal' && styles.activeFilterText]}>Withdrawals</Text>
+            <Text style={[fonts.bodyMedium, activeFilter === 'withdrawal' && styles.activeFilterText]}>Withdrawals</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.filterTab, activeFilter === 'winning' && styles.activeFilterTab]}
             onPress={() => setActiveFilter('winning')}
           >
-            <Text style={[styles.filterText, activeFilter === 'winning' && styles.activeFilterText]}>Winnings</Text>
+            <Text style={[fonts.bodyMedium, activeFilter === 'winning' && styles.activeFilterText]}>Winnings</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -441,8 +443,8 @@ export default function TransactionsScreen() {
             <View style={styles.emptyIconContainer}>
               <Ionicons name="receipt" size={64} color="#8B5CF6" />
             </View>
-            <Text style={styles.emptyTitle}>No Transactions Yet</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={fonts.headerMedium}>No Transactions Yet</Text>
+            <Text style={fonts.bodyMedium}>
               {activeFilter === 'all' 
                 ? 'Your transaction history will appear here once you start using the app. Try making a deposit or participating in a quiz!'
                 : `No ${activeFilter} transactions found. Try a different filter or check back later.`}
@@ -452,13 +454,13 @@ export default function TransactionsScreen() {
                 style={styles.emptyButton}
                 onPress={() => router.push('/(tabs)/wallet')}
               >
-                <Text style={styles.emptyButtonText}>Go to Wallet</Text>
+                <Text style={fonts.buttonMedium}>Go to Wallet</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.emptyButtonSecondary}
                 onPress={() => router.push('/(tabs)/quiz')}
               >
-                <Text style={styles.emptyButtonSecondaryText}>Take a Quiz</Text>
+                <Text style={fonts.buttonMedium}>Take a Quiz</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -649,11 +651,6 @@ const styles = StyleSheet.create({
   activeFilterTab: {
     backgroundColor: 'rgba(79, 70, 229, 0.1)',
   },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
   activeFilterText: {
     color: '#4F46E5',
   },
@@ -700,26 +697,8 @@ const styles = StyleSheet.create({
   transactionInfo: {
     flex: 1,
   },
-  transactionType: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 6,
-    letterSpacing: 0.3,
-  },
-  transactionDate: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
   transactionRight: {
     alignItems: 'flex-end',
-  },
-  amountText: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 8,
-    letterSpacing: 0.5,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -730,13 +709,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-  },
-  statusText: {
-    fontSize: 11,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -757,21 +729,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
-    fontWeight: '400',
-  },
   emptyButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -788,11 +745,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  emptyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   emptyButtonSecondary: {
     backgroundColor: '#EF4444',
     paddingHorizontal: 24,
@@ -803,10 +755,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
-  },
-  emptyButtonSecondaryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

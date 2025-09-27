@@ -217,9 +217,9 @@ const OurFeaturesSection: React.FC = () => {
     );
   };
 
-  // Split features into two rows: first 4, then remaining 4
-  const firstRowFeatures = features.slice(0, 4);
-  const secondRowFeatures = features.slice(4, 8);
+  // Split features into two rows: first 3, then next 3 (total 6 features)
+  const firstRowFeatures = features.slice(0, 3);
+  const secondRowFeatures = features.slice(3, 6);
 
   return (
     <LinearGradient
@@ -321,20 +321,27 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    letterSpacing: 0.6,
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+    fontFamily: 'System',
+    lineHeight: 24,
   },
   sectionSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '600',
-    marginTop: 2,
-    letterSpacing: 0.3,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '700',
+    marginTop: 3,
+    letterSpacing: 0.4,
+    fontFamily: 'System',
+    lineHeight: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   seeAllButton: {
     borderRadius: 12,
@@ -347,11 +354,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   seeAllText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#4F46E5',
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontWeight: '800',
+    letterSpacing: 0.4,
     marginRight: 4,
+    fontFamily: 'System',
+    lineHeight: 17,
   },
   featuresRow: {
     flexDirection: 'row',
@@ -361,7 +370,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   featureItem: {
-    width: (screenWidth - 120) / 4,
+    width: (screenWidth - 100) / 3,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 2,
@@ -392,16 +401,20 @@ const styles = StyleSheet.create({
     width: 50,
   },
   secondRowItem: {
-    width: (screenWidth - 120) / 4,
+    width: (screenWidth - 100) / 3,
   },
   secondRowTitle: {
-    fontSize: 10.5,
-    fontWeight: '700',
+    fontSize: 11.5,
+    fontWeight: '800',
     color: '#1F2937',
     textAlign: 'center',
-    lineHeight: 13,
-    letterSpacing: 0.3,
+    lineHeight: 14,
+    letterSpacing: 0.4,
     marginTop: 1,
+    fontFamily: 'System',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   iconContainer: {
     width: 42,
@@ -419,12 +432,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   featureTitle: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     color: '#1F2937',
     textAlign: 'center',
-    lineHeight: 14,
-    letterSpacing: 0.3,
+    lineHeight: 15,
+    letterSpacing: 0.4,
+    fontFamily: 'System',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
 });
 

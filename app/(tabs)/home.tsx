@@ -10,7 +10,6 @@ import { ActivityIndicator, Dimensions, FlatList, RefreshControl, ScrollView, St
 import CustomBannerSlider from '../../components/CustomBannerSlider';
 import ExamCard from '../../components/ExamCard';
 import ExamNotificationsSection from '../../components/ExamNotificationsSection';
-import JobCompetitionBanner from '../../components/JobCompetitionBanner';
 import OurFeaturesSection from '../../components/OurFeaturesSection';
 import PracticeExamSection from '../../components/PracticeExamSection';
 import QuestionOfTheDayPreview from '../../components/QuestionOfTheDayPreview';
@@ -160,17 +159,14 @@ export default function HomeScreen() {
                 />
             )}
             
-            {/* Question of the Day Section */}
-            <QuestionOfTheDayPreview />
-
             {/* Our Features Section */}
             <OurFeaturesSection />
 
             {/* Job Competition Banner */}
-            <JobCompetitionBanner onPress={() => {
+            {/* <JobCompetitionBanner onPress={() => {
                 console.log('Navigate to job competition');
                 // router.push('/job-competition');
-            }} />
+            }} /> */}
 
             {/* Top Performers Section */}
             <TopPerformersSection onPress={() => {
@@ -178,6 +174,8 @@ export default function HomeScreen() {
                 // router.push('/leaderboard'); // Example navigation
             }} />
 
+            {/* Question of the Day Section */}
+            <QuestionOfTheDayPreview />
 
             {/* Practice Exam Section */}
             <PracticeExamSection ref={practiceExamRef} />
@@ -204,13 +202,25 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontWeight: '600',
         color: AppColors.darkGrey,
+        letterSpacing: 0.4,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+        fontFamily: 'System',
+        lineHeight: 24,
     },
     viewAll: {
-        fontSize: 14,
+        fontSize: 15,
         color: AppColors.primary,
         fontWeight: '600',
+        letterSpacing: 0.4,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 1,
+        fontFamily: 'System',
+        lineHeight: 18,
     },
     listContainer: {
         paddingLeft: 8,
@@ -266,17 +276,26 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     emptyTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 20,
+        fontWeight: '700',
         color: AppColors.darkGrey,
         marginTop: 16,
         textAlign: 'center',
+        letterSpacing: 0.3,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 1,
+        fontFamily: 'System',
+        lineHeight: 24,
     },
     emptySubtext: {
-        fontSize: 14,
+        fontSize: 15,
         color: AppColors.grey,
         marginTop: 8,
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 22,
+        fontWeight: '500',
+        letterSpacing: 0.2,
+        fontFamily: 'System',
     },
 }); 

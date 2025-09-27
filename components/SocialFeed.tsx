@@ -789,7 +789,11 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
           style={styles.authorSection} 
           onPress={() => {
             if (navigation && item.author?.id) {
-              navigation.navigate('user-profile', { userId: item.author.id });
+              console.log('🔍 Navigating to user profile:', item.author.id);
+              navigation.navigate('user-profile', { 
+                userId: item.author.id,
+                originalUserData: item.author 
+              });
             }
           }}
           activeOpacity={0.7}

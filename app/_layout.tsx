@@ -120,6 +120,12 @@ function RootNavigator() {
                       title: '', // Remove the title for membership
                     }}
                 />
+                <Drawer.Screen
+                    name="user-profile"
+                    options={{
+                      title: '', // Remove the title for user-profile
+                    }}
+                />
             </Drawer>
         </WalletProvider>
     );
