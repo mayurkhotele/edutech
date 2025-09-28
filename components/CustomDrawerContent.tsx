@@ -102,14 +102,8 @@ const CustomDrawerContent = (props: any) => {
             <SafeAreaView style={{ flex: 1 }}>
                 <DrawerContentScrollView {...props} contentContainerStyle={styles.scrollContent}>
                     
-                    {/* Top Section with Window Controls */}
+                    {/* Top Section */}
                     <View style={styles.topSection}>
-                        <View style={styles.windowControls}>
-                            <View style={[styles.controlDot, styles.redDot]} />
-                            <View style={[styles.controlDot, styles.yellowDot]} />
-                            <View style={[styles.controlDot, styles.greenDot]} />
-                        </View>
-                        
                         {/* Logo and App Name */}
                         <View style={styles.logoSection}>
                             <View style={styles.logoContainer}>
@@ -119,6 +113,23 @@ const CustomDrawerContent = (props: any) => {
                             </View>
                             <View style={styles.appNameContainer}>
                                 <Text style={[styles.appName, isDarkMode && styles.darkText]}>Yottascore</Text>
+                            </View>
+                        </View>
+
+                        {/* User Profile Section */}
+                        <View style={styles.profileSection}>
+                            <View style={styles.profileContainer}>
+                                <View style={styles.profileImageContainer}>
+                                    <Image 
+                                        source={{ uri: user?.profilePhoto || 'https://via.placeholder.com/40' }}
+                                        style={styles.profileImage}
+                                    />
+                                </View>
+                                <View style={styles.profileInfo}>
+                                    <Text style={[styles.profileName, isDarkMode && styles.darkText]}>
+                                        {user?.name || 'Asal Design'}
+                                    </Text>
+                                </View>
                             </View>
                         </View>
 
@@ -230,25 +241,6 @@ const CustomDrawerContent = (props: any) => {
 
 
 
-                    {/* User Profile Section */}
-                    <View style={styles.profileSection}>
-                        <View style={styles.profileContainer}>
-                            <View style={styles.profileImageContainer}>
-                                <Image 
-                                    source={{ uri: user?.profilePhoto || 'https://via.placeholder.com/40' }}
-                                    style={styles.profileImage}
-                                />
-                            </View>
-                            <View style={styles.profileInfo}>
-                                <Text style={[styles.profileName, isDarkMode && styles.darkText]}>
-                                    {user?.name || 'Asal Design'}
-                                </Text>
-                            </View>
-                            <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-                                <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
 
                     {/* Social Media Section */}
                     <View style={styles.socialSection}>
@@ -282,6 +274,16 @@ const CustomDrawerContent = (props: any) => {
                                 <Text style={styles.privacyLinkText}>Terms & Conditions</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+
+                    {/* Logout Button */}
+                    <View style={styles.logoutSection}>
+                        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+                            <View style={styles.logoutButtonContent}>
+                                <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+                                <Text style={styles.logoutButtonText}>Logout</Text>
+                            </View>
+                        </TouchableOpacity>
                     </View>
 
                 </DrawerContentScrollView>
@@ -338,32 +340,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        paddingTop: 20,
+        paddingTop: 24,
         paddingHorizontal: 20,
         paddingBottom: 24,
         marginBottom: 12,
         ...ShadowUtils.noShadow(),
-    },
-    windowControls: {
-        flexDirection: 'row',
-        marginBottom: 24,
-        paddingLeft: 6,
-    },
-    controlDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        marginRight: 8,
-        ...ShadowUtils.noShadow(),
-    },
-    redDot: {
-        backgroundColor: '#FF5F56',
-    },
-    yellowDot: {
-        backgroundColor: '#FFBD2E',
-    },
-    greenDot: {
-        backgroundColor: '#27CA3F',
     },
     logoSection: {
         flexDirection: 'row',
@@ -547,13 +528,7 @@ const styles = StyleSheet.create({
 
     // Profile Section
     profileSection: {
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: 12,
-        marginBottom: 12,
-        borderRadius: 16,
-        paddingVertical: 20,
-        paddingHorizontal: 20,
-        ...ShadowUtils.noShadow(),
+        marginTop: 16,
     },
     profileContainer: {
         flexDirection: 'row',
@@ -589,12 +564,33 @@ const styles = StyleSheet.create({
     darkSubText: {
         color: '#CBD5E1',
     },
+    logoutSection: {
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 12,
+        marginBottom: 12,
+        borderRadius: 8,
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+        ...ShadowUtils.noShadow(),
+    },
     logoutButton: {
-        padding: 10,
         backgroundColor: '#FF4757',
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderRadius: 6,
+        ...ShadowUtils.noShadow(),
+    },
+    logoutButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    logoutButtonText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '600',
+        marginLeft: 4,
+        fontFamily: 'System',
     },
 });
 
