@@ -106,29 +106,6 @@ const PracticeExamDetailsScreen = () => {
         }, [id, user?.token])
     );
 
-    useEffect(() => {
-        if (activeTab === 'Results' && id && user?.token) {
-            console.log('Results tab clicked, fetching result data...');
-            console.log('Exam attempted:', exam?.attempted);
-            setResultLoading(true);
-            apiFetchAuth(`/student/practice-exams/${id}/submit`, user.token, { method: 'POST' })
-                .then(res => {
-                    console.log('Result API response:', res);
-                    if (res.ok) {
-                        setResult(res.data);
-                        console.log('Result data set:', res.data);
-                    } else {
-                        console.log('Result API failed:', res.data);
-                        setResult(null);
-                    }
-                })
-                .catch((error) => {
-                    console.error('Result API error:', error);
-                    setResult(null);
-                })
-                .finally(() => setResultLoading(false));
-        }
-    }, [activeTab, id, user?.token]);
 
     const fetchExamDetails = async () => {
         if (!user?.token || !id) {
@@ -578,7 +555,7 @@ const PracticeExamDetailsScreen = () => {
             </LinearGradient>
 
             <View style={styles.tabContainer}>
-                {['Info', 'Leaderboard', 'Results'].map(tabName => (
+                {['Info', 'Leaderboard'].map(tabName => (
                     <TouchableOpacity 
                         key={tabName} 
                         style={[styles.tab, activeTab === tabName && styles.activeTab]}
@@ -762,163 +739,6 @@ const PracticeExamDetailsScreen = () => {
                     </View>
                   )}
 
-                  {activeTab === 'Results' && (
-                    <View style={styles.resultsContainer}>
-                      {resultLoading ? (
-                        <View style={styles.loadingContainer}>
-                          <ActivityIndicator size="large" color="#667eea" />
-                          <Text style={styles.loadingText}>Loading Results...</Text>
-                        </View>
-                      ) : result ? (
-                        <View style={styles.superEnhancedResultCard}>
-                          <LinearGradient
-                            colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
-                            style={styles.superResultHeaderGradient}
-                          >
-                            <View style={styles.superResultHeader}>
-                              <View style={styles.trophyIconContainer}>
-                                <LinearGradient
-                                  colors={['#FFD700', '#FFA500']}
-                                  style={styles.resultTrophyGradient}
-                                >
-                                  <Ionicons name="trophy" size={40} color="#FFFFFF" />
-                                </LinearGradient>
-                              </View>
-                              <View style={styles.superResultTitleContainer}>
-                                <Text style={styles.superResultTitle}>Practice Exam Results</Text>
-                                <Text style={styles.superResultSubtitle}>Exam completed successfully</Text>
-                                <View style={styles.resultStatsRow}>
-                                  <View style={styles.resultStatItem}>
-                                    <Text style={styles.resultStatValue}>{result.score}</Text>
-                                    <Text style={styles.resultStatLabel}>Score</Text>
-                                  </View>
-                                  <View style={styles.resultStatDivider} />
-                                  <View style={styles.resultStatItem}>
-                                    <Text style={styles.resultStatValue}>{result.totalQuestions}</Text>
-                                    <Text style={styles.resultStatLabel}>Questions</Text>
-                                  </View>
-                                  <View style={styles.resultStatDivider} />
-                                  <View style={styles.resultStatItem}>
-                                    <Text style={styles.resultStatValue}>{result.earnedMarks || result.score}</Text>
-                                    <Text style={styles.resultStatLabel}>Marks</Text>
-                                  </View>
-                                </View>
-                              </View>
-                            </View>
-                          </LinearGradient>
-                          
-                          <View style={styles.superEnhancedSummaryGrid}>
-                            <View style={styles.superSummaryCard}>
-                              <LinearGradient
-                                colors={['rgba(16, 185, 129, 0.6)', 'rgba(5, 150, 105, 0.5)']}
-                                style={styles.summaryCardGradient}
-                              >
-                                <View style={styles.summaryIconContainer}>
-                                  <Ionicons name="checkmark-circle" size={28} color="#FFFFFF" />
-                                </View>
-                                <Text style={styles.superSummaryValue}>{result.correctAnswers}</Text>
-                                <Text style={styles.superSummaryLabel}>Correct</Text>
-                              </LinearGradient>
-                            </View>
-                            <View style={styles.superSummaryCard}>
-                              <LinearGradient
-                                colors={['rgba(239, 68, 68, 0.6)', 'rgba(220, 38, 38, 0.5)']}
-                                style={styles.summaryCardGradient}
-                              >
-                                <View style={styles.summaryIconContainer}>
-                                  <Ionicons name="close-circle" size={28} color="#FFFFFF" />
-                                </View>
-                                <Text style={styles.superSummaryValue}>{result.wrongAnswers}</Text>
-                                <Text style={styles.superSummaryLabel}>Incorrect</Text>
-                              </LinearGradient>
-                            </View>
-                            <View style={styles.superSummaryCard}>
-                              <LinearGradient
-                                colors={['rgba(168, 85, 247, 0.6)', 'rgba(147, 51, 234, 0.5)']}
-                                style={styles.summaryCardGradient}
-                              >
-                                <View style={styles.summaryIconContainer}>
-                                  <Ionicons name="remove-circle" size={28} color="#FFFFFF" />
-                                </View>
-                                <Text style={styles.superSummaryValue}>{result.unattempted}</Text>
-                                <Text style={styles.superSummaryLabel}>Unattempted</Text>
-                              </LinearGradient>
-                            </View>
-                          </View>
-
-                          <View style={styles.resultDetailsSection}>
-                            <View style={styles.resultDetailsHeader}>
-                              <Ionicons name="analytics" size={20} color="#8B5CF6" />
-                              <Text style={styles.resultDetailsTitle}>Exam Details</Text>
-                            </View>
-                            <View style={styles.resultDetailsGrid}>
-                              <View style={styles.resultDetailItem}>
-                                <Text style={styles.resultDetailLabel}>Total Marks</Text>
-                                <Text style={styles.resultDetailValue}>{result.totalMarks || result.totalQuestions}</Text>
-                              </View>
-                              <View style={styles.resultDetailItem}>
-                                <Text style={styles.resultDetailLabel}>Earned Marks</Text>
-                                <Text style={styles.resultDetailValue}>{result.earnedMarks || result.score}</Text>
-                              </View>
-                              <View style={styles.resultDetailItem}>
-                                <Text style={styles.resultDetailLabel}>Completion Time</Text>
-                                <Text style={styles.resultDetailValue}>
-                                  {result.completedAt ? new Date(result.completedAt).toLocaleString() : 'N/A'}
-                                </Text>
-                              </View>
-                              <View style={styles.resultDetailItem}>
-                                <Text style={styles.resultDetailLabel}>Accuracy</Text>
-                                <Text style={styles.resultDetailValue}>
-                                  {result.totalQuestions > 0 ? ((result.correctAnswers / result.totalQuestions) * 100).toFixed(1) : 0}%
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-
-                          <TouchableOpacity 
-                            style={styles.superEnhancedAnalysisButton}
-                            onPress={() => router.push({ pathname: '/(tabs)/practice-exam/result/[id]', params: { id } })}
-                          >
-                            <LinearGradient
-                              colors={['#8B5CF6', '#7C3AED']}
-                              style={styles.superAnalysisButtonGradient}
-                            >
-                              <Ionicons name="analytics-outline" size={24} color="#fff" />
-                              <Text style={styles.superEnhancedAnalysisButtonText}>View Detailed Analysis</Text>
-                              <Ionicons name="arrow-forward" size={20} color="#fff" />
-                            </LinearGradient>
-                          </TouchableOpacity>
-                        </View>
-                      ) : (
-                        <View style={styles.enhancedNoResultContainer}>
-                          <View style={styles.emptyIconContainer}>
-                            <Ionicons name="document-text-outline" size={64} color="#667eea" />
-                          </View>
-                          <Text style={styles.noResultTitle}>No Results Available</Text>
-                          <Text style={styles.noResultText}>
-                            {exam?.attempted 
-                              ? "Could not load your exam results. Please try again later."
-                              : "You haven't attempted this exam yet. Start the exam to see your results."
-                            }
-                          </Text>
-                          {!exam?.attempted && (
-                            <TouchableOpacity
-                              style={styles.enhancedStartExamButton}
-                              onPress={handleStartExam}
-                            >
-                              <LinearGradient
-                                colors={['#667eea', '#764ba2']}
-                                style={styles.startExamButtonGradient}
-                              >
-                                <Ionicons name="play" size={20} color="#fff" />
-                                <Text style={styles.startExamButtonText}>Start Exam</Text>
-                              </LinearGradient>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      )}
-                    </View>
-                  )}
                 </View>
               )}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
