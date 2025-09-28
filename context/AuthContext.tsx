@@ -1,5 +1,7 @@
+import { auth } from '@/config/firebase';
 import { apiFetch } from '@/constants/api';
 import { clearAuthData, getToken, getUser, storeAuthData } from '@/utils/storage';
+import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface User {
@@ -22,6 +24,10 @@ interface AuthContextType {
     register: (userData: { name: string; email: string; password: string; phoneNumber: string; referralCode?: string }) => Promise<any>;
     logout: () => void;
     updateUser: (userData: Partial<User>) => void;
+    // Firebase OTP methods
+    loginWithOTP: (phoneNumber: string) => Promise<any>;
+    verifyOTP: (otp: string) => Promise<any>;
+    firebaseUser: FirebaseUser | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -31,6 +37,9 @@ const AuthContext = createContext<AuthContextType>({
     register: async () => {},
     logout: () => {},
     updateUser: () => {},
+    loginWithOTP: async () => {},
+    verifyOTP: async () => {},
+    firebaseUser: null,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -38,6 +47,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
     useEffect(() => {
         const loadUser = async () => {
@@ -55,6 +65,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
         };
         loadUser();
+    }, []);
+
+    // Firebase Auth State Listener
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            setFirebaseUser(firebaseUser);
+            console.log('Firebase auth state changed:', firebaseUser ? 'User logged in' : 'User logged out');
+        });
+
+        return () => unsubscribe();
     }, []);
 
     const login = async (email: string, password: string) => {
@@ -150,12 +170,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const logout = async () => {
         console.log('Logging out - Clearing user data');
         setUser(null);
+        setFirebaseUser(null);
         await clearAuthData();
+        // Also sign out from Firebase
+        try {
+            await auth.signOut();
+        } catch (error) {
+            console.error('Firebase sign out error:', error);
+        }
         console.log('Logout completed - User state cleared');
     };
 
     const updateUser = (userData: Partial<User>) => {
         setUser(prevUser => prevUser ? { ...prevUser, ...userData } as User : null);
+    };
+
+    // Firebase OTP Methods
+    const loginWithOTP = async (phoneNumber: string) => {
+        try {
+            // This will be handled by the authService
+            // We just need to return a promise for consistency
+            return { success: true, phoneNumber };
+        } catch (error) {
+            console.error('OTP login error:', error);
+            throw error;
+        }
+    };
+
+    const verifyOTP = async (otp: string) => {
+        try {
+            // This will be handled by the authService
+            // We just need to return a promise for consistency
+            return { success: true, otp };
+        } catch (error) {
+            console.error('OTP verification error:', error);
+            throw error;
+        }
     };
 
     const value = {
@@ -165,6 +215,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         register,
         logout,
         updateUser,
+        loginWithOTP,
+        verifyOTP,
+        firebaseUser,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
