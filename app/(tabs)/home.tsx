@@ -56,7 +56,6 @@ export default function HomeScreen() {
     const onRefresh = async () => {
         setRefreshing(true);
         try {
-            console.log('🔄 Home page pull-to-refresh triggered');
             await fetchExams();
             // Trigger practice exam refresh if ref exists
             if (practiceExamRef.current?.handleRefresh) {
@@ -78,7 +77,6 @@ export default function HomeScreen() {
     useEffect(() => {
         const interval = setInterval(() => {
             if (user?.token) {
-                console.log('🔄 Auto-refreshing Home data');
                 fetchExams();
             }
         }, 30000); // 30 seconds
@@ -112,7 +110,6 @@ export default function HomeScreen() {
 
                                 {/* Custom Banner Slider */}
                     <CustomBannerSlider onBannerPress={(banner) => {
-                        console.log('Banner pressed:', banner.action);
                         // Handle banner press - navigate to different screens based on banner
                         switch (banner.action) {
                             case 'practice-exam':
@@ -164,13 +161,11 @@ export default function HomeScreen() {
 
             {/* Job Competition Banner */}
             {/* <JobCompetitionBanner onPress={() => {
-                console.log('Navigate to job competition');
                 // router.push('/job-competition');
             }} /> */}
 
             {/* Top Performers Section */}
             <TopPerformersSection onPress={() => {
-                console.log('Navigate to leaderboard');
                 // router.push('/leaderboard'); // Example navigation
             }} />
 

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -14,20 +14,45 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
   const buttonScale = useRef(new Animated.Value(0)).current;
+  const backgroundOpacity = useRef(new Animated.Value(0)).current;
+  const floatingAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Start animations
     const startAnimations = () => {
+      // Background fade in
+      Animated.timing(backgroundOpacity, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }).start();
+
+      // Floating animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(floatingAnimation, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatingAnimation, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
       // Logo container animation
       Animated.parallel([
         Animated.timing(logoScale, {
           toValue: 1,
-          duration: 1000,
+          duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 800,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ]).start();
@@ -35,14 +60,14 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       // Text fade in
       Animated.timing(textOpacity, {
         toValue: 1,
-        duration: 800,
-        delay: 1200,
+        duration: 1000,
+        delay: 1500,
         useNativeDriver: true,
       }).start();
 
       // Button animation
       Animated.sequence([
-        Animated.delay(1800),
+        Animated.delay(2000),
         Animated.spring(buttonScale, {
           toValue: 1,
           tension: 50,
@@ -54,91 +79,82 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
     startAnimations();
 
-    // Auto navigate after 4 seconds
+    // Auto navigate after 5 seconds
     const timer = setTimeout(() => {
       onFinish();
-    }, 4000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [onFinish]);
 
+  const floatingTranslateY = floatingAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -10],
+  });
+
   return (
     <View style={styles.container}>
-      {/* Background with Abstract Shapes */}
-      <View style={styles.backgroundContainer}>
-        {/* Purple Blob Shapes - Exact DT QUIZ positioning */}
-        <View style={[styles.purpleBlob, styles.blob1]} />
-        <View style={[styles.purpleBlob, styles.blob2]} />
-        <View style={[styles.purpleBlob, styles.blob3]} />
+      <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
+      
+      {/* Educational Background with Rich Design */}
+      <Animated.View style={[styles.backgroundContainer, { opacity: backgroundOpacity }]}>
+        <LinearGradient
+          colors={['#4c1d95', '#7c3aed']}
+          style={styles.gradientBackground}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
         
-        {/* Yellow Accent Circles - Exact DT QUIZ positioning */}
-        <View style={[styles.yellowCircle, styles.circle1]} />
-        <View style={[styles.yellowCircle, styles.circle2]} />
-        <View style={[styles.yellowCircle, styles.circle3]} />
-        <View style={[styles.yellowCircle, styles.circle4]} />
-        <View style={[styles.yellowCircle, styles.circle5]} />
-        
-        {/* Line Art Icons - Exact DT QUIZ positioning */}
-        <View style={[styles.lineIcon, styles.lightbulb]}>
-          <Ionicons name="bulb-outline" size={24} color="#e0e0e0" />
-          <View style={styles.yellowDots}>
-            <View style={styles.yellowDot} />
-            <View style={styles.yellowDot} />
-            <View style={styles.yellowDot} />
+        {/* Educational Pattern Overlay */}
+        <View style={styles.educationalPattern}>
+          <View style={styles.patternGrid}>
+            <View style={styles.gridLine} />
+            <View style={[styles.gridLine, styles.gridLineVertical]} />
+            <View style={[styles.gridLine, styles.gridLineHorizontal]} />
           </View>
         </View>
         
-        <View style={[styles.lineIcon, styles.globe1]}>
-          <Ionicons name="globe-outline" size={20} color="#e0e0e0" />
-        </View>
+        {/* Simple Educational Elements */}
+        <Animated.View 
+          style={[
+            styles.floatingElement,
+            styles.floatingElement1,
+            { transform: [{ translateY: floatingTranslateY }] }
+          ]}
+        >
+          <Ionicons name="book" size={24} color="rgba(255, 255, 255, 0.3)" />
+        </Animated.View>
         
-        <View style={[styles.lineIcon, styles.playButton]}>
-          <Ionicons name="play" size={16} color="#e0e0e0" />
-        </View>
+        <Animated.View 
+          style={[
+            styles.floatingElement,
+            styles.floatingElement2,
+            { transform: [{ translateY: floatingTranslateY }] }
+          ]}
+        >
+          <Ionicons name="school" size={20} color="rgba(255, 255, 255, 0.3)" />
+        </Animated.View>
         
-        <View style={[styles.lineIcon, styles.eyeglasses]}>
-          <Ionicons name="glasses-outline" size={18} color="#e0e0e0" />
-        </View>
+        <Animated.View 
+          style={[
+            styles.floatingElement,
+            styles.floatingElement3,
+            { transform: [{ translateY: floatingTranslateY }] }
+          ]}
+        >
+          <Ionicons name="trophy" size={22} color="rgba(255, 255, 255, 0.3)" />
+        </Animated.View>
         
-        <View style={[styles.lineIcon, styles.smiley]}>
-          <Ionicons name="happy-outline" size={16} color="#e0e0e0" />
-        </View>
-        
-        <View style={[styles.lineIcon, styles.star]}>
-          <Ionicons name="star-outline" size={14} color="#e0e0e0" />
-        </View>
-        
-        <View style={[styles.lineIcon, styles.question1]}>
-          <Ionicons name="help-circle-outline" size={16} color="#e0e0e0" />
-        </View>
-        
-        <View style={[styles.lineIcon, styles.question2]}>
-          <Ionicons name="help-circle-outline" size={12} color="#e0e0e0" />
-        </View>
-        
-        <View style={[styles.lineIcon, styles.exclamation]}>
-          <Ionicons name="alert-circle-outline" size={14} color="#e0e0e0" />
-        </View>
-        
-        <View style={[styles.lineIcon, styles.music]}>
-          <Ionicons name="musical-notes-outline" size={16} color="#e0e0e0" />
-        </View>
-        
-        <View style={[styles.lineIcon, styles.plus]}>
-          <Ionicons name="add" size={12} color="#e0e0e0" />
-        </View>
-        
-        {/* Small Abstract Elements - Exact DT QUIZ positioning */}
-        <View style={[styles.smallDot, styles.dot1]} />
-        <View style={[styles.smallDot, styles.dot2]} />
-        <View style={[styles.smallDot, styles.dot3]} />
-        <View style={[styles.smallDot, styles.dot4]} />
-        <View style={[styles.smallDot, styles.dot5]} />
-      </View>
+        {/* Decorative Circles */}
+        <View style={[styles.decorativeCircle, styles.circle1]} />
+        <View style={[styles.decorativeCircle, styles.circle2]} />
+        <View style={[styles.decorativeCircle, styles.circle3]} />
+        <View style={[styles.decorativeCircle, styles.circle4]} />
+      </Animated.View>
 
       {/* Main Content */}
       <View style={styles.contentContainer}>
-        {/* Central Yottascore Text - Exact DT QUIZ style */}
+        {/* Animated Educational Logo */}
         <Animated.View 
           style={[
             styles.titleContainer,
@@ -148,37 +164,64 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             },
           ]}
         >
+          <Animated.View style={[styles.logoContainer, { transform: [{ rotate: floatingAnimation.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['0deg', '360deg']
+          }) }] }]}>
+            <Ionicons name="school" size={60} color="#FFFFFF" />
+            <Animated.View style={[styles.logoGlow, { 
+              opacity: floatingAnimation.interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0.3, 1, 0.3]
+              })
+            }]}>
+              <Ionicons name="star" size={20} color="#FFD700" />
+            </Animated.View>
+          </Animated.View>
+          
           <Text style={styles.titleText}>YOTTA</Text>
           <Text style={styles.titleText}>SCORE</Text>
+          
+          <Animated.View style={[styles.educationalBadge, { 
+            opacity: textOpacity,
+            transform: [{ scale: textOpacity }]
+          }]}>
+            <Ionicons name="book" size={16} color="#FFFFFF" />
+            <Text style={styles.badgeText}>Education</Text>
+          </Animated.View>
         </Animated.View>
         
-        {/* Subtitle */}
+        {/* Simple Educational Subtitle */}
         <Animated.View style={[styles.subtitleContainer, { opacity: textOpacity }]}>
           <Text style={styles.subtitleText}>Smart Learning Platform</Text>
+          <Text style={styles.subtitleDescription}>
+            Master your skills with interactive learning
+          </Text>
         </Animated.View>
       </View>
 
-      {/* Action Buttons */}
-      <Animated.View 
-        style={[
-          styles.buttonContainer,
-          {
-            opacity: textOpacity,
-            transform: [{ scale: buttonScale }],
-          },
-        ]}
-      >
-        <TouchableOpacity onPress={onFinish} activeOpacity={0.85}>
-          <LinearGradient
-            colors={["#667eea", "#764ba2"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>Get Started</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
+        {/* Educational Action Button */}
+        <Animated.View 
+          style={[
+            styles.buttonContainer,
+            {
+              opacity: textOpacity,
+              transform: [{ scale: buttonScale }],
+            },
+          ]}
+        >
+          <TouchableOpacity onPress={onFinish} activeOpacity={0.8}>
+            <LinearGradient
+              colors={["#4c1d95", "#7c3aed"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.educationalButton}
+            >
+              <Ionicons name="play-circle" size={24} color="#FFFFFF" />
+              <Text style={styles.educationalButtonText}>Start Learning</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
     </View>
   );
 };
@@ -186,7 +229,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff', // Exact DT QUIZ white background
+    backgroundColor: '#4c1d95',
   },
   backgroundContainer: {
     position: 'absolute',
@@ -196,213 +239,49 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: -1,
   },
-  purpleBlob: {
-    position: 'absolute',
-    borderRadius: 100,
-    opacity: 0.15, // Increased opacity to match DT QUIZ
-  },
-  blob1: {
-    width: width * 0.7, // Larger size to match DT QUIZ
-    height: width * 0.7,
-    backgroundColor: '#6C63FF', // Exact DT QUIZ purple
-    top: -height * 0.15, // Adjusted positioning
-    left: -width * 0.25,
-  },
-  blob2: {
-    width: width * 0.5, // Larger size to match DT QUIZ
-    height: width * 0.5,
-    backgroundColor: '#FF6CAB', // Exact DT QUIZ pink
-    bottom: height * 0.25, // Adjusted positioning
-    right: -width * 0.15,
-  },
-  blob3: {
-    width: width * 0.6, // Larger size to match DT QUIZ
-    height: width * 0.6,
-    backgroundColor: '#FFD452', // Exact DT QUIZ yellow
-    bottom: height * 0.05, // Adjusted positioning
-    left: width * 0.25,
-  },
-  yellowCircle: {
-    position: 'absolute',
-    borderRadius: 100,
-    opacity: 0.12, // Increased opacity to match DT QUIZ
-  },
-  circle1: {
-    width: width * 0.35, // Larger size to match DT QUIZ
-    height: width * 0.35,
-    backgroundColor: '#FFD452', // Exact DT QUIZ yellow
-    top: height * 0.15, // Adjusted positioning
-    left: width * 0.05,
-  },
-  circle2: {
-    width: width * 0.25, // Larger size to match DT QUIZ
-    height: width * 0.25,
-    backgroundColor: '#FF6CAB', // Exact DT QUIZ pink
-    bottom: height * 0.35, // Adjusted positioning
-    right: width * 0.15,
-  },
-  circle3: {
-    width: width * 0.45, // Larger size to match DT QUIZ
-    height: width * 0.45,
-    backgroundColor: '#6C63FF', // Exact DT QUIZ purple
-    bottom: height * 0.55, // Adjusted positioning
-    left: width * 0.35,
-  },
-  circle4: {
-    width: width * 0.35, // Larger size to match DT QUIZ
-    height: width * 0.35,
-    backgroundColor: '#FFD452', // Exact DT QUIZ yellow
-    top: height * 0.65, // Adjusted positioning
-    right: width * 0.25,
-  },
-  circle5: {
-    width: width * 0.25, // Larger size to match DT QUIZ
-    height: width * 0.25,
-    backgroundColor: '#FF6CAB', // Exact DT QUIZ pink
-    bottom: height * 0.75, // Adjusted positioning
-    left: width * 0.45,
-  },
-  lineIcon: {
-    position: 'absolute',
-    flexDirection: 'row',
-    alignItems: 'center',
-    opacity: 0.15, // Increased opacity to match DT QUIZ
-  },
-  lightbulb: {
-    top: height * 0.08, // Adjusted positioning
-    left: width * 0.35,
-  },
-  yellowDots: {
-    flexDirection: 'row',
-    marginLeft: 8,
-  },
-  yellowDot: {
-    width: 8, // Larger size to match DT QUIZ
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFD452', // Exact DT QUIZ yellow
-    marginRight: 3, // Increased spacing
-  },
-  globe1: {
-    top: height * 0.25, // Adjusted positioning
-    left: width * 0.55,
-  },
-  playButton: {
-    top: height * 0.45, // Adjusted positioning
-    left: width * 0.15,
-  },
-  eyeglasses: {
-    top: height * 0.65, // Adjusted positioning
-    left: width * 0.25,
-  },
-  smiley: {
-    top: height * 0.85, // Adjusted positioning
-    left: width * 0.35,
-  },
-  star: {
-    top: height * 0.08, // Adjusted positioning
-    right: width * 0.35,
-  },
-  question1: {
-    top: height * 0.25, // Adjusted positioning
-    right: width * 0.55,
-  },
-  question2: {
-    bottom: height * 0.08, // Adjusted positioning
-    left: width * 0.55,
-  },
-  exclamation: {
-    bottom: height * 0.25, // Adjusted positioning
-    right: width * 0.55,
-  },
-  music: {
-    bottom: height * 0.45, // Adjusted positioning
-    left: width * 0.55,
-  },
-  plus: {
-    bottom: height * 0.65, // Adjusted positioning
-    right: width * 0.55,
-  },
-  smallDot: {
-    position: 'absolute',
-    width: 10, // Larger size to match DT QUIZ
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#e0e0e0', // Exact DT QUIZ light grey
-  },
-  dot1: {
-    top: height * 0.18, // Adjusted positioning
-    left: width * 0.08,
-  },
-  dot2: {
-    top: height * 0.38, // Adjusted positioning
-    right: width * 0.08,
-  },
-  dot3: {
-    bottom: height * 0.18, // Adjusted positioning
-    left: width * 0.18,
-  },
-  dot4: {
-    bottom: height * 0.38, // Adjusted positioning
-    right: width * 0.18,
-  },
-  dot5: {
-    top: height * 0.58, // Adjusted positioning
-    left: width * 0.28,
-  },
-  contentContainer: {
+  gradientBackground: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  educationalPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.1,
+  },
+  patternGrid: {
+    flex: 1,
+    position: 'relative',
+  },
+  gridLine: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 1,
+    height: '100%',
+    left: '20%',
+  },
+  gridLineVertical: {
+    left: '40%',
+  },
+  gridLineHorizontal: {
+    width: '100%',
+    height: 1,
+    top: '30%',
+    left: 0,
+  },
+  floatingElement: {
+    position: 'absolute',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 100,
   },
-  titleContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  titleText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#fff', // Exact DT QUIZ white text
-    textAlign: 'center',
-    textShadowColor: '#667eea', // Exact DT QUIZ purple shadow
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
-    // Exact DT QUIZ stitched effect
-    borderWidth: 3,
-    borderColor: '#667eea', // Exact DT QUIZ purple border
-    borderStyle: 'dashed',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginVertical: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  subtitleContainer: {
-    alignItems: 'center',
-  },
-  subtitleText: {
-    fontSize: 18,
-    color: '#667eea', // Exact DT QUIZ purple
-    textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 30,
-    fontWeight: '600',
-    textShadowColor: 'rgba(102, 126, 234, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  buttonContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingBottom: 50,
-  },
-  button: {
-    paddingVertical: 16,
-    paddingHorizontal: 40,
+  educationalIconContainer: {
+    width: 50,
+    height: 50,
     borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -410,14 +289,182 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  floatingElement1: {
+    top: height * 0.15,
+    left: width * 0.1,
+  },
+  floatingElement2: {
+    top: height * 0.25,
+    right: width * 0.1,
+  },
+  floatingElement3: {
+    bottom: height * 0.2,
+    left: width * 0.15,
+  },
+  decorativeCircle: {
+    position: 'absolute',
+    borderRadius: 100,
+    opacity: 0.1,
+  },
+  circle1: {
+    width: width * 0.4,
+    height: width * 0.4,
+    backgroundColor: '#FFFFFF',
+    top: -width * 0.2,
+    right: -width * 0.1,
+  },
+  circle2: {
+    width: width * 0.3,
+    height: width * 0.3,
+    backgroundColor: '#FFFFFF',
+    bottom: -width * 0.15,
+    left: -width * 0.1,
+  },
+  circle3: {
+    width: width * 0.25,
+    height: width * 0.25,
+    backgroundColor: '#FFFFFF',
+    top: height * 0.1,
+    left: width * 0.1,
+  },
+  circle4: {
+    width: width * 0.2,
+    height: width * 0.2,
+    backgroundColor: '#FFFFFF',
+    bottom: height * 0.1,
+    right: width * 0.1,
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 15,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    position: 'relative',
+  },
+  logoGlow: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    backgroundColor: '#FFD700',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  titleText: {
+    fontSize: 48,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
+    letterSpacing: 3,
+    marginVertical: 3,
+  },
+  educationalBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  badgeText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginLeft: 6,
+    letterSpacing: 0.5,
+  },
+  subtitleContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  subtitleText: {
+    fontSize: 22,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '700',
+    marginBottom: 10,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    letterSpacing: 1,
+  },
+  subtitleDescription: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 30,
+    fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+  buttonContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingBottom: 60,
+  },
+  educationalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  educationalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    letterSpacing: 0.5,
   },
 });
 

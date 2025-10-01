@@ -7,6 +7,7 @@ import React from 'react';
 import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 // import client from '../../api/client';
 import KYCDocumentForm from '@/components/KYCDocumentForm';
+import RazorpayPaymentModal from '@/components/RazorpayPaymentModal';
 import { apiFetchAuth } from '@/constants/api';
 
 const WalletScreen = () => {
@@ -21,6 +22,7 @@ const WalletScreen = () => {
     const [depositAmount, setDepositAmount] = React.useState('');
     const [depositLoading, setDepositLoading] = React.useState(false);
     const [kycModalVisible, setKycModalVisible] = React.useState(false);
+    const [razorpayModalVisible, setRazorpayModalVisible] = React.useState(false);
 
     const fetchWalletData = React.useCallback(async () => {
         if (!user?.token) {
@@ -104,6 +106,17 @@ const WalletScreen = () => {
         } finally {
             setDepositLoading(false);
         }
+    };
+
+    const handleRazorpayPayment = () => {
+        setDepositModalVisible(false);
+        setRazorpayModalVisible(true);
+    };
+
+    const handleRazorpaySuccess = (paymentData: any) => {
+        fetchWalletData(); // Refresh wallet data
+        refreshWalletAmount(); // Update global wallet amount
+        setRazorpayModalVisible(false);
     };
 
     if (loading) {
@@ -295,6 +308,20 @@ const WalletScreen = () => {
                                     </>
                                 )}
                             </TouchableOpacity>
+
+                            <View style={styles.dividerContainer}>
+                                <View style={styles.dividerLine} />
+                                <Text style={styles.dividerText}>OR</Text>
+                                <View style={styles.dividerLine} />
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.razorpayButton}
+                                onPress={handleRazorpayPayment}
+                            >
+                                <Ionicons name="card" size={20} color="#FFFFFF" />
+                                <Text style={styles.razorpayButtonText}>Pay with Razorpay</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
@@ -306,7 +333,19 @@ const WalletScreen = () => {
                 onClose={() => setKycModalVisible(false)}
                 onSuccess={() => {
                     // Optionally refresh wallet data or show success message
-                    console.log('KYC document uploaded successfully');
+                }}
+            />
+
+            {/* Razorpay Payment Modal */}
+            <RazorpayPaymentModal
+                visible={razorpayModalVisible}
+                onClose={() => setRazorpayModalVisible(false)}
+                onSuccess={handleRazorpaySuccess}
+                userToken={user?.token || ''}
+                userDetails={{
+                    name: user?.name || '',
+                    email: user?.email || '',
+                    contact: user?.phoneNumber || user?.phone || ''
                 }}
             />
         </View>
@@ -764,6 +803,42 @@ const styles = StyleSheet.create({
         backgroundColor: '#9CA3AF',
     },
     depositButtonText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+        fontSize: 16,
+        marginLeft: 8,
+    },
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 20,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#E5E7EB',
+    },
+    dividerText: {
+        marginHorizontal: 16,
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    razorpayButton: {
+        backgroundColor: '#10B981',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 16,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    razorpayButtonText: {
         color: '#FFFFFF',
         fontWeight: '700',
         fontSize: 16,

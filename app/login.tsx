@@ -1,17 +1,16 @@
 import OTPVerification from '@/components/OTPVerification';
+import { firebaseConfig } from '@/config/firebase';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import authService from '@/services/authServiceFirebaseJS';
-import { AntDesign, FontAwesome, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState, useRef } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-import { auth, firebaseConfig } from '@/config/firebase';
 import { signInWithPhoneNumber } from 'firebase/auth';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const Login = () => {
   const auth = useAuth();
@@ -67,7 +66,6 @@ const Login = () => {
       setShowOTP(true);
       showSuccess('OTP sent successfully!');
     } catch (error: any) {
-      console.log(error);
       showError('Failed to send OTP. Make sure you are running on a real device or simulator.');
     } finally {
       setOtpLoading(false);

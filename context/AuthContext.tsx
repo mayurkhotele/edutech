@@ -71,15 +71,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             setFirebaseUser(firebaseUser);
-            console.log('Firebase auth state changed:', firebaseUser ? 'User logged in' : 'User logged out');
         });
 
         return () => unsubscribe();
     }, []);
 
     const login = async (email: string, password: string) => {
-        console.log('AuthContext login called with email:', email);
-        console.log('API URL:', '/auth/login');
 
         const trimmedEmail = (email || '').trim();
         const trimmedPassword = (password || '').trim();
@@ -100,23 +97,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         let lastError: any = null;
         for (const attempt of candidateBodies) {
             try {
-                console.log('Making API call to login with payload shape:', attempt.label);
                 const response = await apiFetch('/auth/login', {
                     method: 'POST',
                     body: attempt.body,
                 });
 
-                console.log('API response received:', response?.status);
 
                 if (response.ok) {
                     const { token, user: userData } = response.data;
                     const userWithToken = { ...userData, token } as any;
-                    console.log('Login successful - New user data:', userWithToken);
                     setUser(userWithToken);
                     await storeAuthData(token, userData);
                     return userWithToken;
                 } else {
-                    console.log('Login failed - response not ok for payload shape:', attempt.label, response);
                     lastError = response.data || response;
                 }
             } catch (error: any) {
@@ -130,27 +123,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const register = async (userData: { name: string; email: string; password: string; phoneNumber: string; referralCode?: string }) => {
-        console.log('AuthContext register called with user data:', userData);
-        console.log('API URL:', '/auth/register');
 
         try {
-            console.log('Making API call to register...');
             const response = await apiFetch('/auth/register', {
                 method: 'POST',
                 body: userData,
             });
 
-            console.log('API response received:', response);
 
             if (response.ok) {
                 const { token, user: registeredUser } = response.data;
                 const userWithToken = { ...registeredUser, token };
-                console.log('Registration successful - New user data:', userWithToken);
                 setUser(userWithToken);
                 await storeAuthData(token, registeredUser);
                 return userWithToken;
             } else {
-                console.log('Registration failed - response not ok:', response);
                 // Handle different types of errors
                 if (response.data && response.data.message) {
                     throw new Error(response.data.message);
@@ -168,7 +155,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const logout = async () => {
-        console.log('Logging out - Clearing user data');
         setUser(null);
         setFirebaseUser(null);
         await clearAuthData();
@@ -178,7 +164,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error) {
             console.error('Firebase sign out error:', error);
         }
-        console.log('Logout completed - User state cleared');
     };
 
     const updateUser = (userData: Partial<User>) => {

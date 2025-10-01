@@ -58,8 +58,6 @@ export default function ExamScreen() {
                 )] as string[];
                 
                 // Debug: Log available categories from exam data
-                console.log('Available exam categories from data:', uniqueCategories);
-                console.log('Total exams:', response.data.length);
                 
                 // Check if there are any uncategorized exams
                 const hasUncategorized = response.data.some((exam: any) => !exam.category || exam.category === null);

@@ -48,7 +48,6 @@ const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
 
     // Check if user has sufficient balance
     const hasSufficientBalance = () => {
-        console.log('Checking balance - Wallet:', walletBalance, 'Fee:', exam.entryFee);
         return walletBalance >= exam.entryFee;
     };
 
@@ -241,9 +240,6 @@ const ExamCard = ({ exam, navigation, hideAttemptButton = false }: any) => {
                 const currentBalance = response.data.balance || 0;
                 setWalletBalance(currentBalance);
                 
-                console.log('Wallet Balance:', currentBalance);
-                console.log('Exam Entry Fee:', exam.entryFee);
-                console.log('Has Sufficient Balance:', currentBalance >= exam.entryFee);
                 
                 // Check if user has sufficient balance
                 if (currentBalance < exam.entryFee) {

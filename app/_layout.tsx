@@ -5,13 +5,14 @@ import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
-import React, { useState } from 'react';
+import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-gesture-handler';
 import CustomDrawerContent from '../components/CustomDrawerContent';
 import ErrorBoundary from '../components/ErrorBoundary';
-import SplashScreen from '../components/SplashScreen';
+import { NotificationBadge } from '../components/NotificationBadge';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { NotificationProvider } from '../context/NotificationContext';
 import { RefreshProvider } from '../context/RefreshContext';
 import { ToastProvider } from '../context/ToastContext';
 import { WalletProvider, useWallet } from '../context/WalletContext';
@@ -35,14 +36,7 @@ const HeaderRight = ({ navigation }: any) => {
     return (
         <View style={styles.headerRight}>
             {/* Enhanced Notification Icon */}
-            <TouchableOpacity style={styles.notificationContainer}>
-                <View style={styles.notificationIconContainer}>
-                    <Ionicons name="notifications" size={22} color="#FFFFFF" />
-                </View>
-                <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>3</Text>
-                </View>
-            </TouchableOpacity>
+            <NotificationBadge size={22} color="#FFFFFF" />
             
             {/* Enhanced Wallet Amount */}
             <TouchableOpacity 
@@ -224,32 +218,25 @@ function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const colorScheme = useColorScheme();
-  const [showSplash, setShowSplash] = useState(true);
-
-  const handleSplashFinish = () => {
-    setShowSplash(false);
-  };
 
   if (!loaded) {
     // Async font loading only occurs in development.
     return null;
   }
 
-  if (showSplash) {
-    return <SplashScreen onFinish={handleSplashFinish} />;
-  }
-
   return (
     <AuthProvider>
-      <WebSocketProvider>
-        <RefreshProvider>
-          <ToastProvider>
-            <ErrorBoundary>
-              <RootNavigator />
-            </ErrorBoundary>
-          </ToastProvider>
-        </RefreshProvider>
-      </WebSocketProvider>
+      <NotificationProvider>
+        <WebSocketProvider>
+          <RefreshProvider>
+            <ToastProvider>
+              <ErrorBoundary>
+                <RootNavigator />
+              </ErrorBoundary>
+            </ToastProvider>
+          </RefreshProvider>
+        </WebSocketProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

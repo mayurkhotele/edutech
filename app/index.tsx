@@ -1,20 +1,43 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 
 const Welcome = () => {
     const router = useRouter();
+    const [showContent, setShowContent] = useState(false);
+    const [displayText, setDisplayText] = useState('');
     const glow = useRef(new Animated.Value(0)).current;
     const float1 = useRef(new Animated.Value(0)).current;
     const float2 = useRef(new Animated.Value(0)).current;
     const float3 = useRef(new Animated.Value(0)).current;
+    const loadingDot1 = useRef(new Animated.Value(0)).current;
+    const loadingDot2 = useRef(new Animated.Value(0)).current;
+    const loadingDot3 = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
+        // Simple typing animation for YOTTASCORE
+        const fullText = 'YOTTASCORE';
+        let currentIndex = 0;
+        
+        const typingInterval = setInterval(() => {
+            if (currentIndex < fullText.length) {
+                setDisplayText(fullText.substring(0, currentIndex + 1));
+                currentIndex++;
+            } else {
+                clearInterval(typingInterval);
+            }
+        }, 200); // 200ms delay between each letter
+
+        // 10-second delay before showing content
+        const timer = setTimeout(() => {
+            setShowContent(true);
+        }, 10000);
+
         Animated.loop(
             Animated.sequence([
                 Animated.timing(glow, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -31,10 +54,39 @@ const Welcome = () => {
         mkFloat(float1, 2600);
         mkFloat(float2, 3000);
         mkFloat(float3, 2200);
+
+        // Animated loading dots
+        const animateLoadingDots = () => {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(loadingDot1, { toValue: 1, duration: 600, useNativeDriver: true }),
+                    Animated.timing(loadingDot2, { toValue: 1, duration: 600, useNativeDriver: true }),
+                    Animated.timing(loadingDot3, { toValue: 1, duration: 600, useNativeDriver: true }),
+                    Animated.timing(loadingDot1, { toValue: 0, duration: 600, useNativeDriver: true }),
+                    Animated.timing(loadingDot2, { toValue: 0, duration: 600, useNativeDriver: true }),
+                    Animated.timing(loadingDot3, { toValue: 0, duration: 600, useNativeDriver: true }),
+                ])
+            ).start();
+        };
+        animateLoadingDots();
+
+
+        return () => {
+            clearTimeout(timer);
+            clearInterval(typingInterval);
+        };
     }, [glow]);
 
-    const handleLogin = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}; router.push('/login'); };
-    const handleRegister = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}; router.push('/register'); };
+    const handleLogin = () => { 
+        if (!showContent) return;
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}; 
+        router.push('/login'); 
+    };
+    const handleRegister = () => { 
+        if (!showContent) return;
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}; 
+        router.push('/register'); 
+    };
     
 
   return (
@@ -46,12 +98,6 @@ const Welcome = () => {
             <View style={[styles.purpleBlob, styles.blob2]} />
             <View style={[styles.purpleBlob, styles.blob3]} />
             
-            {/* Yellow Accent Circles */}
-            <View style={[styles.yellowCircle, styles.circle1]} />
-            <View style={[styles.yellowCircle, styles.circle2]} />
-            <View style={[styles.yellowCircle, styles.circle3]} />
-            <View style={[styles.yellowCircle, styles.circle4]} />
-            <View style={[styles.yellowCircle, styles.circle5]} />
             
             {/* Line Art Icons */}
             <View style={[styles.lineIcon, styles.lightbulb]}>
@@ -103,70 +149,183 @@ const Welcome = () => {
                 <Ionicons name="add" size={12} color="#e0e0e0" />
             </View>
             
-            {/* Small Abstract Elements */}
-            <View style={[styles.smallDot, styles.dot1]} />
-            <View style={[styles.smallDot, styles.dot2]} />
-            <View style={[styles.smallDot, styles.dot3]} />
-            <View style={[styles.smallDot, styles.dot4]} />
-            <View style={[styles.smallDot, styles.dot5]} />
 
-            {/* Study-themed animated icons */}
-            <Animated.View style={[styles.studyIcon, {
-                top: height * 0.22,
-                left: width * 0.12,
+            {/* Enhanced Study-themed animated icons */}
+            <Animated.View style={[styles.studyIcon, styles.studyIcon1, {
                 transform: [
                     { translateY: float1.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) },
                     { rotate: float1.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '6deg'] }) }
                 ]
             }]}>
+                <View style={styles.iconContainer}>
                 <Ionicons name="book-outline" size={26} color="#ffffff" />
+                </View>
             </Animated.View>
-            <Animated.View style={[styles.studyIcon, {
-                top: height * 0.55,
-                right: width * 0.18,
+            <Animated.View style={[styles.studyIcon, styles.studyIcon2, {
                 transform: [
                     { translateY: float2.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
                     { rotate: float2.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-8deg'] }) }
                 ]
             }]}>
+                <View style={styles.iconContainer}>
                 <Ionicons name="pencil-outline" size={24} color="#ffffff" />
+                </View>
             </Animated.View>
-            <Animated.View style={[styles.studyIcon, {
-                bottom: height * 0.18,
-                left: width * 0.2,
+            <Animated.View style={[styles.studyIcon, styles.studyIcon3, {
                 transform: [
                     { translateY: float3.interpolate({ inputRange: [0, 1], outputRange: [0, -7] }) },
                     { rotate: float3.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '5deg'] }) }
                 ]
             }]}>
+                <View style={styles.iconContainer}>
                 <Ionicons name="school-outline" size={24} color="#ffffff" />
+                </View>
+            </Animated.View>
+            
+            {/* Additional floating elements */}
+            <Animated.View style={[styles.floatingElement, styles.floatingStar, {
+                transform: [
+                    { translateY: float1.interpolate({ inputRange: [0, 1], outputRange: [0, -12] }) },
+                    { rotate: float1.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }
+                ]
+            }]}>
+                <Ionicons name="star" size={20} color="#FFD700" />
+            </Animated.View>
+            
+            <Animated.View style={[styles.floatingElement, styles.floatingTrophy, {
+                transform: [
+                    { translateY: float2.interpolate({ inputRange: [0, 1], outputRange: [0, -9] }) },
+                    { scale: float2.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) }
+                ]
+            }]}>
+                <Ionicons name="trophy" size={18} color="#FFD700" />
             </Animated.View>
         </View>
 
         {/* Main Content */}
         <View style={styles.contentContainer}>
-            {/* Logo + Title */}
+            {/* Enhanced Logo + Title */}
             <Animated.View style={[styles.logoWrap, {
                 transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }],
                 opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] })
             }]}>
-                <View style={styles.logoBadge}>
-                    <Ionicons name="school" size={26} color="#fff" />
+                <View style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 15,
+                    borderWidth: 2,
+                    borderColor: 'rgba(255,255,255,0.4)',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 12,
+                    elevation: 12,
+                    position: 'relative',
+                }}>
+                    <View style={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: 25,
+                        backgroundColor: 'rgba(255,255,255,0.3)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        shadowColor: '#fff',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.5,
+                        shadowRadius: 8,
+                        elevation: 8,
+                    }}>
+                        <Ionicons name="school" size={32} color="#fff" />
+                    </View>
                 </View>
                 <View style={styles.titleContainer}>
-                    <Text style={styles.brandLine}>YOTTA</Text>
-                    <Text style={styles.brandLine}>SCORE</Text>
+                    <Text style={styles.brandLine}>{displayText}</Text>
                 </View>
             </Animated.View>
             {/* Tagline */}
-            <View style={styles.taglineChip}>
-                <Ionicons name="sparkles" size={14} color="#a78bfa" />
+            <TouchableOpacity activeOpacity={0.9} style={styles.taglineChip}>
+                <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.taglineGradient}>
+                    <Ionicons name="sparkles" size={14} color="#ffffff" />
                 <Text style={styles.taglineText}>Smart Learning Platform</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+            
+            {/* Enhanced Inspirational Quote */}
+            <Animated.View style={[styles.quoteContainer, {
+                opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }),
+                transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.02] }) }]
+            }]}>
+                <View style={styles.quoteBackground}>
+                    <Text style={styles.quoteText}>Prep • Play • Win</Text>
+                    <View style={styles.quoteUnderline} />
+                </View>
+                <View style={styles.quoteAccentDots}>
+                    <View style={styles.accentDot} />
+                    <View style={styles.accentDot} />
+                    <View style={styles.accentDot} />
             </View>
+            </Animated.View>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
+            {!showContent ? (
+                <View style={styles.loadingContainer}>
+                    <Text style={styles.loadingText}>Loading...</Text>
+                    <View style={styles.loadingDots}>
+                        <Animated.View style={[
+                            styles.loadingDot, 
+                            { 
+                                opacity: loadingDot1.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.3, 1]
+                                }),
+                                transform: [{
+                                    scale: loadingDot1.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0.8, 1.2]
+                                    })
+                                }]
+                            }
+                        ]} />
+                        <Animated.View style={[
+                            styles.loadingDot, 
+                            { 
+                                opacity: loadingDot2.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.3, 1]
+                                }),
+                                transform: [{
+                                    scale: loadingDot2.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0.8, 1.2]
+                                    })
+                                }]
+                            }
+                        ]} />
+                        <Animated.View style={[
+                            styles.loadingDot, 
+                            { 
+                                opacity: loadingDot3.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.3, 1]
+                                }),
+                                transform: [{
+                                    scale: loadingDot3.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0.8, 1.2]
+                                    })
+                                }]
+                            }
+                        ]} />
+                    </View>
+                </View>
+            ) : (
+                <>
             <TouchableOpacity onPress={handleLogin} activeOpacity={0.9} style={styles.primaryBtn}>
                 <LinearGradient colors={[ '#f59e0b', '#f97316' ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnBg}>
                     <Text style={styles.primaryBtnText}>Login</Text>
@@ -178,6 +337,8 @@ const Welcome = () => {
                     <Text style={styles.primaryBtnText}>Register</Text>
                 </LinearGradient>
             </TouchableOpacity>
+                </>
+            )}
         </View>
     </LinearGradient>
   )
@@ -221,46 +382,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFD452', // Your app's yellow
         bottom: height * 0.1,
         left: width * 0.3,
-    },
-    yellowCircle: {
-        position: 'absolute',
-        borderRadius: 100,
-        opacity: 0.08,
-    },
-    circle1: {
-        width: width * 0.3,
-        height: width * 0.3,
-        backgroundColor: '#FFD452', // Your app's yellow
-        top: height * 0.2,
-        left: width * 0.1,
-    },
-    circle2: {
-        width: width * 0.2,
-        height: width * 0.2,
-        backgroundColor: '#FF6CAB', // Your app's pink
-        bottom: height * 0.4,
-        right: width * 0.2,
-    },
-    circle3: {
-        width: width * 0.4,
-        height: width * 0.4,
-        backgroundColor: '#6C63FF', // Your app's purple
-        bottom: height * 0.6,
-        left: width * 0.4,
-    },
-    circle4: {
-        width: width * 0.3,
-        height: width * 0.3,
-        backgroundColor: '#FFD452', // Your app's yellow
-        top: height * 0.7,
-        right: width * 0.3,
-    },
-    circle5: {
-        width: width * 0.2,
-        height: width * 0.2,
-        backgroundColor: '#FF6CAB', // Your app's pink
-        bottom: height * 0.8,
-        left: width * 0.5,
     },
     lineIcon: {
         position: 'absolute',
@@ -325,34 +446,43 @@ const styles = StyleSheet.create({
     },
     studyIcon: {
         position: 'absolute',
-        opacity: 0.25,
+        opacity: 0.3,
     },
-    smallDot: {
-        position: 'absolute',
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#e0e0e0',
+    studyIcon1: {
+        top: height * 0.22,
+        left: width * 0.12,
     },
-    dot1: {
-        top: height * 0.2,
-        left: width * 0.1,
+    studyIcon2: {
+        top: height * 0.55,
+        right: width * 0.18,
     },
-    dot2: {
-        top: height * 0.4,
-        right: width * 0.1,
-    },
-    dot3: {
-        bottom: height * 0.2,
+    studyIcon3: {
+        bottom: height * 0.18,
         left: width * 0.2,
     },
-    dot4: {
-        bottom: height * 0.4,
-        right: width * 0.2,
+    iconContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 20,
+        padding: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
     },
-    dot5: {
-        top: height * 0.6,
-        left: width * 0.3,
+    floatingElement: {
+        position: 'absolute',
+        opacity: 0.6,
+    },
+    floatingStar: {
+        top: height * 0.15,
+        right: width * 0.15,
+    },
+    floatingTrophy: {
+        bottom: height * 0.25,
+        right: width * 0.1,
     },
     contentContainer: {
         flex: 1,
@@ -365,9 +495,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 20,
     },
+    animatedTextContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     brandLine: {
-        fontSize: 46,
-        fontWeight: '900',
+        fontSize: 32,
+        fontWeight: '800',
         color: '#ffffff',
         letterSpacing: 2,
     },
@@ -385,6 +520,52 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.25)'
     },
+    enhancedLogoBadge: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 15,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.4)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 12,
+        position: 'relative',
+    },
+    logoInnerGlow: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255,255,255,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#fff',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    logoAccentRing: {
+        position: 'absolute',
+        top: -5,
+        right: -5,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: '#FFD700',
+        borderWidth: 2,
+        borderColor: '#fff',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 6,
+        elevation: 6,
+    },
     subtitleText: {
         fontSize: 18,
         color: '#667eea',
@@ -398,19 +579,89 @@ const styles = StyleSheet.create({
     },
     taglineChip: {
         marginTop: 8,
-        backgroundColor: 'rgba(255,255,255,0.12)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
         borderRadius: 999,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    taglineGradient: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 6,
+        borderRadius: 999,
     },
     taglineText: {
-        color: '#e9d5ff',
-        fontWeight: '700'
+        color: '#ffffff',
+        fontWeight: '700',
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
+    },
+    quoteContainer: {
+        alignItems: 'center',
+        marginTop: 25,
+        marginBottom: 15,
+        position: 'relative',
+    },
+    quoteBackground: {
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 12,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.15)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.15,
+        shadowRadius: 2,
+        elevation: 2,
+        alignItems: 'center',
+    },
+    quoteText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#ffffff',
+        textAlign: 'center',
+        letterSpacing: 1.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.2)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
+        marginBottom: 4,
+    },
+    quoteUnderline: {
+        width: 35,
+        height: 1.5,
+        backgroundColor: '#FFD700',
+        borderRadius: 1,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    quoteAccentDots: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 6,
+        gap: 4,
+    },
+    accentDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#FFD700',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 1,
+        elevation: 1,
     },
     buttonContainer: {
         flexDirection: 'row',
@@ -442,6 +693,33 @@ const styles = StyleSheet.create({
     ghostBtnText: { color: 'white', fontSize: 18, fontWeight: '800' },
     separator: {
         width: 20,
+    },
+    loadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
+    },
+    loadingText: {
+        color: '#ffffff',
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 15,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
+    },
+    loadingDots: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    loadingDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#ffffff',
+        opacity: 0.3,
     },
     guestLinkWrap: { alignItems: 'center', paddingBottom: 20 },
     guestLink: { color: '#e9d5ff', fontWeight: '700' },

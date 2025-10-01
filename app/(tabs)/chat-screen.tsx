@@ -3,24 +3,27 @@ import { useAuth } from '@/context/AuthContext';
 import { useWebSocket } from '@/context/WebSocketContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  RefreshControl,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    RefreshControl,
+    SafeAreaView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface User {
@@ -66,7 +69,7 @@ interface ChatScreenProps {
   };
 }
 
-const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
+const ChatScreen = ({ route }: ChatScreenProps) => {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
   const userId = params.userId as string || '';
@@ -111,9 +114,255 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{
+    uri: string;
+    fileName: string;
+    fileType: 'IMAGE' | 'PDF' | 'EXCEL';
+    uploadedUrl?: string;
+  } | null>(null);
+  const [showFileOptions, setShowFileOptions] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
+  const textInputRef = useRef<TextInput>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Helper function to check if two dates are the same day
+  const isSameDay = (date1: Date, date2: Date) => {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  };
+
+  // Format message time to relative format (Today, Yesterday, etc.)
+  const formatMessageTime = (dateString: string) => {
+    const messageDate = new Date(dateString);
+    const now = new Date();
+    
+    // Set to midnight for date comparison
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const messageDay = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
+
+    // Check if it's today
+    if (messageDay.getTime() === today.getTime()) {
+      return messageDate.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    }
+    
+    // Check if it's yesterday
+    if (messageDay.getTime() === yesterday.getTime()) {
+      return 'Yesterday';
+    }
+    
+    // Check if it's within last 7 days
+    const oneWeekAgo = new Date(today);
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    if (messageDay >= oneWeekAgo) {
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return days[messageDate.getDay()];
+    }
+    
+    // If older than a week, show date
+    return messageDate.toLocaleDateString([], {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Common emojis list
+  const commonEmojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
+    '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩',
+    '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜',
+    '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐',
+    '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬',
+    '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒',
+    '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '😶‍🌫️', '😵',
+    '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕', '😟',
+    '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦',
+    '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖',
+    '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡',
+    '😠', '🤬', '👍', '👎', '👏', '🙏', '💪', '❤️',
+    '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎',
+    '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘',
+    '💝', '✨', '⭐', '🌟', '💫', '🔥', '💯', '✅',
+  ];
+
+  // Insert emoji into text
+  const insertEmoji = (emoji: string) => {
+    setNewMessage((prev) => prev + emoji);
+    setShowEmojiPicker(false);
+    textInputRef.current?.focus();
+  };
+
+  // Handle document selection
+  const handleDocumentSelect = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        copyToCacheDirectory: true
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const file = result.assets[0];
+        const fileType = file.mimeType?.includes('pdf') ? 'PDF' : 'EXCEL';
+        
+        setSelectedFile({
+          uri: file.uri,
+          fileName: file.name || `file.${fileType.toLowerCase()}`,
+          fileType: fileType
+        });
+
+        setIsUploading(true);
+        await handleFileUpload(file);
+      }
+    } catch (error) {
+      console.error('Error selecting document:', error);
+      Alert.alert('Error', 'Failed to select document. Please try again.');
+    } finally {
+      setShowFileOptions(false);
+    }
+  };
+
+  // Handle image selection
+  const handleImageSelect = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const fileUri = result.assets[0].uri;
+        const fileName = fileUri.split('/').pop() || 'image.jpg';
+        
+        setSelectedFile({
+          uri: fileUri,
+          fileName: fileName,
+          fileType: 'IMAGE'
+        });
+
+        setIsUploading(true);
+        await handleFileUpload({
+          uri: fileUri,
+          name: fileName,
+          type: 'image/jpeg'
+        });
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    } finally {
+      setShowFileOptions(false);
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (file: { uri: string; type?: string | null; name?: string }) => {
+    try {
+      const formData = new FormData();
+      const fileToUpload = {
+        uri: file.uri,
+        type: file.type || 'application/octet-stream',
+        name: file.name || file.uri.split('/').pop() || 'file'
+      } as any;
+      formData.append('file', fileToUpload);
+
+      if (!currentUser?.token) {
+        throw new Error('No authentication token');
+      }
+
+      const uploadResponse = await fetch('http://192.168.1.6:3000/api/upload', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${currentUser.token}`,
+        },
+      });
+
+      const uploadData = await uploadResponse.json();
+
+      if (uploadData.url) {
+        setSelectedFile(prev => prev ? {
+          ...prev,
+          uploadedUrl: uploadData.url
+        } : null);
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setSelectedFile(null);
+      
+      if (error instanceof TypeError && error.message.includes('Network request failed')) {
+        Alert.alert(
+          'Network Error',
+          'Failed to connect to server. Please check your internet connection and try again.'
+        );
+      } else {
+        Alert.alert(
+          'Upload Failed',
+          'Failed to upload file. Please try again later.'
+        );
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Handle sending message with file
+  const sendFileMessage = async () => {
+    if (!selectedFile?.uploadedUrl || !currentUser?.token) return;
+
+    try {
+      const messagePayload = {
+        receiverId: userId,
+        content: selectedFile.fileName,
+        messageType: selectedFile.fileType,
+        fileUrl: selectedFile.uploadedUrl,
+      };
+
+      const response = await apiFetchAuth('/student/messages', currentUser.token, {
+        method: 'POST',
+        body: messagePayload,
+      });
+
+      if (response.data) {
+        const result = response.data;
+        if (result.type === 'direct' && result.message) {
+          setMessages(prev => [...prev, result.message]);
+        }
+      }
+
+      setSelectedFile(null);
+    } catch (error) {
+      console.error('Error sending file message:', error);
+      Alert.alert('Error', 'Failed to send file. Please try again.');
+    }
+  };
+
+  // Handle keyboard events
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      if (messages.length > 0) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, [messages]);
 
   // Fetch messages when component mounts or userId changes
   useEffect(() => {
@@ -537,11 +786,27 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
     }
   };
 
-    const renderMessage = ({ item }: { item: Message }) => {
+    // Render date separator
+    const renderDateSeparator = (date: string) => (
+      <View style={styles.dateSeparator}>
+        <View style={styles.dateSeparatorLine} />
+        <Text style={styles.dateSeparatorText}>{formatMessageTime(date)}</Text>
+        <View style={styles.dateSeparatorLine} />
+      </View>
+    );
+
+    const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.sender.id === currentUser?.id;
     
+    // Check if we need to show date separator
+    const showDateSeparator = index === 0 || (
+      index > 0 && !isSameDay(new Date(messages[index - 1].createdAt), new Date(item.createdAt))
+    );
+    
     return (
-      <View style={[
+      <>
+        {showDateSeparator && renderDateSeparator(item.createdAt)}
+        <View style={[
         styles.messageContainer,
         isMyMessage ? styles.myMessageContainer : styles.theirMessageContainer
       ]}>
@@ -560,48 +825,40 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
           </View>
         )}
         
-        {/* Message Bubble */}
-        <View style={[
-          styles.messageBubble,
-          isMyMessage ? styles.myMessageBubble : styles.theirMessageBubble
-        ]}>
-          {/* File/Image Message */}
-          {item.fileUrl && item.messageType === 'IMAGE' ? (
-            <Image 
-              source={{ uri: item.fileUrl }} 
-              style={styles.messageImage}
-              resizeMode="cover"
-            />
-          ) : item.fileUrl ? (
-            <View style={styles.fileMessage}>
-              <Ionicons name="document" size={20} color={isMyMessage ? "#fff" : "#1877f2"} />
+        <View style={{ flex: 1 }}>
+          {/* Message Bubble */}
+          <LinearGradient
+            colors={isMyMessage ? ['#4F46E5', '#7C3AED'] : ['#f8f9fa', '#e9ecef']}
+            style={[
+              styles.enhancedMessageBubble,
+              isMyMessage ? styles.myMessageBubble : styles.theirMessageBubble
+            ]}
+          >
+            {/* File/Image Message */}
+            {item.fileUrl && item.messageType === 'IMAGE' ? (
+              <Image 
+                source={{ uri: item.fileUrl }} 
+                style={styles.messageImage}
+                resizeMode="cover"
+              />
+            ) : item.fileUrl ? (
+              <View style={styles.fileMessage}>
+                <Ionicons name="document" size={20} color={isMyMessage ? "#fff" : "#1877f2"} />
+                <Text style={[
+                  styles.fileText,
+                  isMyMessage ? styles.myMessageText : styles.theirMessageText
+                ]}>
+                  {item.content}
+                </Text>
+              </View>
+            ) : (
               <Text style={[
-                styles.fileText,
+                styles.messageText,
                 isMyMessage ? styles.myMessageText : styles.theirMessageText
               ]}>
                 {item.content}
               </Text>
-            </View>
-          ) : (
-            <Text style={[
-              styles.messageText,
-              isMyMessage ? styles.myMessageText : styles.theirMessageText
-            ]}>
-              {item.content}
-            </Text>
-          )}
-          
-          {/* Message Footer */}
-          <View style={styles.messageFooter}>
-            <Text style={[
-              styles.messageTime,
-              isMyMessage ? styles.myMessageTime : styles.theirMessageTime
-            ]}>
-              {new Date(item.createdAt).toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </Text>
+            )}
             
             {/* Read Status for my messages */}
             {isMyMessage && (
@@ -613,7 +870,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
                 />
               </View>
             )}
-          </View>
+          </LinearGradient>
 
           {/* Accept/Reject buttons for message requests */}
           {item.isRequest && !isMyMessage && (
@@ -634,6 +891,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
           )}
         </View>
       </View>
+      </>
     );
   };
 
@@ -641,56 +899,56 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Enhanced Professional Header */}
+      <LinearGradient
+        colors={['#4F46E5', '#7C3AED']}
+        style={styles.enhancedHeader}
+      >
+        <View style={styles.headerContent}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#1877f2" />
+            <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         
         <View style={styles.userInfo}>
-          <View style={styles.userAvatar}>
+            <View style={styles.avatarContainer}>
             {userProfilePhoto ? (
-              <Image source={{ uri: userProfilePhoto }} style={styles.avatarImage} />
+                <Image 
+                  source={{ uri: userProfilePhoto }} 
+                  style={styles.enhancedAvatar}
+                />
             ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarInitials}>
+                <View style={styles.enhancedAvatarPlaceholder}>
+                  <Text style={styles.enhancedAvatarInitials}>
                   {userName && userName.length > 0 ? userName.charAt(0).toUpperCase() : 'U'}
                 </Text>
               </View>
             )}
+              {isConnected && <View style={styles.onlineIndicator} />}
           </View>
+            
                    <View style={styles.userDetails}>
-           <Text style={styles.userName}>{userName}</Text>
-           <Text style={styles.userStatus}>
-             {isFollowing ? 'Following' : 'Not Following'}
-             {!isConnected && ' • Offline'}
+              <Text style={styles.enhancedUserName}>{userName}</Text>
+              <Text style={styles.enhancedUserStatus}>
+                {isConnected ? 'Online' : 'Offline'}
            </Text>
          </View>
         </View>
         
+          <View style={styles.headerActions}>
                  <TouchableOpacity 
-           style={styles.moreButton}
+              style={styles.headerAction}
            onPress={() => {
-             console.log('🔄 Manual refresh triggered');
              fetchMessages(userId, true);
            }}
          >
-           <Ionicons name="refresh" size={24} color="#1877f2" />
-         </TouchableOpacity>
-         
-         <TouchableOpacity 
-           style={styles.moreButton}
-           onPress={() => {
-             console.log('🔌 Manual WebSocket connect triggered');
-             connect();
-           }}
-         >
-           <Ionicons name="wifi" size={24} color={isConnected ? "#4CAF50" : "#f39c12"} />
+              <Ionicons name="refresh" size={22} color="#fff" />
          </TouchableOpacity>
       </View>
+        </View>
+      </LinearGradient>
 
 
        {/* Messages */}
@@ -732,6 +990,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
              showsVerticalScrollIndicator={false}
              contentContainerStyle={styles.messagesList}
              style={styles.messagesFlatList}
+             onLayout={() => {
+               if (messages.length > 0) {
+                 flatListRef.current?.scrollToEnd({ animated: false });
+               }
+             }}
+             onContentSizeChange={() => {
+               if (messages.length > 0) {
+                 flatListRef.current?.scrollToEnd({ animated: true });
+               }
+             }}
              refreshControl={
                <RefreshControl
                  refreshing={refreshing}
@@ -747,43 +1015,156 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route }) => {
       {/* Message Input */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.inputContainer}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 160 : 150}
+        style={[
+          styles.inputContainer,
+          Platform.OS === 'android' && { paddingBottom: 150, marginBottom: 150 }
+        ]}
       >
-        <View style={styles.inputRow}>
-          <TouchableOpacity style={styles.attachButton}>
-            <Ionicons name="add-circle-outline" size={24} color="#1877f2" />
+        {/* Emoji Picker */}
+        {showEmojiPicker && (
+          <View style={styles.emojiPickerContainer}>
+            <View style={styles.emojiPickerHeader}>
+              <Text style={styles.emojiPickerTitle}>Choose an emoji</Text>
+              <TouchableOpacity onPress={() => setShowEmojiPicker(false)}>
+                <Ionicons name="close" size={24} color="#666" />
           </TouchableOpacity>
-          
-          <View style={styles.textInputWrapper}>
-            <TextInput
-              style={styles.messageInput}
-              placeholder={isFollowing ? "Message..." : "Message request..."}
-              placeholderTextColor="#999"
-              multiline
-              value={newMessage}
-              onChangeText={handleTypingChange}
-              onKeyPress={handleKeyPress}
-              editable={!sending}
-              maxLength={1000}
+            </View>
+            <FlatList
+              data={commonEmojis}
+              keyExtractor={(item, index) => `emoji-${index}`}
+              numColumns={8}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.emojiButton}
+                  onPress={() => insertEmoji(item)}
+                >
+                  <Text style={styles.emojiText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={styles.emojiGrid}
+              showsVerticalScrollIndicator={false}
             />
           </View>
-          
-          <TouchableOpacity
-            style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
-            onPress={() => {
-              console.log('🔘 Send button pressed');
-              console.log('🔍 Button state - newMessage:', newMessage.trim(), 'sending:', sending);
-              console.log('🔍 Button disabled state:', !newMessage.trim() || sending);
-              sendMessage();
-            }}
-            disabled={!newMessage.trim() || sending}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
+        )}
+
+        <View style={styles.enhancedInputWrapper}>
+          <View style={styles.enhancedInputRow}>
+            {/* Emoji Button */}
+            <TouchableOpacity
+              style={styles.emojiPickerButton}
+              onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+            >
+              <Text style={styles.emojiPickerButtonText}>😊</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.enhancedTextInputWrapper}>
+              <TextInput
+                ref={textInputRef}
+                style={styles.enhancedMessageInput}
+                placeholder="Send message..."
+                placeholderTextColor="#999"
+                multiline
+                value={newMessage}
+                onChangeText={handleTypingChange}
+                onKeyPress={handleKeyPress}
+                editable={!sending}
+                maxLength={1000}
+              />
+            </View>
+
+            {/* Attach Button */}
+            <TouchableOpacity 
+              style={styles.enhancedAttachButton}
+              onPress={() => setShowFileOptions(true)}
+              disabled={isUploading}
+            >
+              <LinearGradient
+                colors={['#4F46E5', '#7C3AED']}
+                style={styles.attachButtonGradient}
+              >
+                {isUploading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="attach" size={24} color="#fff" />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Send Button */}
+            <TouchableOpacity
+              style={[
+                styles.enhancedSendButton, 
+                (!newMessage.trim() && !selectedFile?.uploadedUrl || sending) && styles.enhancedSendButtonDisabled
+              ]}
+              onPress={() => {
+                if (selectedFile?.uploadedUrl) {
+                  sendFileMessage();
+                } else if (newMessage.trim()) {
+                  sendMessage();
+                }
+              }}
+              disabled={!newMessage.trim() && !selectedFile?.uploadedUrl || sending}
+            >
+              <LinearGradient
+                colors={(!newMessage.trim() && !selectedFile?.uploadedUrl || sending) ? ['#ccc', '#999'] : ['#4F46E5', '#7C3AED']}
+                style={styles.sendButtonGradient}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="send" size={20} color="#fff" />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          {/* File Options Modal */}
+          {showFileOptions && (
+            <View style={styles.fileOptionsContainer}>
+              <TouchableOpacity 
+                style={styles.fileOption}
+                onPress={handleImageSelect}
+              >
+                <Ionicons name="image-outline" size={24} color="#4F46E5" />
+                <Text style={styles.fileOptionText}>Image</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.fileOption}
+                onPress={handleDocumentSelect}
+              >
+                <Ionicons name="document-outline" size={24} color="#4F46E5" />
+                <Text style={styles.fileOptionText}>PDF/Excel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* File Preview */}
+          {selectedFile && (
+            <View style={styles.filePreviewContainer}>
+              {selectedFile.fileType === 'IMAGE' ? (
+                <Image 
+                  source={{ uri: selectedFile.uri }} 
+                  style={styles.filePreview} 
+                />
+              ) : (
+                <View style={styles.documentPreview}>
+                  <Ionicons 
+                    name={selectedFile.fileType === 'PDF' ? 'document-text' : 'document'} 
+                    size={24} 
+                    color="#4F46E5" 
+                  />
+                </View>
+              )}
+              <TouchableOpacity 
+                style={styles.removeFileButton}
+                onPress={() => setSelectedFile(null)}
+              >
+                <Ionicons name="close-circle" size={24} color="#FF4444" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         
 
@@ -808,19 +1189,74 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
+  enhancedHeader: {
+    paddingTop: Platform.OS === 'ios' ? 44 : 20,
+    paddingBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerAction: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  enhancedAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  enhancedAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  enhancedAvatarInitials: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  enhancedUserName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  enhancedUserStatus: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   backButton: {
     padding: 8,
@@ -934,7 +1370,7 @@ const styles = StyleSheet.create({
   },
      messagesList: {
      paddingVertical: 16,
-     paddingBottom: 20, // Extra padding at bottom of messages
+    paddingBottom: Platform.OS === 'android' ? 180 : 120, // Much more padding for input box and navigation bar
    },
   messagesFlatList: {
     flex: 1,
@@ -957,30 +1393,32 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginTop: 4,
   },
-  messageBubble: {
+  enhancedMessageBubble: {
     maxWidth: '75%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 20,
     position: 'relative',
-  },
-  myMessageBubble: {
-    backgroundColor: '#1877f2',
-    borderBottomRightRadius: 6,
-  },
-  theirMessageBubble: {
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 6,
-    elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    elevation: 2,
+    marginTop: 1,
+  },
+  myMessageBubble: {
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 4,
+    marginLeft: 50, // Give some space on left for my messages
+  },
+  theirMessageBubble: {
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
+    marginRight: 50, // Give some space on right for their messages
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
-    marginBottom: 8,
   },
   myMessageText: {
     color: '#fff',
@@ -1004,51 +1442,74 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   readStatus: {
-    marginLeft: 8,
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
   },
      inputContainer: {
+    position: 'relative',
      backgroundColor: '#fff',
      borderTopWidth: 1,
      borderTopColor: '#f0f0f0',
-     paddingBottom: Platform.OS === 'ios' ? 80 : 120, // Much more padding to move input higher
-     marginBottom: 50, // Additional margin to move input higher
-   },
-  inputRow: {
+    paddingBottom: Platform.OS === 'ios' ? 60 : 50,
+    marginBottom: Platform.OS === 'ios' ? 60 : 90,
+    zIndex: 1,
+  },
+  enhancedInputWrapper: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 25,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  enhancedInputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    backgroundColor: '#fff',
+    borderRadius: 25,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
-  attachButton: {
+  enhancedAttachButton: {
+    marginRight: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  attachButtonGradient: {
     padding: 8,
-    marginRight: 12,
+    borderRadius: 20,
   },
-  textInputWrapper: {
+  enhancedTextInputWrapper: {
     flex: 1,
     backgroundColor: '#f8f9fa',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginRight: 12,
-    minHeight: 40,
-    maxHeight: 120,
+    paddingVertical: 8,
+    marginRight: 8,
   },
-  messageInput: {
+  enhancedMessageInput: {
     fontSize: 16,
-    color: '#1a1a1a',
-    padding: 0,
-    textAlignVertical: 'top',
+    color: '#333',
+    maxHeight: 100,
+    textAlignVertical: 'center',
   },
-  sendButton: {
-    backgroundColor: '#1877f2',
-    width: 40,
-    height: 40,
+  enhancedSendButton: {
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    overflow: 'hidden',
   },
-  sendButtonDisabled: {
-    backgroundColor: '#ccc',
+  enhancedSendButtonDisabled: {
+    opacity: 0.5,
+  },
+  sendButtonGradient: {
+    padding: 10,
+    borderRadius: 20,
   },
   messageRequestIndicator: {
     flexDirection: 'row',
@@ -1138,11 +1599,138 @@ const styles = StyleSheet.create({
      borderBottomWidth: 1,
      borderBottomColor: '#ffeaa7',
    },
-   websocketStatusText: {
-     fontSize: 12,
-     color: '#856404',
-     marginLeft: 8,
-   },
+  websocketStatusText: {
+    fontSize: 12,
+    color: '#856404',
+    marginLeft: 8,
+  },
+  dateSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 16,
+    paddingHorizontal: 16,
+  },
+  dateSeparatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e0e0e0',
+  },
+  dateSeparatorText: {
+    fontSize: 12,
+    color: '#666',
+    marginHorizontal: 12,
+    fontWeight: '600',
+  },
+    emojiPickerContainer: {
+      backgroundColor: '#fff',
+      marginHorizontal: 16,
+      marginBottom: 8,
+      borderRadius: 20,
+      maxHeight: 300,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 8,
+      borderWidth: 1,
+      borderColor: '#e0e0e0',
+    },
+    emojiPickerHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
+    },
+    emojiPickerTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#333',
+    },
+    emojiGrid: {
+      padding: 8,
+    },
+    emojiButton: {
+      width: '12.5%',
+      aspectRatio: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 4,
+    },
+    emojiText: {
+      fontSize: 28,
+    },
+    emojiPickerButton: {
+      padding: 8,
+      marginLeft: 4,
+      marginRight: 8,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emojiPickerButtonText: {
+      fontSize: 26,
+    },
+    fileOptionsContainer: {
+      position: 'absolute',
+      bottom: '100%',
+      right: 48,
+      backgroundColor: '#fff',
+      borderRadius: 12,
+      padding: 8,
+      marginBottom: 8,
+      flexDirection: 'row',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: '#e0e0e0',
+    },
+    fileOption: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: 12,
+      marginHorizontal: 4,
+    },
+    fileOptionText: {
+      fontSize: 12,
+      color: '#4F46E5',
+      marginTop: 4,
+    },
+    filePreviewContainer: {
+      position: 'absolute',
+      bottom: '100%',
+      right: 48,
+      marginBottom: 8,
+      borderRadius: 12,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: '#e0e0e0',
+    },
+    filePreview: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+    },
+    documentPreview: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: '#f3f4f6',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    removeFileButton: {
+      position: 'absolute',
+      top: -8,
+      right: -8,
+      backgroundColor: '#fff',
+      borderRadius: 12,
+      padding: 0,
+    },
  });
 
 export default ChatScreen;

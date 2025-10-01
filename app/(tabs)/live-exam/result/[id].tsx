@@ -49,7 +49,6 @@ export default function LiveExamResultScreen() {
     if (resultData) {
       try {
         const parsedResult = JSON.parse(resultData);
-        console.log('📊 Complete API Response:', parsedResult);
         setResult(parsedResult);
         
         // Enhanced animations sequence
@@ -73,9 +72,7 @@ export default function LiveExamResultScreen() {
           }),
         ]).start(() => {
           // Start confetti if score is high
-          console.log('🎯 Accuracy:', parsedResult.accuracy, 'Score:', parsedResult.score);
           if (parsedResult.score >= 60) {
-            console.log('🎉 Triggering victory celebration!');
             startConfetti();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } else {

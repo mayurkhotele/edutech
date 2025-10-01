@@ -82,15 +82,9 @@ const ExamDetailScreen = () => {
                 setLeaderboardLoading(true);
                 const response = await apiFetchAuth(`/student/live-exams/${id}/leaderboard`, user.token);
                 if (response.ok) {
-                    console.log('Leaderboard API Response:', response.data);
                     setCurrentUser(response.data.currentUser);
                     setLeaderboard(response.data.leaderboard || []);
                     
-                    // Debug: Log the first few items to check rank structure
-                    if (response.data.leaderboard && response.data.leaderboard.length > 0) {
-                        console.log('First leaderboard item:', response.data.leaderboard[0]);
-                        console.log('Current user data:', response.data.currentUser);
-                    }
                 } else {
                     console.error("Failed to load leaderboard:", response.data);
                     setLeaderboard([]);
@@ -492,16 +486,6 @@ const LeaderboardRow = ({ rank, name, score, prizeAmount, isCurrentUser, isTopTh
     const displayRank = numericRank !== undefined && numericRank !== null && !isNaN(numericRank) ? numericRank : 'N/A';
     const rankColor = isTopThree && numericRank && numericRank <= 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][numericRank - 1] : '#6c757d';
     
-    console.log('LeaderboardRow render:', { 
-        originalRank: rank, 
-        numericRank, 
-        displayRank, 
-        name, 
-        score, 
-        isTopThree,
-        rankType: typeof rank,
-        numericRankType: typeof numericRank
-    });
     
     return (
         <View style={[styles.leaderboardRow, isCurrentUser && styles.currentUserRow]}>
