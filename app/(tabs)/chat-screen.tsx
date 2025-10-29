@@ -1,6 +1,5 @@
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
-import { useWebSocket } from '@/context/WebSocketContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
@@ -9,22 +8,24 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    RefreshControl,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  RefreshControl,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { io, Socket } from 'socket.io-client';
 
 interface User {
   id: string;
@@ -78,26 +79,78 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
   const isFollowing = params.isFollowing === 'true';
   
   // Debug: Log received parameters
-  console.log('🔍 Chat Screen Parameters:', { userId, userName, userProfilePhoto, isFollowing });
-  console.log('🔍 Raw params:', params);
-  console.log('🔍 Params type:', typeof params);
-  console.log('🔍 Params keys:', Object.keys(params));
+
+
+
+
   
   // Context hooks
   const { user: currentUser } = useAuth();
-  const { isConnected, sendMessage: sendWebSocketMessage, on, off, connect } = useWebSocket();
   
-  // Debug WebSocket connection
+  // Socket connection state (like matchmaking screen)
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [socketError, setSocketError] = useState<string | null>(null);
+  
+  // Initialize socket connection - Like matchmaking screen
   useEffect(() => {
-    console.log('🔌 WebSocket Connection Status:', isConnected);
-    console.log('👤 Current User:', currentUser?.id);
-    console.log('🔑 Token available:', !!currentUser?.token);
-    
-    if (!isConnected && currentUser?.token && currentUser?.id) {
-      console.log('🔄 Attempting to connect WebSocket...');
-      connect();
+    if (currentUser?.token) {
+      console.log('🔌 Initializing socket connection...');
+      
+      const newSocket = io('http://192.168.1.7:3001', {
+        auth: {
+          token: currentUser.token
+        },
+        transports: ['polling', 'websocket'],
+        path: '/api/socket',
+        timeout: 20000,
+        forceNew: true
+      });
+
+      newSocket.on('connect', () => {
+        console.log('✅ Chat Socket connected:', newSocket.id);
+        setIsConnected(true);
+        setSocketError(null);
+        
+        // Register user immediately after connection
+        if (currentUser?.id) {
+          console.log('👤 Registering user:', currentUser.id);
+          newSocket.emit('register_user', currentUser.id);
+        }
+      });
+
+      newSocket.on('disconnect', () => {
+        console.log('❌ Chat Socket disconnected');
+        setIsConnected(false);
+      });
+
+      newSocket.on('connect_error', (error) => {
+        console.error('🔥 Chat Socket connection error:', error);
+        setSocketError('Connection failed. Please check your internet connection and try again.');
+        setIsConnected(false);
+      });
+
+      newSocket.on('pong', () => {
+        console.log('🏓 Chat Socket pong received');
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        console.log('🔌 Cleaning up socket connection');
+        newSocket.disconnect();
+      };
+    } else {
+      setSocketError('Authentication required. Please login again.');
     }
-  }, [isConnected, currentUser, connect]);
+  }, [currentUser?.token]);
+
+  // Test WebSocket connection function
+  const testWebSocketConnection = () => {
+    console.log('🔍 Testing WebSocket connection...');
+    console.log('🔍 Connection status:', isConnected);
+    console.log('🔍 Socket ID:', socket?.id);
+  };
   
   // State management
   const [messages, setMessages] = useState<Message[]>([]);
@@ -107,8 +160,8 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
 
   // Debug newMessage state
   useEffect(() => {
-    console.log('💬 New message state changed:', newMessage);
-    console.log('🔍 Send button should be enabled:', !!newMessage.trim() && !sending);
+
+
   }, [newMessage, sending]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -122,10 +175,23 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
     uploadedUrl?: string;
   } | null>(null);
   const [showFileOptions, setShowFileOptions] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
   
   const flatListRef = useRef<FlatList>(null);
   const textInputRef = useRef<TextInput>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Helper function to check if two dates are the same day
   const isSameDay = (date1: Date, date2: Date) => {
@@ -134,6 +200,27 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
       date1.getMonth() === date2.getMonth() &&
       date1.getDate() === date2.getDate()
     );
+  };
+
+  // Helper function to get file size
+  const getFileSize = async (uri: string): Promise<number> => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return blob.size;
+    } catch (error) {
+      console.error('Error getting file size:', error);
+      return 0;
+    }
+  };
+
+  // Helper function to sanitize message content
+  const sanitizeMessage = (content: string): string => {
+    return content
+      .replace(/[<>]/g, '') // Remove potential HTML tags
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+=/gi, '') // Remove event handlers
+      .trim();
   };
 
   // Format message time to relative format (Today, Yesterday, etc.)
@@ -269,6 +356,20 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
   // Handle file upload
   const handleFileUpload = async (file: { uri: string; type?: string | null; name?: string }) => {
     try {
+      // File size validation (max 10MB)
+      const fileSize = await getFileSize(file.uri);
+      if (fileSize > 10 * 1024 * 1024) { // 10MB
+        Alert.alert('File Too Large', 'File size cannot exceed 10MB.');
+        return;
+      }
+
+      // File type validation
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+      if (file.type && !allowedTypes.includes(file.type)) {
+        Alert.alert('Invalid File Type', 'Only images, PDFs, and Excel files are allowed.');
+        return;
+      }
+
       const formData = new FormData();
       const fileToUpload = {
         uri: file.uri,
@@ -367,26 +468,25 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
   // Fetch messages when component mounts or userId changes
   useEffect(() => {
     if (userId) {
-      fetchMessages(userId);
-      fetchMessageRequests();
+      const now = Date.now();
+      // Prevent refresh if last refresh was less than 2 seconds ago
+      if (now - lastRefreshTime > 2000) {
+        setLastRefreshTime(now);
+        fetchMessages(userId);
+        fetchMessageRequests();
+      }
     }
-  }, [userId]);
+  }, [userId, lastRefreshTime]);
 
-  // WebSocket event listeners for real-time messaging
+  // Socket event listeners for real-time messaging
   useEffect(() => {
-    if (!isConnected) {
-      console.log('🔌 WebSocket not connected, skipping event listeners');
+    if (!socket || !isConnected) {
       return;
     }
 
-    console.log('🔌 Setting up WebSocket event listeners for chat...');
-
     // Listen for new messages
     const handleNewMessage = (message: Message) => {
-      console.log('📨 Received new message via WebSocket:', message);
-      console.log('📨 Current userId:', userId);
-      console.log('📨 Message sender:', message.sender.id);
-      console.log('📨 Message receiver:', message.receiver.id);
+      console.log('📨 New message received:', message);
       
       // Check if this message is for the current chat
       const isForCurrentChat = (
@@ -395,25 +495,19 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
       );
 
       if (isForCurrentChat) {
-        console.log('📨 Message is for current chat, adding to messages');
         setMessages(prev => {
-          // Check if message already exists to avoid duplicates
           const messageExists = prev.some(msg => msg.id === message.id);
-          if (messageExists) {
-            console.log('📨 Message already exists, skipping');
-            return prev;
+          if (!messageExists) {
+            return [...prev, message];
           }
-          console.log('📨 Adding new message to chat');
-          return [...prev, message];
+          return prev;
         });
-      } else {
-        console.log('📨 Message is not for current chat, ignoring');
       }
     };
 
     // Listen for message sent confirmation
     const handleMessageSent = (message: Message) => {
-      console.log('✅ Message sent confirmation via WebSocket:', message);
+      console.log('✅ Message sent confirmation:', message);
       setMessages(prev => prev.map(msg => 
         msg.id.startsWith('temp-') && msg.content === message.content 
           ? message 
@@ -423,7 +517,7 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
 
     // Listen for messages read
     const handleMessagesRead = ({ readerId }: { readerId: string }) => {
-      console.log('👁️ Messages read by:', readerId);
+      console.log('👁️ Messages read:', readerId);
       if (userId && userId === readerId) {
         setMessages(prev =>
           prev.map(msg => 
@@ -435,34 +529,34 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
 
     // Listen for typing indicators
     const handleUserTyping = (typingUserId: string, isTyping: boolean) => {
-      console.log('⌨️ User typing:', typingUserId, isTyping);
+      console.log('⌨️ Typing indicator:', { typingUserId, isTyping });
       if (typingUserId === userId) {
         setIsTyping(isTyping);
       }
     };
 
-    // Set up event listeners
-    on('onMessageReceived', handleNewMessage);
-    on('onMessageSent', handleMessageSent);
-    on('onMessagesRead', handleMessagesRead);
-    on('onUserTyping', handleUserTyping);
+    // Set up event listeners with correct event names
+    socket.on('new_message', handleNewMessage);
+    socket.on('message_sent', handleMessageSent);
+    socket.on('messages_read', handleMessagesRead);
+    socket.on('user_typing', handleUserTyping);
 
-    // Join the chat room for this conversation
+    // Join chat room
     if (userId && currentUser?.id) {
       const chatId = [currentUser.id, userId].sort().join('-');
-      console.log('🔌 Joining chat room:', chatId);
-      // Note: joinChat method should be available from WebSocket context
+      console.log('🚪 Joining chat room:', chatId);
+      socket.emit('join_chat', chatId);
+      socket.emit('join_typing_room', chatId);
     }
 
     // Cleanup event listeners
     return () => {
-      console.log('🔌 Cleaning up WebSocket event listeners');
-      off('onMessageReceived');
-      off('onMessageSent');
-      off('onMessagesRead');
-      off('onUserTyping');
+      socket.off('new_message', handleNewMessage);
+      socket.off('message_sent', handleMessageSent);
+      socket.off('messages_read', handleMessagesRead);
+      socket.off('user_typing', handleUserTyping);
     };
-  }, [on, off, userId, currentUser, isConnected]);
+  }, [socket, isConnected, userId, currentUser]);
 
   // Effect to mark messages as read when a chat is opened
   useEffect(() => {
@@ -480,21 +574,20 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
      // Polling fallback for real-time messages (when WebSocket is not working)
    useEffect(() => {
      if (!isConnected && userId) {
-       console.log('🔌 WebSocket not connected, setting up polling fallback');
-       
        const pollInterval = setInterval(() => {
-         console.log('🔄 Polling for new messages...');
-         fetchMessages(userId, true);
-       }, 3000); // Poll every 3 seconds
+         const now = Date.now();
+         // Only poll if last refresh was more than 3 seconds ago
+         if (now - lastRefreshTime > 3000) {
+           setLastRefreshTime(now);
+           fetchMessages(userId, true);
+         }
+       }, 5000); // Poll every 5 seconds (increased from 3)
 
        return () => {
-         console.log('🔄 Clearing polling interval');
          clearInterval(pollInterval);
        };
-     } else if (isConnected) {
-       console.log('✅ WebSocket connected, polling disabled');
      }
-   }, [isConnected, userId]);
+   }, [isConnected, userId, lastRefreshTime]);
 
   // Fetch messages from API
   const fetchMessages = async (targetUserId: string, isRefresh = false) => {
@@ -509,7 +602,7 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
         throw new Error('No authentication token');
       }
 
-      console.log('📡 Fetching messages for user:', targetUserId);
+
       const response = await apiFetchAuth(`/student/messages/${targetUserId}`, currentUser.token);
       
       if (response.data) {
@@ -518,12 +611,12 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         
-        console.log('📨 Fetched messages count:', sortedMessages.length);
+
         
         // Only update if we have new messages or different count
         setMessages(prev => {
           if (prev.length !== sortedMessages.length) {
-            console.log('📨 Message count changed, updating messages');
+
             return sortedMessages;
           }
           
@@ -534,11 +627,11 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
           });
           
           if (hasChanges) {
-            console.log('📨 Messages changed, updating');
+
             return sortedMessages;
           }
           
-          console.log('📨 No new messages, keeping current state');
+
           return prev;
         });
       }
@@ -555,7 +648,14 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
 
   // Handle pull to refresh
   const onRefresh = () => {
+    const now = Date.now();
+    // Prevent refresh if last refresh was less than 1 second ago
+    if (now - lastRefreshTime < 1000) {
+      return;
+    }
+    
     if (userId) {
+      setLastRefreshTime(now);
       fetchMessages(userId, true);
       fetchMessageRequests();
     }
@@ -592,6 +692,12 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
           msg.receiver.id === currentUser.id ? { ...msg, isRead: true } : msg
         )
       );
+
+      // Emit socket event for real-time read status
+      if (socket && isConnected) {
+        console.log('👁️ Emitting messages read:', { readerId: currentUser.id, otherUserId: userId });
+        socket.emit('messages_read', { readerId: currentUser.id, otherUserId: userId });
+      }
 
     } catch (error) {
       console.error('Error marking messages as read:', error);
@@ -647,19 +753,80 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
     }
   };
 
+  // Delete message functionality
+  const handleDeleteMessage = (message: Message) => {
+    setSelectedMessage(message);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteMessage = async (deleteType: 'for_me' | 'for_everyone') => {
+    if (!selectedMessage || !currentUser?.token) return;
+
+    setDeleting(true);
+    try {
+      const response = await apiFetchAuth('/student/messages/delete-post', currentUser.token, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: `{messageId:"${selectedMessage.id}",deleteType:"${deleteType}"}`
+      });
+
+      if (response.ok) {
+        if (deleteType === 'for_everyone') {
+          // Remove message for everyone
+          setMessages(prev => prev.filter(msg => msg.id !== selectedMessage.id));
+        } else {
+          // Remove message only for current user (mark as deleted)
+          setMessages(prev => prev.map(msg => 
+            msg.id === selectedMessage.id 
+              ? { ...msg, isDeleted: true, content: 'This message was deleted' }
+              : msg
+          ));
+        }
+        
+        Alert.alert('Success', 'Message deleted successfully');
+        setDeleteModalVisible(false);
+        setSelectedMessage(null);
+      } else {
+        Alert.alert('Error', 'Failed to delete message. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      Alert.alert('Error', 'Failed to delete message. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalVisible(false);
+    setSelectedMessage(null);
+  };
+
     // Send message function
   const sendMessage = async () => {
-    console.log('🚀 Send message function called');
-    console.log('🔍 Validation check - userId:', userId, 'newMessage:', newMessage.trim(), 'currentUser:', !!currentUser);
+
+
     
-    // Validation check
+    // Enhanced validation check
     if (!userId || !newMessage.trim() || !currentUser) {
-      console.log('❌ Validation failed - not sending message');
+      return;
+    }
+
+    // Message length validation (max 1000 characters)
+    if (newMessage.trim().length > 1000) {
+      Alert.alert('Message Too Long', 'Message cannot exceed 1000 characters.');
+      return;
+    }
+
+    // Prevent rapid message sending
+    if (sending) {
       return;
     }
 
     setSending(true);
-    const content = newMessage.trim();
+    const content = sanitizeMessage(newMessage.trim());
     setNewMessage('');
 
     // Create optimistic message for immediate display
@@ -687,10 +854,10 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
 
          try {
        // Force REST API for now (WebSocket can be enabled later)
-       console.log('🔌 Using REST API for message sending');
+
 
        // Fallback to REST API if WebSocket is not available
-       console.log('📤 Sending message via REST API...');
+
       if (!currentUser.token) {
         throw new Error('No authentication token');
       }
@@ -701,14 +868,14 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
         messageType: 'TEXT'
       };
 
-      console.log('📤 Sending message payload:', messagePayload);
+
 
       const response = await apiFetchAuth('/student/messages', currentUser.token, {
         method: 'POST',
         body: messagePayload,
       });
 
-      console.log('📥 API Response:', response);
+
 
       if (response.data) {
         const result = response.data;
@@ -722,12 +889,21 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
           }
           
           // Emit socket event for real-time delivery
-          if (isConnected) {
+          if (socket && isConnected) {
             const chatId = [currentUser.id, userId].sort().join('-');
-            // WebSocket will handle this automatically
+            console.log('📤 Sending message via socket:', {
+              chatId,
+              message: result.message,
+              receiverId: userId
+            });
+            socket.emit('send_message', {
+              chatId: chatId,
+              message: result.message,
+              receiverId: userId
+            });
           }
           
-          console.log('Message sent successfully');
+
            
         } else if (result.type === 'request') {
           // Remove optimistic message since it was sent as request
@@ -759,11 +935,11 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
 
   // Handle typing indicator
   const handleTypingChange = (text: string) => {
-    console.log('⌨️ Typing change:', text);
+
     setNewMessage(text);
 
-    // Send typing indicator via WebSocket
-    if (isConnected && userId && currentUser) {
+    // Send typing indicator via Socket
+    if (socket && isConnected && userId && currentUser) {
       const chatId = [currentUser.id, userId].sort().join('-');
       
       // Clear previous timeout
@@ -771,9 +947,13 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
         clearTimeout(typingTimeoutRef.current);
       }
 
+      // Send typing indicator
+      socket.emit('typing', { chatId, isTyping: true });
+
       // Set new timeout to stop typing indicator
       typingTimeoutRef.current = setTimeout(() => {
         // Stop typing indicator after 2 seconds
+        socket.emit('typing', { chatId, isTyping: false });
       }, 2000);
     }
   };
@@ -827,13 +1007,17 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
         
         <View style={{ flex: 1 }}>
           {/* Message Bubble */}
-          <LinearGradient
-            colors={isMyMessage ? ['#4F46E5', '#7C3AED'] : ['#f8f9fa', '#e9ecef']}
-            style={[
-              styles.enhancedMessageBubble,
-              isMyMessage ? styles.myMessageBubble : styles.theirMessageBubble
-            ]}
+          <TouchableOpacity
+            onLongPress={() => handleDeleteMessage(item)}
+            activeOpacity={0.8}
           >
+            <LinearGradient
+              colors={isMyMessage ? ['#4F46E5', '#7C3AED'] : ['#f8f9fa', '#e9ecef']}
+              style={[
+                styles.enhancedMessageBubble,
+                isMyMessage ? styles.myMessageBubble : styles.theirMessageBubble
+              ]}
+            >
             {/* File/Image Message */}
             {item.fileUrl && item.messageType === 'IMAGE' ? (
               <Image 
@@ -871,6 +1055,7 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
               </View>
             )}
           </LinearGradient>
+          </TouchableOpacity>
 
           {/* Accept/Reject buttons for message requests */}
           {item.isRequest && !isMyMessage && (
@@ -941,7 +1126,11 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
                  <TouchableOpacity 
               style={styles.headerAction}
            onPress={() => {
-             fetchMessages(userId, true);
+             const now = Date.now();
+             if (now - lastRefreshTime > 1000) {
+               setLastRefreshTime(now);
+               fetchMessages(userId, true);
+             }
            }}
          >
               <Ionicons name="refresh" size={22} color="#fff" />
@@ -1071,6 +1260,11 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
                 editable={!sending}
                 maxLength={1000}
               />
+              {newMessage.length > 800 && (
+                <Text style={styles.characterCounter}>
+                  {newMessage.length}/1000
+                </Text>
+              )}
             </View>
 
             {/* Attach Button */}
@@ -1179,6 +1373,70 @@ const ChatScreen = ({ route }: ChatScreenProps) => {
              <Text style={styles.typingText}>{userName} is typing...</Text>
            </View>
          )}
+
+         {/* Delete Message Modal */}
+         <Modal
+           visible={deleteModalVisible}
+           animationType="slide"
+           transparent={true}
+           onRequestClose={closeDeleteModal}
+         >
+           <View style={styles.deleteModalOverlay}>
+             <View style={styles.deleteModalContent}>
+               <View style={styles.deleteModalHeader}>
+                 <Text style={styles.deleteModalTitle}>Delete Message</Text>
+                 <TouchableOpacity onPress={closeDeleteModal} style={styles.deleteModalCloseButton}>
+                   <Ionicons name="close" size={24} color="#666" />
+                 </TouchableOpacity>
+               </View>
+               
+               <View style={styles.deleteModalBody}>
+                 <Text style={styles.deleteModalText}>
+                   Choose how you want to delete this message:
+                 </Text>
+                 
+                 <TouchableOpacity
+                   style={styles.deleteOptionButton}
+                   onPress={() => confirmDeleteMessage('for_me')}
+                   disabled={deleting}
+                 >
+                   <View style={styles.deleteOptionContent}>
+                     <Ionicons name="person-outline" size={24} color="#FF6B6B" />
+                     <View style={styles.deleteOptionTextContainer}>
+                       <Text style={styles.deleteOptionTitle}>Delete for me</Text>
+                       <Text style={styles.deleteOptionDescription}>
+                         Remove this message from your chat only
+                       </Text>
+                     </View>
+                   </View>
+                 </TouchableOpacity>
+                 
+                 <TouchableOpacity
+                   style={styles.deleteOptionButton}
+                   onPress={() => confirmDeleteMessage('for_everyone')}
+                   disabled={deleting}
+                 >
+                   <View style={styles.deleteOptionContent}>
+                     <Ionicons name="people-outline" size={24} color="#FF4444" />
+                     <View style={styles.deleteOptionTextContainer}>
+                       <Text style={styles.deleteOptionTitle}>Delete for everyone</Text>
+                       <Text style={styles.deleteOptionDescription}>
+                         Remove this message for all participants
+                       </Text>
+                     </View>
+                   </View>
+                 </TouchableOpacity>
+               </View>
+               
+               {deleting && (
+                 <View style={styles.deleteLoadingContainer}>
+                   <ActivityIndicator size="small" color="#4F46E5" />
+                   <Text style={styles.deleteLoadingText}>Deleting message...</Text>
+                 </View>
+               )}
+             </View>
+           </View>
+         </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -1500,6 +1758,17 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     textAlignVertical: 'center',
   },
+  characterCounter: {
+    position: 'absolute',
+    bottom: 4,
+    right: 8,
+    fontSize: 12,
+    color: '#999',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
   enhancedSendButton: {
     borderRadius: 20,
     overflow: 'hidden',
@@ -1730,6 +1999,91 @@ const styles = StyleSheet.create({
       backgroundColor: '#fff',
       borderRadius: 12,
       padding: 0,
+    },
+
+    // Delete Modal Styles
+    deleteModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    deleteModalContent: {
+      backgroundColor: '#fff',
+      borderRadius: 20,
+      padding: 20,
+      width: '90%',
+      maxWidth: 400,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.25,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    deleteModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+      paddingBottom: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: '#E5E7EB',
+    },
+    deleteModalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#1F2937',
+    },
+    deleteModalCloseButton: {
+      padding: 8,
+    },
+    deleteModalBody: {
+      gap: 16,
+    },
+    deleteModalText: {
+      fontSize: 16,
+      color: '#374151',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    deleteOptionButton: {
+      borderWidth: 1,
+      borderColor: '#E5E7EB',
+      borderRadius: 12,
+      padding: 16,
+      backgroundColor: '#F9FAFB',
+    },
+    deleteOptionContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    deleteOptionTextContainer: {
+      marginLeft: 12,
+      flex: 1,
+    },
+    deleteOptionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#1F2937',
+      marginBottom: 4,
+    },
+    deleteOptionDescription: {
+      fontSize: 14,
+      color: '#6B7280',
+    },
+    deleteLoadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: '#E5E7EB',
+    },
+    deleteLoadingText: {
+      marginLeft: 8,
+      fontSize: 14,
+      color: '#4F46E5',
     },
  });
 

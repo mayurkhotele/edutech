@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -64,17 +64,17 @@ export default function KYCStatusScreen() {
                          try {
                  // First try the KYC status endpoint
                  response = await apiFetchAuth('/user/kyc/status', user.token);
-                 console.log('Tried /user/kyc/status endpoint');
+
              } catch (err) {
-                 console.log('Status endpoint failed, trying upload endpoint');
+
                  // If that fails, try the upload endpoint (which might return status)
                  response = await apiFetchAuth('/user/kyc/upload', user.token);
              }
             
             if (response.ok) {
-                console.log('KYC API Response:', response.data);
-                console.log('KYC API Response type:', typeof response.data);
-                console.log('KYC API Response keys:', Object.keys(response.data));
+
+
+
                 
                 // Handle different possible response structures
                 let kycDataToSet;
@@ -89,33 +89,33 @@ export default function KYCStatusScreen() {
                         ...response.data,
                         documents: documentsWithStatus
                     };
-                    console.log('Found documents array in response, added kycStatus to each document');
+
                 } else if (Array.isArray(response.data)) {
                     // If response.data is directly an array of documents
                     kycDataToSet = { 
                         documents: response.data,
                         kycStatus: 'PENDING' // Default status
                     };
-                    console.log('Response is directly an array, wrapping in documents');
+
                 } else if (response.data.data && Array.isArray(response.data.data)) {
                     // If response has data.documents structure
                     kycDataToSet = { documents: response.data.data };
-                    console.log('Found data.documents structure');
+
                 } else if (response.data.data && response.data.data.documents) {
                     // If response has data.data.documents structure
                     kycDataToSet = { documents: response.data.data.documents };
-                    console.log('Found data.data.documents structure');
+
                 } else {
                     // If it's a single document object
                     kycDataToSet = { documents: [response.data] };
-                    console.log('Treating response as single document');
+
                 }
                 
-                console.log('Final KYC data structure:', kycDataToSet);
-                console.log('Documents array:', kycDataToSet.documents);
+
+
                 if (kycDataToSet.documents && kycDataToSet.documents.length > 0) {
-                    console.log('First document:', kycDataToSet.documents[0]);
-                    console.log('First document kycStatus:', kycDataToSet.documents[0].kycStatus);
+
+
                 }
                 
                 setKycData(kycDataToSet);
@@ -215,13 +215,13 @@ export default function KYCStatusScreen() {
 
 
     const renderDocumentItem = ({ item, index }: { item: KYCDocument; index: number }) => {
-        console.log('Rendering document item:', item);
-        console.log('Document kycStatus:', item.kycStatus);
-        console.log('Document kycStatus type:', typeof item.kycStatus);
-        console.log('Document kycStatus uppercase:', item.kycStatus?.toUpperCase());
+
+
+
+
         
         const statusToUse = item.kycStatus || 'PENDING';
-        console.log('Status to use:', statusToUse);
+
         
         return (
             <View style={styles.documentCard}>
@@ -283,7 +283,7 @@ export default function KYCStatusScreen() {
                 
                 <View style={styles.headerContent}>
                     <View style={styles.headerTitleContainer}>
-                        <Ionicons name="shield-checkmark" size={28} color="#FFFFFF" />
+                        <Ionicons name="shield-checkmark" size={24} color="#FFFFFF" />
                         <Text style={styles.headerTitle}>KYC Verification</Text>
                     </View>
                     <Text style={styles.headerSubtitle}>Complete your identity verification</Text>
@@ -341,8 +341,8 @@ export default function KYCStatusScreen() {
                     renderItem={renderDocumentItem}
                     keyExtractor={(item) => item.id}
                     onLayout={() => {
-                        console.log('FlatList data:', kycData?.documents);
-                        console.log('FlatList data length:', kycData?.documents?.length);
+
+
                     }}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.listContainer}
@@ -440,11 +440,11 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     header: {
-        height: 100,
+        height: 80,
     },
     headerGradient: {
         flex: 1,
-        paddingTop: 16,
+        paddingTop: 12,
         paddingHorizontal: 16,
         position: 'relative',
         overflow: 'hidden',
@@ -500,20 +500,22 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: '800',
+        fontSize: 20,
+        fontWeight: '700',
         color: '#FFFFFF',
-        marginLeft: 12,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.9)',
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        marginLeft: 10,
+        textShadowColor: 'rgba(0, 0, 0, 0.2)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
+        letterSpacing: 0.3,
+    },
+    headerSubtitle: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.9)',
+        textShadowColor: 'rgba(0, 0, 0, 0.2)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 1,
+        letterSpacing: 0.2,
     },
     content: {
         flex: 1,
@@ -578,7 +580,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 2,
+        elevation: 0,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     documentInfo: {
         flex: 1,
@@ -612,7 +616,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 2,
+        elevation: 0,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     statusText: {
         fontSize: 11,

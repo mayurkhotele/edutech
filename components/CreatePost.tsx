@@ -238,7 +238,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
       });
 
       if (response.ok) {
-        Alert.alert('Success', 'Post created successfully!');
+        Alert.alert('Success', 'Post published successfully!');
         resetForm();
         onPostCreated();
         onClose();
@@ -769,7 +769,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                  end={{ x: 1, y: 1 }}
                >
                  <ActivityIndicator size="small" color="#fff" />
-                 <Text style={styles.actionButtonText}>Creating your post...</Text>
+                 <Text style={styles.actionButtonText}>Publishing your post...</Text>
                </LinearGradient>
              ) : (
                <LinearGradient
@@ -780,7 +780,7 @@ export default function CreatePost({ visible, onClose, onPostCreated }: CreatePo
                >
                  <Ionicons name="send" size={24} color="#fff" />
                  <Text style={styles.actionButtonText}>
-                   {content.trim() ? 'Share with Community' : 'Write something first...'}
+                   {content.trim() ? 'Publish Post' : 'Write something first...'}
                  </Text>
                </LinearGradient>
              )}

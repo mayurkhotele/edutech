@@ -143,6 +143,32 @@ export const ShadowUtils = {
       elevation: 0,
     };
   },
+
+  /**
+   * Creates a medium shadow for cards and containers
+   */
+  medium: () => {
+    return ShadowUtils.createShadow(
+      '#000',
+      { width: 0, height: 4 },
+      0.12,
+      8,
+      4
+    );
+  },
+
+  /**
+   * Creates a large shadow for modals and overlays
+   */
+  large: () => {
+    return ShadowUtils.createShadow(
+      '#000',
+      { width: 0, height: 8 },
+      0.2,
+      16,
+      8
+    );
+  },
 };
 
 /**

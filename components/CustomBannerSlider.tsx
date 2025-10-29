@@ -31,17 +31,17 @@ const CustomBannerSlider: React.FC<CustomBannerSliderProps> = ({ onBannerPress }
   const banners: Banner[] = [
     {
       id: '1',
-      image: require('../assets/images/banner1.jpg'),
+      image: require('../assets/images/webslide1.png'),
       action: 'practice-exam'
     },
     {
       id: '2', 
-      image: require('../assets/images/banner2.jpg'),
+      image: require('../assets/images/webslide3.png'),
       action: 'exam'
     },
     {
       id: '3',
-      image: require('../assets/images/banner3.jpg'),
+      image: require('../assets/images/webslide4.png'),
       action: 'profile'
     }
   ];
@@ -173,7 +173,7 @@ const CustomBannerSlider: React.FC<CustomBannerSliderProps> = ({ onBannerPress }
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 15,
+    marginTop: -10,
     marginBottom: 15,
   },
   bannerContainer: {

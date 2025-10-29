@@ -1,7 +1,7 @@
-// const BASE_URL = 'https://examindia-production.up.railway.app/api';
-// const BASE_URL = 'https://examindia-production.up.railway.app/api';
-
-const BASE_URL = 'http://192.168.1.6:3000/api';
+// Environment-based API configuration
+const BASE_URL = __DEV__ 
+  ? 'http://192.168.1.5:3000/api'  // Local development
+  : 'https://examindia-production.up.railway.app/api'; // Production
 
 type ApiOptions = {
   method?: string;
@@ -17,7 +17,10 @@ export async function apiFetch(endpoint: string, options: ApiOptions = {}) {
     url: fullUrl,
     method,
     body: body ? 'Body present' : 'No body',
-    headers
+    headers,
+    // 🔥 Show token info for debugging
+    hasAuthHeader: !!headers.Authorization,
+    tokenLength: headers.Authorization?.length || 0
   });
 
   try {
@@ -67,6 +70,10 @@ export async function apiFetchAuth(endpoint: string, token: string, options: Api
     headers: {
       ...(options.headers || {}),
       Authorization: `Bearer ${token}`,
+      // 🔥 Add Firebase token indicator for backend
+      'X-Auth-Provider': 'firebase',
+      'X-Token-Type': 'firebase-jwt',
+      'X-Client-Type': 'mobile-app', // 🔥 Add this to distinguish from website
     },
   });
 }

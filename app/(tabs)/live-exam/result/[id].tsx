@@ -4,9 +4,19 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
+
+interface QuestionAnalysis {
+  questionNumber: number;
+  questionText: string;
+  yourAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  timeSpent: number;
+  marks: number;
+}
 
 interface LiveExamResult {
   score: number;
@@ -25,6 +35,12 @@ interface LiveExamResult {
   accuracy: number;
   timeEfficiency: number;
   message: string;
+  percentile?: number;
+  averageScore?: number;
+  topScore?: number;
+  totalParticipants?: number;
+  questionAnalysis?: QuestionAnalysis[];
+  subjectWise?: { subject: string; correct: number; total: number; percentage: number }[];
 }
 
 export default function LiveExamResultScreen() {
@@ -33,6 +49,9 @@ export default function LiveExamResultScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<LiveExamResult | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'detailed' | 'analysis'>('overview');
+  
+  // Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
   const [scoreAnim] = useState(new Animated.Value(0));
@@ -42,7 +61,6 @@ export default function LiveExamResultScreen() {
   const [donutAnim] = useState(new Animated.Value(0));
   const [rankAnim] = useState(new Animated.Value(0));
 
-  // Confetti particles
   const confettiRefs = useRef<Animated.Value[]>([]);
 
   useEffect(() => {
@@ -71,16 +89,13 @@ export default function LiveExamResultScreen() {
             useNativeDriver: true,
           }),
         ]).start(() => {
-          // Start confetti if score is high
           if (parsedResult.score >= 60) {
             startConfetti();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } else {
-            console.log('😔 Score too low for celebration');
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           }
 
-          // Start breakdown animations
           Animated.sequence([
             Animated.timing(breakdownAnim, {
               toValue: 1,
@@ -102,7 +117,6 @@ export default function LiveExamResultScreen() {
           ]).start();
         });
 
-        // Pulse animation for performance badge
         Animated.loop(
           Animated.sequence([
             Animated.timing(pulseAnim, {
@@ -123,7 +137,6 @@ export default function LiveExamResultScreen() {
       }
     }
 
-    // Cleanup function to prevent memory leaks
     return () => {
       confettiRefs.current.forEach(anim => {
         if (anim) {
@@ -135,36 +148,83 @@ export default function LiveExamResultScreen() {
   }, [resultData]);
 
   const startConfetti = () => {
-    console.log('🎉 Starting confetti celebration!');
-    console.log('🎊 Confetti animation initiated');
     setShowConfetti(true);
-    confettiRefs.current = Array.from({ length: 25 }, () => new Animated.Value(0));
+    confettiRefs.current = Array.from({ length: 20 }, () => new Animated.Value(0));
     
     confettiRefs.current.forEach((anim, index) => {
-      const startAnimation = () => {
-        Animated.sequence([
-          Animated.delay(index * 40),
-          Animated.parallel([
-            Animated.timing(anim, {
-              toValue: 1,
-              duration: 3000,
-              useNativeDriver: true,
-            }),
-          ]),
-        ]).start(() => {
-          // Restart animation for continuous effect without recursion
-          anim.setValue(0);
-          setTimeout(() => {
-            startAnimation();
-          }, 100);
-        });
-      };
-      
-      startAnimation();
+      Animated.sequence([
+        Animated.delay(index * 50),
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 2500,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        // Stop after one cycle - no infinite loop
+        anim.setValue(1);
+      });
     });
-    console.log('🎊 Confetti particles created:', confettiRefs.current.length);
+
+    // Auto-hide confetti after 3 seconds
+    setTimeout(() => {
+      setShowConfetti(false);
+    }, 3000);
   };
 
+  const getCongratulatoryMessage = () => {
+    if (!result) return '';
+    if (result.score >= 90) return "🌟 Outstanding Performance! You're a Star! 🌟";
+    if (result.score >= 80) return "🎉 Excellent Work! Keep it up! 🎉";
+    if (result.score >= 70) return "👏 Great Job! You're doing well! 👏";
+    if (result.score >= 60) return "👍 Good Effort! Keep practicing! 👍";
+    return "💪 Keep Learning! You'll improve! 💪";
+  };
+
+  const getScoreColor = (): [string, string, string] => {
+    if (!result) return ['#667eea', '#764ba2', '#f093fb'];
+    if (result.score >= 80) return ['#10B981', '#059669', '#047857'];
+    if (result.score >= 60) return ['#F59E0B', '#D97706', '#B45309'];
+    if (result.score >= 40) return ['#EF4444', '#DC2626', '#B91C1C'];
+    return ['#6B7280', '#4B5563', '#374151'];
+  };
+
+  const getBackgroundGradient = (): [string, string, string] => {
+    return ['#FAFBFC', '#F8FAFC', '#F1F5F9'];
+  };
+
+  const handleShare = async () => {
+    try {
+      const shareMessage = `🎉 I just scored ${result?.score}% in ${result?.examTitle}!\n\n` +
+        `✅ Correct: ${result?.correctAnswers}/${result?.totalQuestions}\n` +
+        `🏆 Rank: #${result?.currentRank}\n` +
+        `💰 Prize: ₹${result?.prizeAmount?.toLocaleString()}\n\n` +
+        `Join me on this amazing exam platform!`;
+
+      await Share.share({
+        message: shareMessage,
+        title: 'My Exam Result',
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const getPercentile = () => {
+    if (result?.percentile) return result.percentile;
+    if (result?.currentRank && result?.totalParticipants) {
+      return ((result.totalParticipants - result.currentRank) / result.totalParticipants) * 100;
+    }
+    return null; // Return null if not available
+  };
+
+  const getPerformanceRating = () => {
+    if (!result) return 'N/A';
+    if (result.score >= 90) return 'Outstanding ⭐⭐⭐⭐⭐';
+    if (result.score >= 80) return 'Excellent ⭐⭐⭐⭐';
+    if (result.score >= 70) return 'Very Good ⭐⭐⭐';
+    if (result.score >= 60) return 'Good ⭐⭐';
+    return 'Keep Practicing ⭐';
+  };
 
   if (!result) {
     return (
@@ -180,28 +240,6 @@ export default function LiveExamResultScreen() {
 
   const accuracy = (result.correctAnswers / result.totalQuestions) * 100;
   const completion = ((result.correctAnswers + result.wrongAnswers) / result.totalQuestions) * 100;
-
-  const getPerformanceRating = () => {
-    if (accuracy >= 90) return 'Excellent!';
-    if (accuracy >= 80) return 'Very Good!';
-    if (accuracy >= 70) return 'Good!';
-    if (accuracy >= 60) return 'Average!';
-    return 'Needs Improvement!';
-  };
-
-  const getCongratulatoryMessage = () => {
-    if (accuracy >= 80) return "Congratulations! You've excelled! 🎉";
-    if (accuracy >= 60) return "Well done! You've passed! 🎯";
-    return "Keep practicing! You'll improve! 😔";
-  };
-
-  const getScoreColor = (): [string, string, string] => {
-    return ['#667eea', '#764ba2', '#f093fb'];
-  };
-
-  const getBackgroundGradient = (): [string, string, string] => {
-    return ['#FAFBFC', '#F8FAFC', '#F1F5F9']; // Even more faint light gradient
-  };
 
   return (
     <LinearGradient
@@ -254,425 +292,440 @@ export default function LiveExamResultScreen() {
             }
           ]}
         >
-          {/* Header Section */}
-          <View style={styles.headerSection}>
-            <Text style={styles.headerTitle}>{result.examTitle}</Text>
-          </View>
-
-          {/* Main Score Circle */}
-          <View style={styles.scoreCircleContainer}>
-            {/* Animated Background Elements */}
-            <Animated.View 
-              style={[
-                styles.animatedBg1,
-                {
-                  transform: [
-                    {
-                      rotate: pulseAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '360deg'],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-            <Animated.View 
-              style={[
-                styles.animatedBg2,
-                {
-                  transform: [
-                    {
-                      rotate: pulseAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['360deg', '0deg'],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-            <Animated.View 
-              style={[
-                styles.animatedBg3,
-                {
-                  transform: [
-                    {
-                      scale: pulseAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.8, 1.2],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-            <Animated.View 
-              style={[
-                styles.animatedBg4,
-                {
-                  transform: [
-                    {
-                      rotate: pulseAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '-360deg'],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-            <Animated.View 
-              style={[
-                styles.animatedBg5,
-                {
-                  transform: [
-                    {
-                      scale: pulseAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1.2, 0.8],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-            
-            <Animated.View 
-              style={[
-                styles.scoreCircle,
-                { transform: [{ scale: scoreAnim }] }
-              ]}
-            >
-              <LinearGradient
-                colors={getScoreColor()}
-                style={styles.scoreGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <View style={styles.scoreInnerGlow} />
-                <Text style={styles.scoreLabel}>Your Score</Text>
-                <Text style={styles.scoreValue}>{result.score}</Text>
-                <Text style={styles.scoreUnit}>%</Text>
-                <Animated.View 
-                  style={[
-                    styles.performanceBadge,
-                    { transform: [{ scale: pulseAnim }] }
-                  ]}
-                >
-                  <Text style={styles.performanceText}>{getPerformanceRating()}</Text>
-                </Animated.View>
-              </LinearGradient>
-            </Animated.View>
-          </View>
-
-          {/* Congratulatory Message */}
-          <Animated.Text 
-            style={[
-              styles.congratulatoryMessage,
-              { opacity: scoreAnim }
-            ]}
-          >
-            {getCongratulatoryMessage()}
-          </Animated.Text>
-
-          {/* Stats Grid */}
-          <Animated.View 
-            style={[
-              styles.statsGrid,
-              { opacity: scoreAnim }
-            ]}
-          >
-            <View style={styles.statCard}>
-              <LinearGradient
-                colors={['#DBEAFE', '#BFDBFE']}
-                style={styles.statGradient}
-              >
-                <View style={[styles.statIconContainer, { backgroundColor: '#60A5FA', borderColor: '#3B82F6' }]}>
-                  <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.statValue}>{completion.toFixed(0)}%</Text>
-                <Text style={styles.statLabel}>Completion</Text>
-              </LinearGradient>
-            </View>
-
-            <View style={styles.statCard}>
-              <LinearGradient
-                colors={['#FCE7F3', '#FBCFE8']}
-                style={styles.statGradient}
-              >
-                <View style={[styles.statIconContainer, { backgroundColor: '#EC4899', borderColor: '#DB2777' }]}>
-                  <Ionicons name="help-circle" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.statValue}>{result.totalQuestions}</Text>
-                <Text style={styles.statLabel}>Questions</Text>
-              </LinearGradient>
-            </View>
-
-            <View style={styles.statCard}>
-              <LinearGradient
-                colors={['#D1FAE5', '#A7F3D0']}
-                style={styles.statGradient}
-              >
-                <View style={[styles.statIconContainer, { backgroundColor: '#10B981', borderColor: '#059669' }]}>
-                  <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.statValue}>{result.correctAnswers}</Text>
-                <Text style={styles.statLabel}>Correct</Text>
-              </LinearGradient>
-            </View>
-
-            <View style={styles.statCard}>
-              <LinearGradient
-                colors={['#FEE2E2', '#FECACA']}
-                style={styles.statGradient}
-              >
-                <View style={[styles.statIconContainer, { backgroundColor: '#EF4444', borderColor: '#DC2626' }]}>
-                  <Ionicons name="close-circle" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.statValue}>{result.wrongAnswers}</Text>
-                <Text style={styles.statLabel}>Wrong</Text>
-              </LinearGradient>
-            </View>
-          </Animated.View>
-
-          {/* Performance Breakdown with Donut Chart */}
-          <Animated.View 
-            style={[
-              styles.breakdownCard,
-              { opacity: scoreAnim }
-            ]}
-          >
+          {/* Ultra-Premium Header Section */}
+          <View style={styles.ultraHeaderSection}>
             <LinearGradient
-              colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
-              style={styles.breakdownGradient}
+              colors={getScoreColor()}
+              style={styles.ultraHeaderGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              {/* Animated Background Elements */}
-              <Animated.View 
-                style={[
-                  styles.breakdownBg1,
-                  {
-                    opacity: breakdownAnim,
-                    transform: [
-                      {
-                        scale: breakdownAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.8, 1],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              />
-              <Animated.View 
-                style={[
-                  styles.breakdownBg2,
-                  {
-                    opacity: breakdownAnim,
-                    transform: [
-                      {
-                        rotate: breakdownAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0deg', '360deg'],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              />
-              <Animated.View 
-                style={[
-                  styles.breakdownBg3,
-                  {
-                    opacity: breakdownAnim,
-                    transform: [
-                      {
-                        scale: breakdownAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [1, 1.2],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              />
-              <Animated.View 
-                style={[
-                  styles.breakdownBg4,
-                  {
-                    opacity: breakdownAnim,
-                    transform: [
-                      {
-                        rotate: breakdownAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0deg', '-360deg'],
-                        }),
-                      },
-                      {
-                        scale: breakdownAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.8, 1.1],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              />
+              {/* Decorative Elements */}
+              <View style={styles.decorativeCircle1} />
+              <View style={styles.decorativeCircle2} />
+              <View style={styles.decorativeCircle3} />
 
-              <View style={styles.breakdownContent}>
-                <Animated.Text 
-                  style={[
-                    styles.breakdownTitle,
-                    {
-                      opacity: breakdownAnim,
-                      transform: [
-                        {
-                          translateY: breakdownAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [20, 0],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  Performance Breakdown
-                </Animated.Text>
-                
-                {/* Donut Chart */}
-                <Animated.View 
-                  style={[
-                    styles.donutChartContainer,
-                    {
-                      opacity: donutAnim,
-                      transform: [
-                        {
-                          scale: donutAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [0.8, 1],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <Animated.View 
-                    style={[
-                      styles.donutChart,
-                      { transform: [{ scale: scoreAnim }] }
-                    ]}
-                  >
-                    <LinearGradient
-                      colors={['#FFFFFF', '#F8FAFC']}
-                      style={styles.donutChartGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
+              <Text style={styles.ultraHeaderTitle}>Exam Completed! 🎉</Text>
+              <Text style={styles.ultraHeaderSubtitle}>{result.examTitle}</Text>
+              
+              {/* Massive Score Display */}
+              <Animated.View 
+                style={[
+                  styles.massiveScoreContainer,
+                  { transform: [{ scale: scoreAnim }] }
+                ]}
+              >
+                <View style={styles.scoreRing}>
+                  <View style={styles.scoreInnerRing}>
+                    <Text style={styles.scoreLabel}>YOUR SCORE</Text>
+                    <Text style={styles.massiveScore}>{result.score}</Text>
+                    <Text style={styles.scorePercentage}>%</Text>
+                    <Animated.View 
+                      style={[
+                        styles.performancePill,
+                        { transform: [{ scale: pulseAnim }] }
+                      ]}
                     >
-                      <View style={styles.donutChartInner}>
-                        <Text style={styles.donutChartText}>{accuracy.toFixed(0)}%</Text>
-                      </View>
-                      <View style={styles.donutChartSegments}>
-                        {/* Wrong Answers (Background) */}
-                        <View 
-                          style={[
-                            styles.donutSegment, 
-                            { 
-                              backgroundColor: '#EF4444',
-                              width: '100%',
-                              height: '100%',
-                              borderRadius: 70,
-                              position: 'absolute',
-                            }
-                          ]} 
-                        />
-                        {/* Correct Answers (Progress) */}
-                        <View 
-                          style={[
-                            styles.donutSegment, 
-                            { 
-                              backgroundColor: '#10B981',
-                              width: '100%',
-                              height: '100%',
-                              borderRadius: 70,
-                              position: 'absolute',
-                              transform: [
-                                { rotate: '-90deg' },
-                                { scale: (result.correctAnswers / result.totalQuestions) }
-                              ],
-                            }
-                          ]} 
-                        />
-                      </View>
-                    </LinearGradient>
-                  </Animated.View>
-                </Animated.View>
+                      <Text style={styles.performancePillText}>
+                        {getPerformanceRating()}
+                      </Text>
+                    </Animated.View>
+                  </View>
+                </View>
+              </Animated.View>
 
-                {/* Legend */}
-                <Animated.View 
-                  style={[
-                    styles.legendContainer,
-                    {
-                      opacity: donutAnim,
-                      transform: [
-                        {
-                          translateY: donutAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [10, 0],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
-                    <Text style={styles.legendText}>Correct</Text>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-                    <Text style={styles.legendText}>Wrong</Text>
-                  </View>
-                </Animated.View>
-
-                {/* Current Rank Section */}
-                <Animated.View 
-                  style={[
-                    styles.rankSection,
-                    {
-                      opacity: rankAnim,
-                      transform: [
-                        {
-                          translateY: rankAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [20, 0],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <Text style={styles.sectionTitle}>Current Rank</Text>
-                  
-                  <View style={styles.rankContainer}>
-                    <View style={styles.rankIconContainer}>
-                      <Ionicons name="trophy" size={32} color="#F59E0B" />
-                    </View>
-                    <View style={styles.rankInfo}>
-                      <Text style={styles.rankNumber}>#{result.currentRank}</Text>
-                      <Text style={styles.rankLabel}>Your Position</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.prizeInfo}>
-                    <Text style={styles.prizeLabel}>Prize Amount</Text>
-                    <Text style={styles.prizeAmount}>₹{result.prizeAmount.toLocaleString()}</Text>
-                  </View>
-                </Animated.View>
-              </View>
             </LinearGradient>
-          </Animated.View>
+          </View>
+
+          {/* Tabs Navigation */}
+          <View style={styles.tabsContainer}>
+            {['overview', 'detailed'].map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                style={[
+                  styles.tab,
+                  activeTab === tab && styles.activeTab
+                ]}
+                onPress={() => setActiveTab(tab as any)}
+                activeOpacity={0.8}
+              >
+                <Text style={[
+                  styles.tabText,
+                  activeTab === tab && styles.activeTabText
+                ]}>
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <Animated.View style={{ opacity: fadeAnim }}>
+              {/* Rank & Prize Premium Card */}
+              <View style={styles.premiumCard}>
+                <LinearGradient
+                  colors={['#FFF7ED', '#FFEDD5']}
+                  style={styles.premiumCardGradient}
+                >
+                  <View style={styles.rankPrizeRow}>
+                    <View style={styles.rankBox}>
+                      <View style={styles.rankIconBox}>
+                        <Ionicons name="trophy" size={32} color="#F59E0B" />
+                      </View>
+                      <Text style={styles.rankLabel}>Your Rank</Text>
+                      <Text style={styles.rankValue}>#{result.currentRank}</Text>
+                      <Text style={styles.rankSubtext}>of {result.totalParticipants || 100}</Text>
+                    </View>
+                    
+                    <View style={styles.divider} />
+                    
+                    <View style={styles.prizeBox}>
+                      <View style={styles.prizeIconBox}>
+                        <Ionicons name="cash" size={32} color="#10B981" />
+                      </View>
+                      <Text style={styles.prizeLabel}>Prize Money</Text>
+                      <Text style={styles.prizeValue}>₹{result.prizeAmount.toLocaleString()}</Text>
+                      <Text style={styles.prizeSubtext}>Congratulations!</Text>
+                    </View>
+                  </View>
+                </LinearGradient>
+              </View>
+
+              {/* Percentile Premium Card - Only show if real data available */}
+              {getPercentile() !== null && (
+                <View style={styles.percentileCard}>
+                  <LinearGradient
+                    colors={['#DBEAFE', '#BFDBFE']}
+                    style={styles.percentileGradient}
+                  >
+                    <View style={styles.percentileHeader}>
+                      <Ionicons name="analytics" size={28} color="#1D4ED8" />
+                      <Text style={styles.percentileTitle}>Your Percentile</Text>
+                    </View>
+                    <Text style={styles.percentileValue}>{getPercentile()!.toFixed(1)}</Text>
+                    <Text style={styles.percentileUnit}>th percentile</Text>
+                    <Text style={styles.percentileSubtext}>
+                      You performed better than {getPercentile()!.toFixed(0)}% of all students! 🎯
+                    </Text>
+                  </LinearGradient>
+                </View>
+              )}
+
+              {/* Stats Grid - Heavy Premium Look */}
+              <View style={styles.statsSection}>
+                <Text style={styles.sectionTitle}>📊 Performance Metrics</Text>
+                <View style={styles.statsGrid}>
+                  <View style={styles.statCard}>
+                    <LinearGradient
+                      colors={['#D1FAE5', '#A7F3D0']}
+                      style={styles.statGradient}
+                    >
+                      <View style={styles.statIcon}>
+                        <Ionicons name="checkmark-circle" size={32} color="#059669" />
+                      </View>
+                      <Text style={styles.statValue}>{result.correctAnswers}</Text>
+                      <Text style={styles.statLabel}>Correct</Text>
+                      <Text style={styles.statPercentage}>
+                        {((result.correctAnswers / result.totalQuestions) * 100).toFixed(0)}%
+                      </Text>
+                    </LinearGradient>
+                  </View>
+
+                  <View style={styles.statCard}>
+                    <LinearGradient
+                      colors={['#FEE2E2', '#FECACA']}
+                      style={styles.statGradient}
+                    >
+                      <View style={styles.statIcon}>
+                        <Ionicons name="close-circle" size={32} color="#DC2626" />
+                      </View>
+                      <Text style={styles.statValue}>{result.wrongAnswers}</Text>
+                      <Text style={styles.statLabel}>Wrong</Text>
+                      <Text style={styles.statPercentage}>
+                        {((result.wrongAnswers / result.totalQuestions) * 100).toFixed(0)}%
+                      </Text>
+                    </LinearGradient>
+                  </View>
+
+                  <View style={styles.statCard}>
+                    <LinearGradient
+                      colors={['#E0E7FF', '#C7D2FE']}
+                      style={styles.statGradient}
+                    >
+                      <View style={styles.statIcon}>
+                        <Ionicons name="help-circle" size={32} color="#4F46E5" />
+                      </View>
+                      <Text style={styles.statValue}>{result.totalQuestions}</Text>
+                      <Text style={styles.statLabel}>Total</Text>
+                      <Text style={styles.statPercentage}>Questions</Text>
+                    </LinearGradient>
+                  </View>
+
+                  <View style={styles.statCard}>
+                    <LinearGradient
+                      colors={['#FEF3C7', '#FDE68A']}
+                      style={styles.statGradient}
+                    >
+                      <View style={styles.statIcon}>
+                        <Ionicons name="time" size={32} color="#D97706" />
+                      </View>
+                      <Text style={styles.statValue}>{result.timeTakenMinutes}</Text>
+                      <Text style={styles.statLabel}>Minutes</Text>
+                      <Text style={styles.statPercentage}>Time Used</Text>
+                    </LinearGradient>
+                  </View>
+                </View>
+              </View>
+
+              {/* Performance Comparison - Only show if real data available */}
+              {(result.averageScore !== undefined || result.topScore !== undefined) && (
+                <View style={styles.comparisonCard}>
+                  <LinearGradient
+                    colors={['#FFFFFF', '#F9FAFB']}
+                    style={styles.comparisonGradient}
+                  >
+                    <Text style={styles.comparisonTitle}>📈 Performance Comparison</Text>
+                    
+                    <View style={styles.comparisonBars}>
+                      <View style={styles.comparisonItem}>
+                        <View style={styles.comparisonRow}>
+                          <Text style={styles.comparisonLabel}>You</Text>
+                          <Text style={styles.comparisonValue}>{result.score}%</Text>
+                        </View>
+                        <View style={styles.comparisonBarBg}>
+                          <LinearGradient
+                            colors={['#667eea', '#764ba2']}
+                            style={[styles.comparisonBarFill, { width: `${result.score}%` }]}
+                          />
+                        </View>
+                      </View>
+
+                      {result.averageScore !== undefined && (
+                        <View style={styles.comparisonItem}>
+                          <View style={styles.comparisonRow}>
+                            <Text style={styles.comparisonLabel}>Class Average</Text>
+                            <Text style={styles.comparisonValue}>{result.averageScore}%</Text>
+                          </View>
+                          <View style={styles.comparisonBarBg}>
+                            <LinearGradient
+                              colors={['#F59E0B', '#D97706']}
+                              style={[styles.comparisonBarFill, { width: `${result.averageScore}%` }]}
+                            />
+                          </View>
+                        </View>
+                      )}
+
+                      {result.topScore !== undefined && (
+                        <View style={styles.comparisonItem}>
+                          <View style={styles.comparisonRow}>
+                            <Text style={styles.comparisonLabel}>Top Score</Text>
+                            <Text style={styles.comparisonValue}>{result.topScore}%</Text>
+                          </View>
+                          <View style={styles.comparisonBarBg}>
+                            <LinearGradient
+                              colors={['#10B981', '#059669']}
+                              style={[styles.comparisonBarFill, { width: `${result.topScore}%` }]}
+                            />
+                          </View>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Performance Insights - Only if average is available */}
+                    {result.averageScore !== undefined && (
+                      <View style={styles.insightsBox}>
+                        <Ionicons name="bulb" size={20} color="#F59E0B" />
+                        <Text style={styles.insightsText}>
+                          {result.score > result.averageScore 
+                            ? "🎉 You're performing above average!" 
+                            : "💪 Practice more to beat the average!"}
+                        </Text>
+                      </View>
+                    )}
+                  </LinearGradient>
+                </View>
+              )}
+
+              {/* Achievement Badges - Ultra Premium */}
+              <View style={styles.achievementsCard}>
+                <Text style={styles.achievementsTitle}>🏅 Achievements Unlocked</Text>
+                <View style={styles.badgesGrid}>
+                  {result.score >= 80 && (
+                    <View style={styles.badge}>
+                      <LinearGradient
+                        colors={['#FCD34D', '#F59E0B']}
+                        style={styles.badgeGradient}
+                      >
+                        <Ionicons name="trophy" size={28} color="#fff" />
+                        <Text style={styles.badgeText}>Top Scorer</Text>
+                        <Text style={styles.badgeSubtext}>Score ≥ 80%</Text>
+                      </LinearGradient>
+                    </View>
+                  )}
+                  
+                  {result.timeTakenMinutes < result.examDuration * 0.7 && (
+                    <View style={styles.badge}>
+                      <LinearGradient
+                        colors={['#60A5FA', '#3B82F6']}
+                        style={styles.badgeGradient}
+                      >
+                        <Ionicons name="flash" size={28} color="#fff" />
+                        <Text style={styles.badgeText}>Speed Demon</Text>
+                        <Text style={styles.badgeSubtext}>Fast Solver</Text>
+                      </LinearGradient>
+                    </View>
+                  )}
+
+                  {result.correctAnswers === result.totalQuestions && (
+                    <View style={styles.badge}>
+                      <LinearGradient
+                        colors={['#34D399', '#10B981']}
+                        style={styles.badgeGradient}
+                      >
+                        <Ionicons name="star" size={28} color="#fff" />
+                        <Text style={styles.badgeText}>Perfect!</Text>
+                        <Text style={styles.badgeSubtext}>100% Score</Text>
+                      </LinearGradient>
+                    </View>
+                  )}
+
+                  {getPercentile() !== null && getPercentile()! >= 90 && (
+                    <View style={styles.badge}>
+                      <LinearGradient
+                        colors={['#EC4899', '#DB2777']}
+                        style={styles.badgeGradient}
+                      >
+                        <Ionicons name="ribbon" size={28} color="#fff" />
+                        <Text style={styles.badgeText}>Elite</Text>
+                        <Text style={styles.badgeSubtext}>Top 10%</Text>
+                      </LinearGradient>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Detailed Analysis Tab */}
+          {activeTab === 'detailed' && (
+            <Animated.View style={{ opacity: fadeAnim }}>
+              {/* Circular Progress Visualization */}
+              <View style={styles.circularProgressCard}>
+                <Text style={styles.cardTitle}>📊 Detailed Breakdown</Text>
+                <View style={styles.circularProgressRow}>
+                  {/* Accuracy Circle */}
+                  <View style={styles.circleWrapper}>
+                    <View style={styles.progressCircle}>
+                      <LinearGradient
+                        colors={['#10B981', '#059669']}
+                        style={styles.progressCircleFill}
+                      >
+                        <Text style={styles.circleValue}>{accuracy.toFixed(0)}%</Text>
+                      </LinearGradient>
+                    </View>
+                    <Text style={styles.circleLabel}>Accuracy</Text>
+                  </View>
+
+                  {/* Completion Circle */}
+                  <View style={styles.circleWrapper}>
+                    <View style={styles.progressCircle}>
+                      <LinearGradient
+                        colors={['#3B82F6', '#2563EB']}
+                        style={styles.progressCircleFill}
+                      >
+                        <Text style={styles.circleValue}>{completion.toFixed(0)}%</Text>
+                      </LinearGradient>
+                    </View>
+                    <Text style={styles.circleLabel}>Completion</Text>
+                  </View>
+
+                  {/* Speed Circle */}
+                  <View style={styles.circleWrapper}>
+                    <View style={styles.progressCircle}>
+                      <LinearGradient
+                        colors={['#F59E0B', '#D97706']}
+                        style={styles.progressCircleFill}
+                      >
+                        <Text style={styles.circleValue}>{((result.timeTakenMinutes / result.examDuration) * 100).toFixed(0)}%</Text>
+                      </LinearGradient>
+                    </View>
+                    <Text style={styles.circleLabel}>Speed</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Time Analytics */}
+              <View style={styles.timeAnalyticsCard}>
+                <LinearGradient
+                  colors={['#FFF7ED', '#FFEDD5']}
+                  style={styles.timeAnalyticsGradient}
+                >
+                  <View style={styles.timeHeader}>
+                    <Ionicons name="flash" size={24} color="#FB923C" />
+                    <Text style={styles.timeTitle}>⚡ Time Analytics</Text>
+                  </View>
+                  
+                  <View style={styles.timeStatsRow}>
+                    <View style={styles.timeStatItem}>
+                      <Text style={styles.timeStatValue}>{result.timeTakenFormatted}</Text>
+                      <Text style={styles.timeStatLabel}>Time Used</Text>
+                    </View>
+                    <View style={styles.timeStatItem}>
+                      <Text style={styles.timeStatValue}>{result.examDuration}m</Text>
+                      <Text style={styles.timeStatLabel}>Total Time</Text>
+                    </View>
+                    <View style={styles.timeStatItem}>
+                      <Text style={styles.timeStatValue}>
+                        {(result.timeTakenMinutes / result.totalQuestions).toFixed(1)}m
+                      </Text>
+                      <Text style={styles.timeStatLabel}>Avg/Question</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.efficiencyBar}>
+                    <View style={styles.efficiencyBarBg}>
+                      <LinearGradient
+                        colors={['#FB923C', '#F97316']}
+                        style={[
+                          styles.efficiencyBarFill,
+                          { width: `${(result.timeTakenMinutes / result.examDuration) * 100}%` }
+                        ]}
+                      />
+                    </View>
+                  </View>
+                </LinearGradient>
+              </View>
+
+              {/* Answer Distribution */}
+              <View style={styles.distributionCard}>
+                <Text style={styles.cardTitle}>📈 Answer Distribution</Text>
+                <View style={styles.distributionRow}>
+                  <View style={styles.distributionItem}>
+                    <View style={[styles.distributionCircle, { backgroundColor: '#10B981' }]}>
+                      <Text style={styles.distributionNumber}>{result.correctAnswers}</Text>
+                    </View>
+                    <Text style={styles.distributionLabel}>Correct</Text>
+                  </View>
+
+                  <View style={styles.distributionItem}>
+                    <View style={[styles.distributionCircle, { backgroundColor: '#EF4444' }]}>
+                      <Text style={styles.distributionNumber}>{result.wrongAnswers}</Text>
+                    </View>
+                    <Text style={styles.distributionLabel}>Wrong</Text>
+                  </View>
+
+                  <View style={styles.distributionItem}>
+                    <View style={[styles.distributionCircle, { backgroundColor: '#6B7280' }]}>
+                      <Text style={styles.distributionNumber}>{result.unattempted}</Text>
+                    </View>
+                    <Text style={styles.distributionLabel}>Skipped</Text>
+                  </View>
+                </View>
+              </View>
+            </Animated.View>
+          )}
+
 
         </Animated.View>
       </ScrollView>
@@ -705,520 +758,783 @@ const styles = StyleSheet.create({
   },
   confetti: {
     position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   scrollContent: {
     paddingBottom: 40,
     flexGrow: 1,
   },
   resultContainer: {
-    paddingVertical: 20,
     paddingBottom: 40,
   },
-  headerSection: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 32,
-    color: '#1E293B',
-    fontWeight: '800',
-    marginBottom: 8,
-    textShadowColor: 'rgba(255, 255, 255, 0.9)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-    letterSpacing: 0.5,
-    textAlign: 'center',
-  },
-  examTitle: {
-    fontSize: 16,
-    color: '#475569',
-    fontWeight: '500',
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  scoreCircleContainer: {
-    alignItems: 'center',
+
+  // Ultra-Premium Header
+  ultraHeaderSection: {
     marginBottom: 20,
-    position: 'relative',
-  },
-  scoreCircle: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
+    borderRadius: 24,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.4,
-    shadowRadius: 40,
-    elevation: 20,
-    position: 'relative',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 12,
   },
-  scoreGradient: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    justifyContent: 'center',
-    alignItems: 'center',
+  ultraHeaderGradient: {
     padding: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+    alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
   },
-  scoreLabel: {
-    fontSize: 18,
+  decorativeCircle1: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: -50,
+    right: -30,
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    bottom: -20,
+    left: -20,
+  },
+  decorativeCircle3: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    top: 40,
+    left: 20,
+  },
+  ultraHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '900',
     color: '#FFFFFF',
-    fontWeight: '600',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  scoreValue: {
-    fontSize: 56,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    lineHeight: 56,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  scoreUnit: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginTop: -8,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  performanceBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  performanceText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  congratulatoryMessage: {
-    fontSize: 24,
-    color: '#1E293B',
-    textAlign: 'center',
-    marginBottom: 32,
-    fontWeight: '700',
-    textShadowColor: 'rgba(255, 255, 255, 0.9)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-    letterSpacing: 0.8,
-    lineHeight: 32,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 32,
-  },
-  statCard: {
-    width: '48%',
-    borderRadius: 20,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  statGradient: {
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-  },
-  statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-  },
-  statValue: {
-    fontSize: 28,
-    color: '#1E293B',
-    fontWeight: '800',
     marginBottom: 4,
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  statLabel: {
-    fontSize: 16,
-    color: '#64748B',
-    fontWeight: '600',
-    textShadowColor: 'rgba(255, 255, 255, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-  },
-  breakdownCard: {
-    borderRadius: 24,
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  breakdownGradient: {
-    borderRadius: 24,
-    padding: 24,
-  },
-  breakdownContent: {
-    alignItems: 'center',
-  },
-  breakdownTitle: {
-    fontSize: 26,
-    color: '#1E293B',
-    fontWeight: '800',
-    marginBottom: 24,
-    textAlign: 'center',
-    textShadowColor: 'rgba(255, 255, 255, 0.9)',
+    letterSpacing: 0.6,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
-    letterSpacing: 0.8,
   },
-  donutChartContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
+  ultraHeaderSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+    marginBottom: 12,
   },
-  donutChart: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+  massiveScoreContainer: {
+    marginVertical: 12,
+  },
+  scoreRing: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 10,
   },
-  donutChartGradient: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+  scoreInnerRing: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  scoreLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  massiveScore: {
+    fontSize: 48,
+    fontWeight: '900',
+    color: '#1F2937',
+    lineHeight: 48,
+  },
+  scorePercentage: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#6B7280',
+    marginTop: -4,
+  },
+  performancePill: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  performancePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#4F46E5',
+    letterSpacing: 0.3,
+  },
+  ultraShareButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    marginTop: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  shareButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  ultraShareText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#fff',
+  },
+
+  // Tabs
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 20,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
   },
-  donutChartInner: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#FFFFFF',
+  activeTab: {
+    backgroundColor: '#4F46E5',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+  },
+
+  // Premium Cards
+  premiumCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  premiumCardGradient: {
+    padding: 24,
+  },
+  rankPrizeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rankBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  rankIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
+    marginBottom: 12,
+  },
+  rankLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  rankValue: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  rankSubtext: {
+    fontSize: 12,
+    color: '#B45309',
+    fontWeight: '500',
+  },
+  divider: {
+    width: 2,
+    height: 100,
+    backgroundColor: 'rgba(217, 119, 6, 0.2)',
+    marginHorizontal: 20,
+  },
+  prizeBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  prizeIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  prizeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#065F46',
+    marginBottom: 4,
+  },
+  prizeValue: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#065F46',
+    marginBottom: 4,
+  },
+  prizeSubtext: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '500',
+  },
+
+  // Percentile Card
+  percentileCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#1D4ED8',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  percentileGradient: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  percentileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  percentileTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1E3A8A',
+  },
+  percentileValue: {
+    fontSize: 64,
+    fontWeight: '900',
+    color: '#1E3A8A',
+    lineHeight: 64,
+  },
+  percentileUnit: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1D4ED8',
+    marginBottom: 12,
+  },
+  percentileSubtext: {
+    fontSize: 15,
+    color: '#1E40AF',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  // Stats Section
+  statsSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    width: (width - 64) / 2,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  statGradient: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  statIcon: {
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  statPercentage: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
+  },
+
+  // Comparison Card
+  comparisonCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  comparisonGradient: {
+    padding: 24,
+  },
+  comparisonTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1F2937',
+    marginBottom: 20,
+  },
+  comparisonBars: {
+    gap: 20,
+  },
+  comparisonItem: {
+    gap: 10,
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  comparisonLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  comparisonValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1F2937',
+  },
+  comparisonBarBg: {
+    height: 14,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 7,
+    overflow: 'hidden',
+  },
+  comparisonBarFill: {
+    height: '100%',
+    borderRadius: 7,
+  },
+  insightsBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFBEB',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 20,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  insightsText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+
+  // Achievements
+  achievementsCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  achievementsTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1F2937',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  badgesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  badge: {
+    width: (width - 64) / 2,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  badgeGradient: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  badgeText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  badgeSubtext: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+
+  // Circular Progress
+  circularProgressCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1F2937',
+    marginBottom: 20,
+  },
+  circularProgressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  circleWrapper: {
+    alignItems: 'center',
+  },
+  progressCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'hidden',
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 6,
   },
-  donutChartText: {
-    fontSize: 20,
-    color: '#1E293B',
-    fontWeight: 'bold',
-  },
-  donutChartSegments: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: 70,
-  },
-  donutSegment: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: 70,
-  },
-  legendContainer: {
-    flexDirection: 'row',
+  progressCircleFill: {
+    width: 100,
+    height: 100,
     justifyContent: 'center',
-    marginBottom: 24,
+    alignItems: 'center',
   },
-  legendItem: {
+  circleValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  circleLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+
+  // Time Analytics
+  timeAnalyticsCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#FB923C',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  timeAnalyticsGradient: {
+    padding: 24,
+  },
+  timeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 12,
+    gap: 12,
+    marginBottom: 20,
   },
-  legendDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginRight: 8,
+  timeTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#9A3412',
   },
-  legendText: {
-    fontSize: 16,
-    color: '#475569',
+  timeStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  timeStatItem: {
+    alignItems: 'center',
+  },
+  timeStatValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#9A3412',
+    marginBottom: 4,
+  },
+  timeStatLabel: {
+    fontSize: 12,
     fontWeight: '600',
+    color: '#B45309',
   },
-  subjectSection: {
+  efficiencyBar: {
     marginTop: 8,
   },
-  sectionTitle: {
-    fontSize: 16,
-    color: '#1E293B',
-    fontWeight: '600',
-    marginBottom: 16,
+  efficiencyBarBg: {
+    height: 10,
+    backgroundColor: '#FED7AA',
+    borderRadius: 5,
+    overflow: 'hidden',
   },
-  subjectItem: {
-    marginBottom: 16,
+  efficiencyBarFill: {
+    height: '100%',
+    borderRadius: 5,
   },
-  subjectInfo: {
+
+  // Distribution Card
+  distributionCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  distributionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  distributionItem: {
+    alignItems: 'center',
+  },
+  distributionCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  distributionNumber: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  distributionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+
+  // Analysis Card
+  analysisCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  analysisSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+  questionAnalysisItem: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  questionAnalysisHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  subjectName: {
-    fontSize: 14,
-    color: '#475569',
-    fontWeight: '500',
-  },
-  subjectScore: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  subjectBar: {
-    height: 6,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  subjectFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  animatedBg1: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(236, 72, 153, 0.15)',
-    top: -30,
-    right: -30,
-    zIndex: -1,
-    shadowColor: '#EC4899',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  animatedBg2: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    bottom: -40,
-    right: -40,
-    zIndex: -1,
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  animatedBg3: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(236, 72, 153, 0.08)',
-    top: 0,
-    right: 0,
-    zIndex: -1,
-    shadowColor: 'rgba(255, 255, 255, 0.5)',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 4,
-  },
-  animatedBg4: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
-    top: -20,
-    left: -20,
-    zIndex: -1,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  animatedBg5: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(236, 72, 153, 0.15)',
-    bottom: 0,
-    left: 0,
-    zIndex: -1,
-    shadowColor: '#EC4899',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  scoreInnerGlow: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    top: -20,
-    left: -20,
-    zIndex: -1,
-    shadowColor: 'rgba(255, 255, 255, 0.5)',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 5,
-  },
-  rankSection: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  rankContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  rankIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  rankInfo: {
-    alignItems: 'flex-start',
-  },
-  rankNumber: {
-    fontSize: 32,
-    color: '#1E293B',
-    fontWeight: '800',
-    lineHeight: 40,
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 3,
-  },
-  rankLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  prizeInfo: {
-    alignItems: 'center',
-  },
-  prizeLabel: {
-    fontSize: 16,
-    color: '#64748B',
-    fontWeight: '500',
     marginBottom: 8,
   },
-  prizeAmount: {
-    fontSize: 32,
-    color: '#1E293B',
+  questionNumberBox: {
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  questionNumberText: {
+    fontSize: 13,
     fontWeight: '800',
-    lineHeight: 40,
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 3,
+    color: '#FFFFFF',
   },
-  breakdownBg1: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(236, 72, 153, 0.08)',
-    top: -20,
-    left: -20,
-    zIndex: -1,
-    shadowColor: '#EC4899',
+  resultBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+  },
+  resultBadgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  questionAnalysisText: {
+    fontSize: 14,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+
+  // Recommendations
+  recommendationsCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  recommendationsGradient: {
+    padding: 24,
+  },
+  recommendationsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  recommendationsTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#991B1B',
+  },
+  recommendationsList: {
+    gap: 16,
+  },
+  recommendationItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  recommendationText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#991B1B',
+    lineHeight: 20,
+  },
+
+  // No Data Card
+  noDataCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  breakdownBg2: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
-    bottom: -40,
-    right: -40,
-    zIndex: -1,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+  noDataTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#374151',
+    marginTop: 16,
+    marginBottom: 8,
   },
-  breakdownBg3: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-    top: 0,
-    right: 0,
-    zIndex: -1,
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+  noDataText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    fontWeight: '500',
   },
-  breakdownBg4: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
-    bottom: -20,
-    left: -20,
-    zIndex: -1,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-}); 
+});

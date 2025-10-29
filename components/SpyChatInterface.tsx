@@ -1,7 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Crown, MessageSquare, Mic, MicOff, Play, Send, Users, Volume2 } from 'lucide-react-native';
+import { Crown, MessageSquare, Play, Send, Users } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import AgoraNativeVoiceChat from './AgoraNativeVoiceChat';
+import SimpleAgoraVoice from './SimpleAgoraVoice';
 
 type ChatMessage = {
   id: string;
@@ -71,7 +73,7 @@ export default function SpyChatInterface({
   }, [socketProp]);
 
   // Agora.io configuration
-  const AGORA_APP_ID = 'YOUR_AGORA_APP_ID'; // Replace with your Agora App ID
+  const AGORA_APP_ID = '5a9df195-e82a-49cc-ba27-aaa41f0bb59b'; // Your Agora App ID
   const channelName = `spy-${game?.id || 'demo'}`;
   const uid = user?.id ? parseInt(user.id.replace(/\D/g, '').slice(-8), 10) || Math.floor(Math.random() * 100000) : Math.floor(Math.random() * 100000);
   
@@ -367,96 +369,7 @@ export default function SpyChatInterface({
                 </View>
               </View>
             </View>
-            {/* Voice controls */}
-            <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'center' }}>
-              <TouchableOpacity onPress={() => { 
-                console.log('🎤 Connect Voice button pressed');
-                setShowVoice(true); 
-                if (isMyTurn) { 
-                  setMicOn(true); 
-                  console.log('🎤 Mic enabled for current turn');
-                  try { 
-                    webViewRef.current?.injectJavaScript("try{(window.callFrame&&window.callFrame.setLocalAudio(true))||(window.daily&&window.daily.setLocalAudio&&window.daily.setLocalAudio(true));console.log('Voice connected and mic enabled');}catch(e){console.log('Voice connection error:',e);}"); 
-                  } catch (error) {
-                    console.error('🎤 Error connecting voice:', error);
-                  } 
-                } else {
-                  console.log('🎤 Not your turn, voice connection only');
-                }
-              }} style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, marginRight: 8 }}>
-                <Volume2 color="#fff" size={16} />
-                <Text style={{ color: 'white', marginLeft: 6 }}>
-                  {isMyTurn ? 'Connect & Speak' : 'Connect Voice'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                disabled={!isMyTurn}
-                onPress={toggleMic}
-                onPressIn={pttDown}
-                onPressOut={pttUp}
-                style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: isMyTurn ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, opacity: isMyTurn ? 1 : 0.5 }}
-              >
-                {micOn ? <Mic color="#fff" size={16} /> : <MicOff color="#fff" size={16} />}
-                <Text style={{ color: 'white', marginLeft: 6 }}>{micOn ? 'Mic On' : 'Mic Off'}</Text>
-              </TouchableOpacity>
-              
-              {/* Debug: Test Mic Button */}
-              <TouchableOpacity
-                onPress={() => {
-                  console.log('🎤 Testing mic manually...');
-                  console.log('🎤 WebView ref available:', !!webViewRef.current);
-                  try {
-                    const js = `
-                      try {
-                        console.log('Manual mic test...');
-                        console.log('Window object:', typeof window);
-                        console.log('CallFrame available:', typeof window.callFrame);
-                        console.log('Daily available:', typeof window.daily);
-                        
-                        if (window.callFrame) {
-                          window.callFrame.setLocalAudio(true);
-                          console.log('Manual mic enabled via callFrame');
-                        } else if (window.daily) {
-                          window.daily.setLocalAudio(true);
-                          console.log('Manual mic enabled via daily');
-                        } else {
-                          console.log('No Daily.co API found for manual test');
-                        }
-                      } catch(e) {
-                        console.log('Manual mic test error:', e);
-                      }
-                    `;
-                    console.log('🎤 Injecting manual test JavaScript...');
-                    webViewRef.current?.injectJavaScript(js);
-                    console.log('🎤 Manual test JavaScript injected');
-                  } catch (error) {
-                    console.error('🎤 Manual mic test error:', error);
-                  }
-                }}
-                style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, marginLeft: 8, backgroundColor: 'rgba(59,130,246,0.2)' }}
-              >
-                <Text style={{ color: 'white', fontSize: 12 }}>Test Mic</Text>
-              </TouchableOpacity>
-              
-              {/* Debug: Simple Test Button */}
-              <TouchableOpacity
-                onPress={() => {
-                  console.log('🎤 Simple WebView test...');
-                  try {
-                    const js = `console.log('Hello from WebView!');`;
-                    console.log('🎤 Injecting simple test...');
-                    webViewRef.current?.injectJavaScript(js);
-                    console.log('🎤 Simple test injected');
-                  } catch (error) {
-                    console.error('🎤 Simple test error:', error);
-                  }
-                }}
-                style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, marginLeft: 8, backgroundColor: 'rgba(34,197,94,0.2)' }}
-              >
-                <Text style={{ color: 'white', fontSize: 12 }}>Test WebView</Text>
-              </TouchableOpacity>
-            </View>
-            {/* Inline input under Connect Voice */}
+            {/* Message Input */}
             <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center' }}>
               <TextInput
                 placeholder={isMyTurn ? 'Type your description…' : 'Type a message…'}
@@ -578,9 +491,16 @@ export default function SpyChatInterface({
           </View>
         )}
       </KeyboardAvoidingView>
-      {/* Removed absolute bottom input; input is now inline under Connect Voice or below messages */}
-      {/* Invisible Daily audio bridge (auto-join, hidden UI) */}
-      {dailyUrl && (
+      {/* Simple Agora Voice Chat - Only Mic and Speaker */}
+      <SimpleAgoraVoice
+        gameId={game?.id || 'demo'}
+        userId={user?.id || 'anonymous'}
+        userName={user?.name || 'Player'}
+        isMyTurn={isMyTurn}
+      />
+      
+      {/* Legacy Daily.co WebView - Remove this */}
+      {false && dailyUrl && (
         <WebView
           source={{ uri: dailyUrl }}
           style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}

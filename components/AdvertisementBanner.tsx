@@ -83,7 +83,7 @@ const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({ onPress }) =>
       onPress();
     } else {
       // Default action - could be opening a link or navigating
-      console.log('Advertisement banner pressed');
+
       // Example: Linking.openURL('https://your-advertisement-link.com');
     }
   };

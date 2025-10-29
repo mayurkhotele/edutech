@@ -66,7 +66,7 @@ export default function MembershipScreen() {
 
   const handleSubscribe = (tierId: string) => {
     // Handle subscription logic here
-    console.log('Subscribing to:', tierId);
+
     // You can add payment gateway integration here
   };
 

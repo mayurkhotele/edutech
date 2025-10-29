@@ -3,34 +3,34 @@ import { useAuth } from '@/context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
-  ArrowRight,
-  Brain,
-  CheckCircle,
-  Clock,
-  Map,
-  TestTube,
-  Trophy,
-  Users,
-  X,
-  Zap
+    ArrowRight,
+    Brain,
+    CheckCircle,
+    Clock,
+    Map,
+    TestTube,
+    Trophy,
+    Users,
+    X,
+    Zap
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  Easing,
-  Image,
-  Modal,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
+    Alert,
+    Animated,
+    Dimensions,
+    Easing,
+    Image,
+    Modal,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 
@@ -106,11 +106,11 @@ export default function QuizScreen() {
       });
 
       newSocket.on('connect', () => {
-        console.log('Socket connected:', newSocket.id);
+
       });
 
       newSocket.on('disconnect', () => {
-        console.log('Socket disconnected');
+
       });
 
       setSocket(newSocket);
@@ -125,11 +125,11 @@ export default function QuizScreen() {
     if (!user?.token) return;
     
     try {
-      console.log('Fetching battle quiz categories...');
+
       const response = await apiFetchAuth('/student/battle-quiz', user.token);
       if (response.ok) {
         const categories: QuestionCategory[] = response.data;
-        console.log('Battle quiz categories fetched successfully:', categories);
+
         setQuestionCategories(categories);
         // Remove automatic selection - no category should be preselected
       } else {
@@ -158,11 +158,11 @@ export default function QuizScreen() {
     
     try {
       setLoadingAmounts(true);
-      console.log('Fetching battle amounts for category:', categoryId);
+
       const response = await apiFetchAuth(`/student/battle-quiz/amounts?categoryId=${categoryId}`, user.token);
       if (response.ok) {
         const amounts: BattleAmount[] = response.data;
-        console.log('Battle amounts fetched successfully:', amounts);
+
         setBattleAmounts(amounts);
         return amounts;
       } else {
@@ -178,7 +178,7 @@ export default function QuizScreen() {
   };
 
   const handleCategoryPress = async (category: QuestionCategory) => {
-    console.log('Category pressed:', category.name);
+
     setSelectedCategory(category.id);
     setSelectedCategoryName(category.name);
     
@@ -239,7 +239,7 @@ export default function QuizScreen() {
       return;
     }
 
-    console.log('Starting battle with amount:', selectedAmount);
+
     closeAmountModal();
     
     router.push({
@@ -441,7 +441,7 @@ export default function QuizScreen() {
       return;
     }
 
-    console.log('Creating private room');
+
     Alert.alert('Create Room', 'Private room creation feature coming soon!');
   };
 
@@ -456,7 +456,7 @@ export default function QuizScreen() {
       return;
     }
 
-    console.log('Joining room:', roomCode);
+
     router.push({
       pathname: '/(tabs)/battle-room',
       params: { 
@@ -518,7 +518,7 @@ export default function QuizScreen() {
   };
 
   const getCategoryIcon = (categoryName: string) => {
-    console.log('getCategoryIcon called with:', categoryName);
+
     const lowerName = categoryName.toLowerCase();
     
     switch (lowerName) {
@@ -538,19 +538,19 @@ export default function QuizScreen() {
       case 'math':
       case 'mathematics':
       case 'mathematical':
-        console.log('Math category detected, returning Map');
+
         return 'Map';
       case 'geography':
       case 'geographical':
         return 'Map';
       default:
-        console.log('Default case, returning Brain for:', categoryName);
+
         return 'Brain';
     }
   };
 
   const renderCategoryIcon = (categoryName: string, size: number, color: string, index?: number) => {
-    console.log('Rendering icon for category:', categoryName, 'Index:', index);
+
     
     // Index-based icon assignment
     if (index !== undefined) {
@@ -564,7 +564,7 @@ export default function QuizScreen() {
                 resizeMode="contain"
                 onLoad={() => console.log('3D character loaded successfully!')}
                 onError={() => {
-                  console.log('3D character loading error');
+
                   setImageLoadError(true);
                 }}
               />
@@ -600,7 +600,7 @@ export default function QuizScreen() {
                 style={{ width: 50, height: 50 }}
                 resizeMode="contain"
                 onError={() => {
-                  console.log('Science image loading error');
+
                   setScienceImageLoadError(true);
                 }}
               />
@@ -617,7 +617,7 @@ export default function QuizScreen() {
                 resizeMode="contain"
                 onLoad={() => console.log('Math image loaded successfully!')}
                 onError={() => {
-                  console.log('Math image loading error');
+
                   setMathImageLoadError(true);
                 }}
               />

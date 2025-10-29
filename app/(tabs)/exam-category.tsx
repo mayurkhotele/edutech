@@ -5,40 +5,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Dimensions,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
-
-const getGradientColors = (category: string) => {
-  const categoryLower = category.toLowerCase();
-  
-  const colorSchemes = [
-    ['#4F46E5', '#7C3AED'], // Purple
-    ['#06B6D4', '#0891B2'], // Cyan  
-    ['#10B981', '#059669'], // Green
-    ['#F59E0B', '#D97706'], // Orange
-    ['#EF4444', '#DC2626'], // Red
-    ['#8B5CF6', '#A855F7'], // Purple again
-  ];
-  
-  const hash = categoryLower.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
-  }, 0);
-  
-  const colorIndex = Math.abs(hash) % colorSchemes.length;
-  return colorSchemes[colorIndex] as [string, string];
-};
 
 interface PracticeExam {
   id: string;
@@ -57,52 +35,18 @@ const ExamCategoryPage = () => {
   const router = useRouter();
   const { user } = useAuth();
   const [exams, setExams] = useState<PracticeExam[]>([]);
-  const [filteredExams, setFilteredExams] = useState<PracticeExam[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
   const [subcategories, setSubcategories] = useState<string[]>([]);
 
-  // Animation values
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(50);
-  const scaleAnim = new Animated.Value(0.9);
-  
-  // Get category colors early
-  const categoryColors = getGradientColors(category || '');
-
   useEffect(() => {
-    console.log('🔍 ExamCategoryPage mounted with category:', category);
     if (category) {
       fetchExamsByCategory();
     } else {
-      console.log('❌ No category provided!');
       setLoading(false);
     }
-    // Start animations
-    startAnimations();
   }, [category]);
-
-  const startAnimations = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   const fetchExamsByCategory = async () => {
     try {
@@ -110,14 +54,10 @@ const ExamCategoryPage = () => {
       
       setLoading(true);
       const apiUrl = `/student/practice-exams?category=${encodeURIComponent(category || '')}`;
-      console.log('🔗 API URL:', apiUrl);
-      console.log('🔗 Category being sent:', category);
+
       const response = await apiFetchAuth(apiUrl, user.token);
       
       if (response.ok) {
-        console.log('📚 Exams fetched successfully:', response.data);
-        console.log('📊 Category:', category);
-        console.log('📊 Total exams received:', response.data?.length);
         const examData = response.data || [];
         setExams(examData);
         
@@ -125,42 +65,22 @@ const ExamCategoryPage = () => {
         const uniqueSubcategories = [...new Set(examData.map((exam: PracticeExam) => exam.subcategory))] as string[];
         setSubcategories(uniqueSubcategories);
         
-        // Set exams first
-        setExams(examData);
-        
-        // Apply initial filtering
-        applyFilters(examData, 'all');
-        
       } else {
         console.error('❌ Failed to fetch exams:', response.data);
         setExams([]);
-        setFilteredExams([]);
         setSubcategories([]);
       }
     } catch (error) {
       console.error('❌ Error fetching exams:', error);
       setExams([]);
-      setFilteredExams([]);
       setSubcategories([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFilters = (examList: PracticeExam[], subcategoryFilter: string) => {
-    let filtered = examList;
-
-    // Apply subcategory filter
-    if (subcategoryFilter !== 'all') {
-      filtered = filtered.filter(exam => exam.subcategory === subcategoryFilter);
-    }
-
-    setFilteredExams(filtered);
-  };
-
   const handleSubcategoryFilter = (subcategory: string) => {
     setSelectedSubcategory(subcategory);
-    applyFilters(exams, subcategory);
   };
 
   const onRefresh = async () => {
@@ -170,310 +90,203 @@ const ExamCategoryPage = () => {
   };
 
   const handleStartExam = (exam: PracticeExam) => {
-    console.log('🚀 Starting exam:', exam.title);
     router.push(`/practice-exam/${exam.id}`);
   };
 
   const handleReviewExam = (exam: PracticeExam) => {
-    console.log('👁️ Reviewing exam:', exam.title);
     router.push(`/practice-exam/${exam.id}/result`);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
   const getCategoryIcon = (category: string) => {
-    const iconMap: { [key: string]: keyof typeof Ionicons.glyphMap } = {
-      'Mathematics': 'calculator',
-      'Science': 'flask',
-      'English': 'book',
-      'History': 'library',
-      'Geography': 'globe',
-      'Physics': 'nuclear',
-      'Chemistry': 'flask',
-      'Biology': 'leaf',
-      'Computer Science': 'laptop',
-      'Economics': 'trending-up',
-      'SSC 1': 'medal',
-      'Railway 1': 'train',
-      'Bank': 'card',
-    };
-    return iconMap[category] || 'library';
+    const categoryLower = category.toLowerCase();
+    if (categoryLower.includes('railway')) return 'train';
+    if (categoryLower.includes('ssc')) return 'school';
+    if (categoryLower.includes('math')) return 'calculator';
+    if (categoryLower.includes('science')) return 'flask';
+    if (categoryLower.includes('english')) return 'book';
+    if (categoryLower.includes('computer')) return 'laptop';
+    if (categoryLower.includes('general')) return 'bulb';
+    if (categoryLower.includes('reasoning')) return 'brain';
+    if (categoryLower.includes('banking')) return 'card';
+    if (categoryLower.includes('upsc')) return 'library';
+    return 'library';
   };
 
-  const attemptedExams = exams.filter(exam => exam.attempted).length;
+  const getCategoryColor = (category: string) => {
+    const colors = ['#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'];
+    const hash = category.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const filteredExams = selectedSubcategory === 'all' 
+    ? exams 
+    : exams.filter(exam => exam.subcategory === selectedSubcategory);
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <LinearGradient
-          colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-          style={styles.loadingGradient}
-        >
-          <ActivityIndicator size="large" color="#FFFFFF" />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4F46E5" />
           <Text style={styles.loadingText}>Loading exams...</Text>
-        </LinearGradient>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <LinearGradient
-        colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
-        style={styles.backgroundGradient}
+        colors={['#4F46E5', '#7C3AED']}
+        style={styles.header}
       >
-        {/* Modern Header */}
-        <LinearGradient
-          colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.modernHeader}
-        >
-          <View style={styles.modernHeaderContent}>
-            <TouchableOpacity 
-              style={styles.modernBackButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            
-            <View style={styles.modernHeaderInfo}>
-              <View style={styles.modernCategoryIcon}>
-                <Ionicons name={getCategoryIcon(category || '')} size={32} color="#FFFFFF" />
-              </View>
-              <View style={styles.modernTitleContainer}>
-                <Text style={styles.modernCategoryTitle}>{category}</Text>
-                <Text style={styles.modernCategorySubtitle}>Practice Exams</Text>
-              </View>
-            </View>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerTitle}>{category}</Text>
+            <Text style={styles.headerSubtitle}>Practice Exams</Text>
           </View>
-        </LinearGradient>
+          
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerActionButton}>
+              <Ionicons name="search" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerActionButton}>
+              <Ionicons name="cart" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
 
-         {/* Modern Stats Cards */}
-         <View style={styles.modernStatsContainer}>
-           <View style={styles.modernStatsRow}>
-             <View style={styles.modernStatCard}>
-               <LinearGradient
-                 colors={['#4F46E5', '#7C3AED']}
-                 style={styles.modernStatGradient}
-               >
-                 <Ionicons name="library" size={24} color="#FFFFFF" />
-                 <Text style={styles.modernStatValue}>{exams.length}</Text>
-                 <Text style={styles.modernStatLabel}>Total Exams</Text>
-               </LinearGradient>
-             </View>
-             
-             <View style={styles.modernStatCard}>
-               <LinearGradient
-                 colors={['#10B981', '#059669']}
-                 style={styles.modernStatGradient}
-               >
-                 <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-                 <Text style={styles.modernStatValue}>{attemptedExams}</Text>
-                 <Text style={styles.modernStatLabel}>Completed</Text>
-               </LinearGradient>
-             </View>
-             
-             <View style={styles.modernStatCard}>
-               <LinearGradient
-                 colors={['#F59E0B', '#D97706']}
-                 style={styles.modernStatGradient}
-               >
-                 <Ionicons name="time" size={24} color="#FFFFFF" />
-                 <Text style={styles.modernStatValue}>{exams.length - attemptedExams}</Text>
-                 <Text style={styles.modernStatLabel}>Pending</Text>
-               </LinearGradient>
-             </View>
-           </View>
-         </View>
+      <View style={styles.content}>
+        {/* Left Sidebar */}
+        <View style={styles.sidebar}>
+          <Text style={styles.sidebarTitle}>All Categories</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <TouchableOpacity style={styles.categoryItem}>
+              <View style={[styles.categoryIconContainer, { backgroundColor: getCategoryColor(category || '') }]}>
+                <Ionicons name={getCategoryIcon(category || '')} size={16} color="#FFFFFF" />
+              </View>
+              <Text style={styles.categoryText}>{category}</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
 
-         {/* Subcategory Filter */}
-         {subcategories.length > 1 && (
-           <View style={styles.subcategoryFilterContainer}>
-             <Text style={styles.subcategoryFilterTitle}>Filter by Subcategory</Text>
-             <ScrollView 
-               horizontal 
-               showsHorizontalScrollIndicator={false}
-               contentContainerStyle={styles.subcategoryFilterScroll}
-             >
-               <TouchableOpacity
-                 style={[
-                   styles.subcategoryFilterChip,
-                   selectedSubcategory === 'all' && styles.subcategoryFilterChipActive
-                 ]}
-                 onPress={() => handleSubcategoryFilter('all')}
-               >
-                 <Text style={[
-                   styles.subcategoryFilterChipText,
-                   selectedSubcategory === 'all' && styles.subcategoryFilterChipTextActive
-                 ]}>
-                   All
-                 </Text>
-               </TouchableOpacity>
-               
-               {subcategories.map((subcategory) => (
-                 <TouchableOpacity
-                   key={subcategory}
-                   style={[
-                     styles.subcategoryFilterChip,
-                     selectedSubcategory === subcategory && styles.subcategoryFilterChipActive
-                   ]}
-                   onPress={() => handleSubcategoryFilter(subcategory)}
-                 >
-                   <Text style={[
-                     styles.subcategoryFilterChipText,
-                     selectedSubcategory === subcategory && styles.subcategoryFilterChipTextActive
-                   ]}>
-                     {subcategory}
-                   </Text>
-                 </TouchableOpacity>
-               ))}
-             </ScrollView>
-           </View>
-         )}
+        {/* Main Content */}
+        <View style={styles.mainContent}>
+          {/* Banner */}
+          <LinearGradient
+            colors={['#4F46E5', '#7C3AED']}
+            style={styles.banner}
+          >
+            <Text style={styles.bannerTitle}>{category} Store</Text>
+            <Text style={styles.bannerSubtitle}>Practice Exams Available</Text>
+          </LinearGradient>
 
-
-        {/* Modern Exam List */}
-        <ScrollView
-          style={styles.modernContainer}
-          contentContainerStyle={styles.modernContentContainer}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#4F46E5']}
-              tintColor="#4F46E5"
-            />
-          }
-        >
-           {exams.length > 0 ? (
-             <View style={styles.modernExamList}>
-               <Text style={styles.modernListTitle}>
-                 {selectedSubcategory !== 'all' ? `${selectedSubcategory} Exams` : 'Available Exams'}
-               </Text>
-               
-               {exams.map((exam, index) => (
-                <View 
-                  key={exam.id} 
-                  style={styles.modernExamCard}
+          {/* Subcategory Filter */}
+          {subcategories.length > 1 && (
+            <View style={styles.subcategorySection}>
+              <Text style={styles.sectionTitle}>Filter by Subcategory</Text>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.subcategoryScroll}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.subcategoryChip,
+                    selectedSubcategory === 'all' && styles.subcategoryChipActive
+                  ]}
+                  onPress={() => handleSubcategoryFilter('all')}
                 >
+                  <Text style={[
+                    styles.subcategoryChipText,
+                    selectedSubcategory === 'all' && styles.subcategoryChipTextActive
+                  ]}>
+                    All
+                  </Text>
+                </TouchableOpacity>
+                
+                {subcategories.map((subcategory) => (
                   <TouchableOpacity
-                    style={styles.modernExamTouchable}
-                    onPress={() => {
-                      exam.attempted ? handleReviewExam(exam) : handleStartExam(exam);
-                    }}
-                    activeOpacity={0.9}
+                    key={subcategory}
+                    style={[
+                      styles.subcategoryChip,
+                      selectedSubcategory === subcategory && styles.subcategoryChipActive
+                    ]}
+                    onPress={() => handleSubcategoryFilter(subcategory)}
                   >
-                    {/* Card Header */}
-                    <View style={styles.modernCardHeader}>
-                      <View style={styles.modernCardLeft}>
-                        <LinearGradient
-                          colors={exam.attempted ? ['#10B981', '#059669'] : ['#4F46E5', '#7C3AED']}
-                          style={styles.modernExamIcon}
-                        >
-                          <Ionicons 
-                            name={getCategoryIcon(exam.category)} 
-                            size={24} 
-                            color="#FFFFFF" 
-                          />
-                        </LinearGradient>
-                        <View style={styles.modernExamInfo}>
-                          <Text style={styles.modernExamTitle} numberOfLines={2}>
-                            {exam.title}
-                          </Text>
-                          <Text style={styles.modernExamSubtitle}>
-                            {exam.subcategory}
-                          </Text>
-                          {exam.description && (
-                            <Text style={styles.modernExamDescription} numberOfLines={1}>
-                              {exam.description}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      
-                      <View style={styles.modernStatusContainer}>
-                        {exam.attempted ? (
-                          <View style={styles.modernCompletedBadge}>
-                            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                            <Text style={styles.modernCompletedText}>Completed</Text>
-                          </View>
-                        ) : (
-                          <View style={styles.modernAvailableBadge}>
-                            <Ionicons name="play-circle" size={16} color="#4F46E5" />
-                            <Text style={styles.modernAvailableText}>Available</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-
-
-                    {/* Spots Progress Bar */}
-                    <View style={styles.spotsProgressContainer}>
-                      <View style={styles.spotsProgressHeader}>
-                        <Text style={styles.spotsProgressLabel}>Available Spots</Text>
-                        <Text style={styles.spotsProgressText}>{exam.spotsLeft}/{exam.spots}</Text>
-                      </View>
-                      <View style={styles.spotsProgressBar}>
-                        <View 
-                          style={[
-                            styles.spotsProgressFill, 
-                            { 
-                              width: `${((exam.spots - exam.spotsLeft) / exam.spots) * 100}%` 
-                            }
-                          ]} 
-                        />
-                      </View>
-                    </View>
-
-                    {/* Action Button */}
-                    <LinearGradient
-                      colors={exam.attempted ? ['#10B981', '#059669'] : ['#4F46E5', '#7C3AED']}
-                      style={styles.modernActionButton}
-                    >
-                      <View style={styles.modernActionContent}>
-                        <Ionicons 
-                          name={exam.attempted ? "eye" : "play"} 
-                          size={20} 
-                          color="#FFFFFF" 
-                        />
-                        <Text style={styles.modernActionText}>
-                          {exam.attempted ? 'Review Results' : 'Start Exam'}
-                        </Text>
-                        <Ionicons 
-                          name="arrow-forward" 
-                          size={16} 
-                          color="#FFFFFF" 
-                        />
-                      </View>
-                    </LinearGradient>
+                    <Text style={[
+                      styles.subcategoryChipText,
+                      selectedSubcategory === subcategory && styles.subcategoryChipTextActive
+                    ]}>
+                      {subcategory}
+                    </Text>
                   </TouchableOpacity>
-                </View>
-               ))}
-            </View>
-          ) : (
-            <View style={styles.modernNoExamsContainer}>
-              <Ionicons name="library-outline" size={64} color="#9CA3AF" />
-              <Text style={styles.modernNoExamsTitle}>No Exams Found</Text>
-              <Text style={styles.modernNoExamsText}>
-                No exams available for {category} category.
-              </Text>
-              <TouchableOpacity style={styles.modernRefreshButton} onPress={onRefresh}>
-                <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.modernRefreshText}>Refresh</Text>
-              </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
           )}
-        </ScrollView>
-      </LinearGradient>
+
+          {/* Exams Grid */}
+          <ScrollView
+            style={styles.examsContainer}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#4F46E5']}
+                tintColor="#4F46E5"
+              />
+            }
+          >
+            <Text style={styles.sectionTitle}>
+              {selectedSubcategory !== 'all' ? `${selectedSubcategory} Exams` : 'Available Exams'}
+            </Text>
+            
+            <View style={styles.examsGrid}>
+              {filteredExams.map((exam) => (
+                <TouchableOpacity
+                  key={exam.id}
+                  style={styles.examCard}
+                  onPress={() => {
+                    exam.attempted ? handleReviewExam(exam) : handleStartExam(exam);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.examCardContent}>
+                    <View style={styles.examIconContainer}>
+                      <Ionicons 
+                        name={getCategoryIcon(exam.category)} 
+                        size={24} 
+                        color="#FFFFFF" 
+                      />
+                    </View>
+                    <Text style={styles.examTitle}>{exam.title}</Text>
+                    <Text style={styles.examSubcategory}>{exam.subcategory}</Text>
+                    {exam.attempted && (
+                      <View style={styles.completedBadge}>
+                        <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                        <Text style={styles.completedText}>Completed</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
@@ -483,27 +296,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
-  backgroundGradient: {
-    flex: 1,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingGradient: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   loadingText: {
-    color: '#FFFFFF',
+    color: '#4F46E5',
     fontSize: 16,
     fontWeight: '600',
     marginTop: 16,
   },
-  modernHeader: {
+  // Header Styles
+  header: {
     paddingHorizontal: 20,
     paddingVertical: 20,
     borderBottomLeftRadius: 24,
@@ -514,327 +319,214 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
   },
-  modernHeaderContent: {
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  modernBackButton: {
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
   },
-  modernHeaderInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerInfo: {
     flex: 1,
+    alignItems: 'center',
   },
-  modernCategoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  headerActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
   },
-  modernTitleContainer: {
+  // Content Layout
+  content: {
     flex: 1,
+    flexDirection: 'row',
   },
-  modernCategoryTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 4,
+  // Sidebar Styles
+  sidebar: {
+    width: screenWidth * 0.28,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRightWidth: 1,
+    borderRightColor: '#E5E7EB',
   },
-  modernCategorySubtitle: {
+  sidebarTitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 16,
+    textAlign: 'center',
   },
-  modernStatsContainer: {
+  categoryItem: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    marginBottom: 8,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+  },
+  categoryIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  categoryText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1F2937',
+    textAlign: 'center',
+  },
+  // Main Content Styles
+  mainContent: {
+    flex: 1,
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
-  modernStatsRow: {
+  // Banner Styles
+  banner: {
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  bannerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  bannerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
+  },
+  // Section Styles
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  subcategorySection: {
+    marginBottom: 20,
+  },
+  subcategoryScroll: {
+    paddingRight: 20,
+  },
+  subcategoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  subcategoryChipActive: {
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
+  },
+  subcategoryChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  subcategoryChipTextActive: {
+    color: '#FFFFFF',
+  },
+  // Exams Grid Styles
+  examsContainer: {
+    flex: 1,
+  },
+  examsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 12,
   },
-  modernStatCard: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
+  examCard: {
+    width: (screenWidth * 0.72 - 40 - 12) / 3,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  modernStatGradient: {
-    padding: 16,
+  examCardContent: {
     alignItems: 'center',
   },
-  modernStatValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  modernStatLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  modernContainer: {
-    flex: 1,
-  },
-  modernContentContainer: {
-    paddingBottom: 20,
-  },
-  modernExamList: {
-    paddingHorizontal: 20,
-  },
-  modernListTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 16,
-  },
-  modernExamCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  modernExamTouchable: {
-    padding: 20,
-  },
-  modernCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  modernCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    flex: 1,
-  },
-  modernExamIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  examIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#4F46E5',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 8,
   },
-  modernExamInfo: {
-    flex: 1,
-  },
-  modernExamTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 4,
-    lineHeight: 24,
-  },
-  modernExamSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  modernExamDescription: {
+  examTitle: {
     fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 2,
-    fontStyle: 'italic',
-  },
-  modernStatusContainer: {
-    alignItems: 'flex-end',
-  },
-  modernCompletedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  modernCompletedText: {
-    fontSize: 12,
-    color: '#10B981',
     fontWeight: '600',
-    marginLeft: 4,
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  modernAvailableBadge: {
+  examSubcategory: {
+    fontSize: 10,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  completedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#D1FAE5',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 2,
   },
-  modernAvailableText: {
-    fontSize: 12,
-    color: '#059669',
+  completedText: {
+    color: '#065F46',
+    fontSize: 8,
     fontWeight: '600',
-    marginLeft: 4,
   },
-  modernCardDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  spotsProgressContainer: {
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  spotsProgressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  spotsProgressLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  spotsProgressText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  spotsProgressBar: {
-    height: 6,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  spotsProgressFill: {
-    height: '100%',
-    backgroundColor: '#4F46E5',
-    borderRadius: 3,
-  },
-  modernDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  modernDetailText: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginLeft: 6,
-    fontWeight: '500',
-  },
-  modernActionButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  modernActionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-  },
-  modernActionText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginLeft: 8,
-    marginRight: 8,
-  },
-  modernNoExamsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
-  },
-  modernNoExamsTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#6B7280',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  modernNoExamsText: {
-    fontSize: 16,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  modernRefreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-   modernRefreshText: {
-     fontSize: 16,
-     fontWeight: '600',
-     color: '#FFFFFF',
-     marginLeft: 8,
-   },
-   // Filter styles
-   subcategoryFilterContainer: {
-     paddingHorizontal: 20,
-     paddingVertical: 16,
-     backgroundColor: '#FFFFFF',
-     marginHorizontal: 20,
-     borderRadius: 16,
-     shadowColor: '#000',
-     shadowOffset: { width: 0, height: 2 },
-     shadowOpacity: 0.1,
-     shadowRadius: 4,
-     elevation: 2,
-   },
-   subcategoryFilterTitle: {
-     fontSize: 16,
-     fontWeight: '700',
-     color: '#1F2937',
-     marginBottom: 12,
-   },
-   subcategoryFilterScroll: {
-     paddingRight: 20,
-   },
-   subcategoryFilterChip: {
-     paddingHorizontal: 16,
-     paddingVertical: 8,
-     borderRadius: 20,
-     backgroundColor: '#F3F4F6',
-     marginRight: 8,
-     borderWidth: 1,
-     borderColor: '#E5E7EB',
-   },
-   subcategoryFilterChipActive: {
-     backgroundColor: '#4F46E5',
-     borderColor: '#4F46E5',
-   },
-   subcategoryFilterChipText: {
-     fontSize: 14,
-     fontWeight: '600',
-     color: '#6B7280',
-   },
-   subcategoryFilterChipTextActive: {
-     color: '#FFFFFF',
-   },
- });
+});
 
 export default ExamCategoryPage;

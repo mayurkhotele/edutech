@@ -21,7 +21,7 @@ const Register = () => {
 
     const handleRegister = async () => {
         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-        console.log('handleRegister called with:', { name, email, phoneNumber, referralCode });
+
         
         if (!name || !email || !password || !phoneNumber) {
             showError('Please fill all the required fields.');
@@ -40,12 +40,12 @@ const Register = () => {
         }
         
         try {
-            console.log('Calling register function...');
+
             const userData = { name, email, password, phoneNumber, referralCode };
-            console.log('User data to register:', userData);
+
             
             await register(userData);
-            console.log('Registration successful!');
+
             showSuccess('Registration successful! Please log in.');
             setTimeout(() => {
                 router.replace('/login');
@@ -60,7 +60,7 @@ const Register = () => {
                 errorMessage = error.message;
             }
             
-            console.log('Error message to show:', errorMessage);
+
             
             // Show specific error messages
             if (errorMessage.toLowerCase().includes('email already exists')) {

@@ -157,19 +157,19 @@ export default function SpyRoom() {
       return undefined;
     };
     const handleWordAssigned = (data: any) => {
-      console.log('🎯 Word assigned event received:', data);
+
       const w = extractWord(data);
-      console.log('📝 Extracted word:', w);
+
       if (typeof w === 'string') {
         setMyWord(w);
-        console.log('✅ Word set successfully:', w);
+
       }
       if (typeof data?.isSpy === 'boolean') {
         setIsSpy(data.isSpy);
-        console.log('🕵️ Spy role set:', data.isSpy);
+
       }
       setPhase('WORD_ASSIGNMENT');
-      console.log('🔄 Phase changed to WORD_ASSIGNMENT');
+
     };
     const handleSpyRole = (data: any) => {
       if (typeof data?.isSpy === 'boolean') setIsSpy(data.isSpy);
@@ -183,7 +183,7 @@ export default function SpyRoom() {
     on('player_joined_spy_game' as any, handlePlayerJoined);
     on('player_left_spy_game' as any, handlePlayerLeft);
     on('spy_slot_joined' as any, (data: any) => {
-      console.log('🎯 Player joined slot:', data);
+
       if (data?.players) {
         setPlayers(data.players);
       }
@@ -204,20 +204,20 @@ export default function SpyRoom() {
     on('your_word' as any, handleWordAssigned);
     on('private_word' as any, handleWordAssigned);
     on('spy_game_started' as any, (data: any) => {
-      console.log('🎮 Spy game started event received:', data);
+
       // Some servers emit at start with personal data
       const w = extractWord(data);
-      console.log('📝 Extracted word from game started:', w);
+
       if (typeof w === 'string') {
         setMyWord(w);
-        console.log('✅ Word set from game started:', w);
+
       }
       if (typeof data?.isSpy === 'boolean') {
         setIsSpy(data.isSpy);
-        console.log('🕵️ Spy role set from game started:', data.isSpy);
+
       }
       setPhase('WORD_ASSIGNMENT');
-      console.log('🔄 Phase changed to WORD_ASSIGNMENT from game started');
+
     });
     on('spy_role' as any, handleSpyRole);
     on('spy_game_ended' as any, handleGameEnded);
@@ -347,8 +347,8 @@ export default function SpyRoom() {
       position: player.position || index + 1
     }));
     
-    console.log('🎮 Render Lobby - Players:', players.length, 'Display Slots:', displaySlots);
-    console.log('🎮 Players with positions:', playersWithPositions.map(p => ({ name: p.name, position: p.position })));
+
+
     
     return (
       <View style={{ flex: 1, backgroundColor: '#0b1020' }}>

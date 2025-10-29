@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import {
     SafeAreaView,
     ScrollView,
@@ -35,7 +34,6 @@ const PrivacyPolicyScreen = () => {
                             <Ionicons name="shield-checkmark" size={28} color="#FFFFFF" style={styles.headerIcon} />
                             <Text style={styles.headerTitle}>Privacy Policy</Text>
                         </View>
-                        <Text style={styles.headerSubtitle}>Last updated: January 2025</Text>
                     </View>
                     <View style={styles.placeholder} />
                 </View>
@@ -55,6 +53,13 @@ const PrivacyPolicyScreen = () => {
                 contentContainerStyle={styles.scrollContent}
             >
                 <View style={styles.contentContainer}>
+                    {/* Introduction */}
+                    <View style={styles.sectionCard}>
+                        <Text style={styles.paragraph}>
+                            Yottascore ("we", "our", "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and protect your personal information when you use our app and services.
+                        </Text>
+                    </View>
+
                     {/* Enhanced Section 1 */}
                     <View style={styles.sectionCard}>
                         <View style={styles.sectionHeader}>
@@ -64,9 +69,10 @@ const PrivacyPolicyScreen = () => {
                             <Text style={styles.sectionTitle}>1. Information We Collect</Text>
                         </View>
                         <Text style={styles.paragraph}>
-                            We collect information you provide directly to us, such as when you create an account, 
-                            take exams, or contact our support team. This may include your name, email address, 
-                            phone number, and educational information.
+                            We may collect the following information from you:{'\n\n'}
+                            • <Text style={styles.boldText}>Personal Information:</Text> Name, mobile number, and email address.{'\n\n'}
+                            • <Text style={styles.boldText}>Payment Information:</Text> Processed securely through Razorpay. We do not store your full payment details.{'\n\n'}
+                            • <Text style={styles.boldText}>Device Information:</Text> Non-personal information like device model, operating system, and app version for improving user experience.
                         </Text>
                     </View>
 
@@ -79,9 +85,12 @@ const PrivacyPolicyScreen = () => {
                             <Text style={styles.sectionTitle}>2. How We Use Your Information</Text>
                         </View>
                         <Text style={styles.paragraph}>
-                            We use the information we collect to provide, maintain, and improve our services, 
-                            process your exam results, communicate with you about your account, and send you 
-                            important updates about our platform.
+                            We use your information to:{'\n\n'}
+                            • Register and manage your account.{'\n\n'}
+                            • Allow you to participate in live and practice exams, quizzes, and battles.{'\n\n'}
+                            • Process entry fees and reward distributions.{'\n\n'}
+                            • Send important notifications about exams, results, and app updates.{'\n\n'}
+                            • Improve the app experience and resolve user queries.
                         </Text>
                     </View>
 
@@ -91,11 +100,13 @@ const PrivacyPolicyScreen = () => {
                             <View style={styles.sectionIconContainer}>
                                 <Ionicons name="share-social" size={24} color="#8B5CF6" />
                             </View>
-                            <Text style={styles.sectionTitle}>3. Information Sharing</Text>
+                            <Text style={styles.sectionTitle}>3. Sharing of Information</Text>
                         </View>
                         <Text style={styles.paragraph}>
-                            We do not sell, trade, or otherwise transfer your personal information to third parties 
-                            without your consent, except as described in this policy or as required by law.
+                            We do not sell or rent your personal data.{'\n'}
+                            Information may be shared only with:{'\n\n'}
+                            • Payment processors (Razorpay) for handling transactions.{'\n\n'}
+                            • Legal authorities if required by law.
                         </Text>
                     </View>
 
@@ -108,9 +119,7 @@ const PrivacyPolicyScreen = () => {
                             <Text style={styles.sectionTitle}>4. Data Security</Text>
                         </View>
                         <Text style={styles.paragraph}>
-                            We implement appropriate security measures to protect your personal information against 
-                            unauthorized access, alteration, disclosure, or destruction. However, no method of 
-                            transmission over the internet is 100% secure.
+                            We use secure encryption and trusted third-party services like Razorpay to protect your data. However, no online platform is 100% secure, and users are advised to use the app responsibly.
                         </Text>
                     </View>
 
@@ -120,11 +129,14 @@ const PrivacyPolicyScreen = () => {
                             <View style={styles.sectionIconContainer}>
                                 <Ionicons name="analytics" size={24} color="#10B981" />
                             </View>
-                            <Text style={styles.sectionTitle}>5. Cookies and Tracking</Text>
+                            <Text style={styles.sectionTitle}>5. Your Rights</Text>
                         </View>
                         <Text style={styles.paragraph}>
-                            We use cookies and similar tracking technologies to enhance your experience on our 
-                            platform, analyze usage patterns, and personalize content and advertisements.
+                            You can:{'\n\n'}
+                            • Request correction or deletion of your data.{'\n\n'}
+                            • Opt out of receiving promotional notifications.{'\n\n'}
+                            For any privacy-related concerns, contact us at:{'\n'}
+                            📩 yottascore@gmail.com
                         </Text>
                     </View>
 
@@ -132,14 +144,12 @@ const PrivacyPolicyScreen = () => {
                     <View style={styles.sectionCard}>
                         <View style={styles.sectionHeader}>
                             <View style={styles.sectionIconContainer}>
-                                <Ionicons name="link" size={24} color="#F59E0B" />
+                                <Ionicons name="happy" size={24} color="#EC4899" />
                             </View>
-                            <Text style={styles.sectionTitle}>6. Third-Party Services</Text>
+                            <Text style={styles.sectionTitle}>6. Children's Privacy</Text>
                         </View>
                         <Text style={styles.paragraph}>
-                            Our platform may contain links to third-party websites or services. We are not 
-                            responsible for the privacy practices of these third parties. We encourage you to 
-                            review their privacy policies.
+                            Yottascore is designed for school and college students above 13 years of age. Students under 18 should use the app with parental guidance.
                         </Text>
                     </View>
 
@@ -147,87 +157,15 @@ const PrivacyPolicyScreen = () => {
                     <View style={styles.sectionCard}>
                         <View style={styles.sectionHeader}>
                             <View style={styles.sectionIconContainer}>
-                                <Ionicons name="happy" size={24} color="#EC4899" />
-                            </View>
-                            <Text style={styles.sectionTitle}>7. Children's Privacy</Text>
-                        </View>
-                        <Text style={styles.paragraph}>
-                            Our services are not intended for children under 13 years of age. We do not 
-                            knowingly collect personal information from children under 13. If you are a parent 
-                            or guardian and believe your child has provided us with personal information, 
-                            please contact us.
-                        </Text>
-                    </View>
-
-                    {/* Enhanced Section 8 */}
-                    <View style={styles.sectionCard}>
-                        <View style={styles.sectionHeader}>
-                            <View style={styles.sectionIconContainer}>
                                 <Ionicons name="refresh" size={24} color="#06B6D4" />
                             </View>
-                            <Text style={styles.sectionTitle}>8. Changes to This Policy</Text>
+                            <Text style={styles.sectionTitle}>7. Changes to This Policy</Text>
                         </View>
                         <Text style={styles.paragraph}>
-                            We may update this privacy policy from time to time. We will notify you of any 
-                            changes by posting the new policy on this page and updating the "Last updated" date.
+                            We may update this Privacy Policy periodically. Updates will be posted within the app or on our website.
                         </Text>
                     </View>
 
-                    {/* Enhanced Section 9 */}
-                    <View style={styles.sectionCard}>
-                        <View style={styles.sectionHeader}>
-                            <View style={styles.sectionIconContainer}>
-                                <Ionicons name="checkmark-circle" size={24} color="#8B5CF6" />
-                            </View>
-                            <Text style={styles.sectionTitle}>9. Your Rights</Text>
-                        </View>
-                        <Text style={styles.paragraph}>
-                            You have the right to access, correct, or delete your personal information. 
-                            You may also have the right to restrict or object to certain processing of your data. 
-                            Contact us to exercise these rights.
-                        </Text>
-                    </View>
-
-                    {/* Enhanced Section 10 */}
-                    <View style={styles.sectionCard}>
-                        <View style={styles.sectionHeader}>
-                            <View style={styles.sectionIconContainer}>
-                                <Ionicons name="mail" size={24} color="#EF4444" />
-                            </View>
-                            <Text style={styles.sectionTitle}>10. Contact Us</Text>
-                        </View>
-                        <Text style={styles.paragraph}>
-                            If you have any questions about this privacy policy or our data practices, 
-                            please contact us at:
-                        </Text>
-                        <View style={styles.contactCard}>
-                            <View style={styles.contactItem}>
-                                <Ionicons name="mail-outline" size={20} color="#4F46E5" />
-                                <Text style={styles.contactInfo}>privacy@examapp.com</Text>
-                            </View>
-                            <View style={styles.contactItem}>
-                                <Ionicons name="call-outline" size={20} color="#7C3AED" />
-                                <Text style={styles.contactInfo}>+1 (555) 123-4567</Text>
-                            </View>
-                            <View style={styles.contactItem}>
-                                <Ionicons name="location-outline" size={20} color="#8B5CF6" />
-                                <Text style={styles.contactInfo}>123 Exam Street, Education City, EC 12345</Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* Enhanced Footer */}
-                    <View style={styles.footer}>
-                        <LinearGradient
-                            colors={['rgba(79, 70, 229, 0.1)', 'rgba(124, 58, 237, 0.05)']}
-                            style={styles.footerGradient}
-                        >
-                            <Ionicons name="checkmark-circle" size={24} color="#4F46E5" />
-                            <Text style={styles.footerText}>
-                                This privacy policy is effective as of January 1, 2025.
-                            </Text>
-                        </LinearGradient>
-                    </View>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -399,6 +337,10 @@ const styles = StyleSheet.create({
         textAlign: 'left',
         fontWeight: '400',
         letterSpacing: 0.2,
+    },
+    boldText: {
+        fontWeight: '700',
+        color: '#1F2937',
     },
     contactCard: {
         backgroundColor: 'rgba(79, 70, 229, 0.05)',

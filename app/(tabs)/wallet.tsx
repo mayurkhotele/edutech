@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 // import client from '../../api/client';
 import KYCDocumentForm from '@/components/KYCDocumentForm';
 import RazorpayPaymentModal from '@/components/RazorpayPaymentModal';
@@ -178,17 +178,13 @@ const WalletScreen = () => {
                             <Text style={styles.balanceTitle}>Available Balance</Text>
                         </View>
                         
-                        <Text style={styles.balanceAmount}>₹{walletData?.balance?.toFixed(2) || '0.00'}</Text>
-                        
-                        <View style={styles.offerBanner}>
-                            <Ionicons name="bulb" size={20} color="#FFD700" />
-                            <Text style={styles.offerText}>
-                                By Deposit Offer, You have <Text style={styles.savedAmount}>SAVED: ₹0.00</Text>
-                            </Text>
-                        </View>
-                        
-                        <View style={styles.alertIcon}>
-                            <Ionicons name="information-circle" size={24} color="#FFD700" />
+                        <View style={styles.balanceRow}>
+                            <Text style={styles.balanceAmount}>₹{walletData?.balance?.toFixed(2) || '0.00'}</Text>
+                            <Image 
+                                source={require('@/assets/images/icons/wallet.png')} 
+                                style={styles.walletImage}
+                                resizeMode="contain"
+                            />
                         </View>
                     </View>
                 </LinearGradient>
@@ -241,13 +237,6 @@ const WalletScreen = () => {
                         subtitle="Check verification status"
                         onPress={() => router.push('/(tabs)/kyc-status')}
                         iconColor="#10B981"
-                    />
-                    <View style={styles.divider} />
-                    <OptionRow 
-                        icon="newspaper" 
-                        title="Withdraw History" 
-                        subtitle="Track your withdrawals"
-                        iconColor="#8B5CF6"
                     />
 
                 </View>
@@ -390,6 +379,18 @@ const OptionRow = ({ icon, title, subtitle, onPress, iconColor }: any) => (
 );
 
 const styles = StyleSheet.create({
+    balanceRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    walletImage: {
+        width: 95,
+        height: 95,
+        opacity: 0.9,
+        marginLeft: 10,
+        marginTop: -25,
+    },
     container: {
         flex: 1,
         backgroundColor: '#F8FAFC',
@@ -440,16 +441,16 @@ const styles = StyleSheet.create({
     balanceCard: {
         marginHorizontal: 16,
         marginTop: 16,
-        marginBottom: 20,
-        borderRadius: 24,
-        padding: 24,
+        marginBottom: 16,
+        borderRadius: 20,
+        padding: 16,
         position: 'relative',
         overflow: 'hidden',
         shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 15,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 8,
     },
     balancePattern: {
         position: 'absolute',
@@ -461,30 +462,30 @@ const styles = StyleSheet.create({
     },
     patternCircle1: {
         position: 'absolute',
-        top: 20,
-        right: 30,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    },
-    patternCircle2: {
-        position: 'absolute',
-        bottom: 40,
-        left: 20,
+        top: 15,
+        right: 20,
         width: 40,
         height: 40,
         borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    },
+    patternCircle2: {
+        position: 'absolute',
+        bottom: 25,
+        left: 15,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     patternCircle3: {
         position: 'absolute',
-        top: 60,
-        left: 50,
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        top: 40,
+        left: 35,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     balanceContent: {
         position: 'relative',
@@ -493,76 +494,31 @@ const styles = StyleSheet.create({
     balanceHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 10,
     },
     balanceTitle: {
         color: 'rgba(255, 255, 255, 0.95)',
-        fontSize: 17,
-        fontWeight: '700',
-        marginLeft: 12,
-        letterSpacing: 0.3,
-        textShadowColor: 'rgba(0, 0, 0, 0.2)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-        fontFamily: 'System',
-        lineHeight: 20,
-    },
-    balanceAmount: {
-        color: '#FFFFFF',
-        fontSize: 44,
-        fontWeight: '900',
-        marginBottom: 20,
-        textShadowColor: 'rgba(0, 0, 0, 0.4)',
-        textShadowOffset: { width: 0, height: 3 },
-        textShadowRadius: 6,
-        letterSpacing: 0.5,
-        fontFamily: 'System',
-        lineHeight: 52,
-    },
-    offerBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        padding: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-    },
-    offerText: {
-        color: '#FFFFFF',
-        marginLeft: 12,
         fontSize: 15,
-        fontWeight: '600',
-        letterSpacing: 0.2,
-        textShadowColor: 'rgba(0, 0, 0, 0.2)',
+        fontWeight: '700',
+        marginLeft: 10,
+        letterSpacing: 0.3,
+        textShadowColor: 'rgba(0, 0, 0, 0.15)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 1,
         fontFamily: 'System',
         lineHeight: 18,
     },
-    savedAmount: {
+    balanceAmount: {
+        color: '#FFFFFF',
+        fontSize: 32,
         fontWeight: '800',
-        borderWidth: 1,
-        borderColor: '#FFD700',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 6,
-        color: '#FFD700',
-        letterSpacing: 0.3,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
+        marginBottom: 8,
+        textShadowColor: 'rgba(0, 0, 0, 0.25)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+        letterSpacing: 0.4,
         fontFamily: 'System',
-    },
-    alertIcon: {
-        position: 'absolute',
-        top: 24,
-        right: 24,
-        backgroundColor: 'rgba(0, 0, 0, 0.2)',
-        padding: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
+        lineHeight: 38,
     },
     moneyDetailsCard: {
         backgroundColor: '#FFFFFF',
@@ -593,16 +549,16 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(79, 70, 229, 0.1)',
     },
     cardTitle: {
-        fontSize: 20,
-        fontWeight: '800',
+        fontSize: 18,
+        fontWeight: '600',
         color: '#1F2937',
         marginBottom: 16,
-        letterSpacing: 0.4,
-        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        letterSpacing: 0.3,
+        textShadowColor: 'rgba(0, 0, 0, 0.08)',
         textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
+        textShadowRadius: 1,
         fontFamily: 'System',
-        lineHeight: 24,
+        lineHeight: 22,
     },
     moneyRow: {
         flexDirection: 'row',
@@ -620,7 +576,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 2,
+        elevation: 0,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     moneyTextContainer: {
         flex: 1,
@@ -687,22 +645,24 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 2,
+        elevation: 0,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     optionTextContainer: {
         flex: 1,
     },
     optionTitle: {
-        fontSize: 17,
-        fontWeight: '700',
+        fontSize: 16,
+        fontWeight: '600',
         color: '#1F2937',
         marginBottom: 3,
-        letterSpacing: 0.3,
-        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        letterSpacing: 0.2,
+        textShadowColor: 'rgba(0, 0, 0, 0.06)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 1,
         fontFamily: 'System',
-        lineHeight: 20,
+        lineHeight: 19,
     },
     optionSubtitle: {
         fontSize: 15,

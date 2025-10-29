@@ -44,7 +44,12 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    refreshWalletAmount();
+    if (user?.token) {
+      refreshWalletAmount();
+      // Set up periodic refresh every 30 seconds
+      const intervalId = setInterval(refreshWalletAmount, 30000);
+      return () => clearInterval(intervalId);
+    }
   }, [user?.token]);
 
   const value: WalletContextType = {

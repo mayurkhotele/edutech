@@ -2,9 +2,12 @@ import { useAuth } from '@/context/AuthContext';
 import { ShadowUtils } from '@/utils/shadowUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const CustomDrawerContent = (props: any) => {
     const { user, logout } = useAuth();
@@ -38,19 +41,13 @@ const CustomDrawerContent = (props: any) => {
 
     const navigateToPracticeExam = () => {
         setActiveMenu('practice-exam');
-        navigation.navigate('(tabs)', { screen: 'practice-exam' });
+        navigation.navigate('(tabs)', { screen: 'practice-categories' });
         navigation.closeDrawer();
     };
 
     const navigateToBattleQuiz = () => {
         setActiveMenu('quiz');
         navigation.navigate('(tabs)', { screen: 'quiz' });
-        navigation.closeDrawer();
-    };
-
-    const navigateToSpyGame = () => {
-        setActiveMenu('spy-game');
-        navigation.navigate('(tabs)', { screen: 'spy-game' });
         navigation.closeDrawer();
     };
 
@@ -68,14 +65,25 @@ const CustomDrawerContent = (props: any) => {
 
     const navigateToTerms = () => {
         setActiveMenu('terms');
-        // Reuse the same screen for now; can be split later if needed
-        navigation.navigate('privacy-policy');
+        navigation.navigate('terms');
         navigation.closeDrawer();
     };
 
     const navigateToMembership = () => {
         setActiveMenu('membership');
         navigation.navigate('membership');
+        navigation.closeDrawer();
+    };
+
+    const navigateToBookStore = () => {
+        setActiveMenu('book-store');
+        navigation.navigate('(tabs)', { screen: 'book-store' });
+        navigation.closeDrawer();
+    };
+
+    const navigateToMyListings = () => {
+        setActiveMenu('my-listings');
+        navigation.navigate('(tabs)', { screen: 'my-listings' });
         navigation.closeDrawer();
     };
 
@@ -107,31 +115,20 @@ const CustomDrawerContent = (props: any) => {
                         {/* Logo and App Name */}
                         <View style={styles.logoSection}>
                             <View style={styles.logoContainer}>
-                                <View style={styles.logoSquare}>
+                                <LinearGradient
+                                    colors={['#8B5CF6', '#7C3AED']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.logoSquare}
+                                >
                                     <Ionicons name="school" size={20} color="#FFFFFF" />
-                                </View>
+                                </LinearGradient>
                             </View>
                             <View style={styles.appNameContainer}>
                                 <Text style={[styles.appName, isDarkMode && styles.darkText]}>Yottascore</Text>
                             </View>
                         </View>
 
-                        {/* User Profile Section */}
-                        <View style={styles.profileSection}>
-                            <View style={styles.profileContainer}>
-                                <View style={styles.profileImageContainer}>
-                                    <Image 
-                                        source={{ uri: user?.profilePhoto || 'https://via.placeholder.com/40' }}
-                                        style={styles.profileImage}
-                                    />
-                                </View>
-                                <View style={styles.profileInfo}>
-                                    <Text style={[styles.profileName, isDarkMode && styles.darkText]}>
-                                        {user?.name || 'Asal Design'}
-                                    </Text>
-                                </View>
-                            </View>
-                        </View>
 
                     </View>
 
@@ -139,21 +136,30 @@ const CustomDrawerContent = (props: any) => {
                     <View style={styles.menuSection}>
                         <View style={styles.menuItems}>
                             <MenuItem 
-                                icon="person-outline" 
-                                label="My Profile" 
-                                onPress={navigateToProfile}
-                                isActive={activeMenu === 'profile'}
-                                isDarkMode={isDarkMode}
-                                iconColor="#FF4757"
-                            />
-                            
-                            <MenuItem 
                                 icon="document-text-outline" 
                                 label="My Exams" 
                                 onPress={navigateToMyExams}
                                 isActive={activeMenu === 'my-exams'}
                                 isDarkMode={isDarkMode}
                                 iconColor="#2ED573"
+                            />
+                            
+                            <MenuItem 
+                                icon="book-outline" 
+                                label="Book Store" 
+                                onPress={navigateToBookStore}
+                                isActive={activeMenu === 'book-store'}
+                                isDarkMode={isDarkMode}
+                                iconColor="#8B5CF6"
+                            />
+                            
+                            <MenuItem 
+                                icon="list-outline" 
+                                label="My Listings" 
+                                onPress={navigateToMyListings}
+                                isActive={activeMenu === 'my-listings'}
+                                isDarkMode={isDarkMode}
+                                iconColor="#F59E0B"
                             />
                             
                             <MenuItem 
@@ -175,12 +181,12 @@ const CustomDrawerContent = (props: any) => {
                             />
                             
                             <MenuItem 
-                                icon="eye-outline" 
-                                label="Spy Game" 
-                                onPress={navigateToSpyGame}
-                                isActive={activeMenu === 'spy-game'}
+                                icon="person-outline" 
+                                label="My Profile" 
+                                onPress={navigateToProfile}
+                                isActive={activeMenu === 'profile'}
                                 isDarkMode={isDarkMode}
-                                iconColor="#F59E0B"
+                                iconColor="#FF4757"
                             />
                             
                             <MenuItem 
@@ -201,14 +207,14 @@ const CustomDrawerContent = (props: any) => {
                                 iconColor="#FF6348"
                             />
                             
-                                   <MenuItem 
-                                       icon="calendar-outline" 
-                                       label="Timetable" 
-                                       onPress={navigateToTimetable}
-                                       isActive={activeMenu === 'timetable'}
-                                       isDarkMode={isDarkMode}
-                                       iconColor="#9C88FF"
-                                   />
+                            <MenuItem 
+                                icon="calendar-outline" 
+                                label="Timetable" 
+                                onPress={navigateToTimetable}
+                                isActive={activeMenu === 'timetable'}
+                                isDarkMode={isDarkMode}
+                                iconColor="#9C88FF"
+                            />
                             
                             <MenuItem 
                                 icon="person-add-outline" 
@@ -219,14 +225,17 @@ const CustomDrawerContent = (props: any) => {
                                 iconColor="#FF9FF3"
                             />
                             
-                            <MenuItem 
-                                icon="diamond-outline" 
-                                label="Membership" 
-                                onPress={navigateToMembership}
-                                isActive={activeMenu === 'membership'}
-                                isDarkMode={isDarkMode}
-                                iconColor="#FFD700"
-                            />
+                            {/* Membership - Hidden for now */}
+                            {false && (
+                                <MenuItem 
+                                    icon="diamond-outline" 
+                                    label="Membership" 
+                                    onPress={navigateToMembership}
+                                    isActive={activeMenu === 'membership'}
+                                    isDarkMode={isDarkMode}
+                                    iconColor="#FFD700"
+                                />
+                            )}
                             
                             {/* <MenuItem 
                                 icon="headset-outline" 
@@ -246,7 +255,14 @@ const CustomDrawerContent = (props: any) => {
                     <View style={styles.socialSection}>
                         <Text style={styles.socialTitle}>Follow Us</Text>
                         <View style={styles.socialIcons}>
-                            <TouchableOpacity style={styles.socialIcon}>
+                            <TouchableOpacity 
+                                style={styles.socialIcon}
+                                onPress={() => {
+                                    Linking.openURL('https://www.facebook.com/yottascore').catch(err => 
+                                        console.error('Failed to open Facebook:', err)
+                                    );
+                                }}
+                            >
                                 <View style={styles.facebookIconContainer}>
                                     <Ionicons name="logo-facebook" size={20} color="#FFFFFF" />
                                 </View>
@@ -256,9 +272,16 @@ const CustomDrawerContent = (props: any) => {
                                     <Ionicons name="logo-youtube" size={20} color="#FFFFFF" />
                                 </View>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.socialIcon}>
-                                <View style={styles.linkedinIconContainer}>
-                                    <Ionicons name="logo-linkedin" size={20} color="#FFFFFF" />
+                            <TouchableOpacity 
+                                style={styles.socialIcon}
+                                onPress={() => {
+                                    Linking.openURL('https://www.instagram.com/yottascore?igsh=Zm5ycng3YjBvNnU1&utm_source=qr').catch(err => 
+                                        console.error('Failed to open Instagram:', err)
+                                    );
+                                }}
+                            >
+                                <View style={styles.instagramIconContainer}>
+                                    <Ionicons name="logo-instagram" size={20} color="#FFFFFF" />
                                 </View>
                             </TouchableOpacity>
                         </View>
@@ -305,11 +328,15 @@ const MenuItem = ({ icon, label, onPress, isActive, isDarkMode, badge, iconColor
                     color={isActive ? "#FFFFFF" : iconColor} 
                 />
             </View>
-            <Text style={[
-                styles.menuItemText, 
-                isActive && styles.activeMenuItemText,
-                isDarkMode && styles.darkMenuItemText
-            ]}>
+            <Text 
+                style={[
+                    styles.menuItemText, 
+                    isActive && styles.activeMenuItemText,
+                    isDarkMode && styles.darkMenuItemText
+                ]}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+            >
                 {label}
             </Text>
             {badge && (
@@ -356,7 +383,6 @@ const styles = StyleSheet.create({
     logoSquare: {
         width: 40,
         height: 40,
-        backgroundColor: '#6366F1',
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
@@ -399,7 +425,7 @@ const styles = StyleSheet.create({
     },
     menuItem: {
         marginHorizontal: 8,
-        marginVertical: 3,
+        marginVertical: 0,
         borderRadius: 12,
         ...ShadowUtils.noShadow(),
     },
@@ -413,17 +439,24 @@ const styles = StyleSheet.create({
     menuItemContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 14,
+        justifyContent: 'flex-start',
+        paddingVertical: 8,
         paddingHorizontal: 16,
+        minHeight: 42,
     },
     menuItemText: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#374151',
-        marginLeft: 14,
+        fontSize: Platform.select({
+            ios: 13,
+            android: SCREEN_HEIGHT > 800 ? 13 : 12,
+        }),
+        fontWeight: '700',
+        color: '#4B5563',
+        marginLeft: 4,
         flex: 1,
         letterSpacing: 0.2,
         fontFamily: 'System',
+        textAlign: 'left',
+        flexWrap: 'nowrap',
     },
     darkMenuItemText: {
         color: '#F1F5F9',
@@ -431,6 +464,15 @@ const styles = StyleSheet.create({
     activeMenuItemText: {
         color: '#FFFFFF',
         fontWeight: '700',
+    },
+    iconWrapper: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+        marginLeft: -16,
     },
     badge: {
         backgroundColor: '#EF4444',
@@ -495,11 +537,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         ...ShadowUtils.noShadow(),
     },
-    linkedinIconContainer: {
+    instagramIconContainer: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: '#0077B5',
+        backgroundColor: '#E1306C',
         justifyContent: 'center',
         alignItems: 'center',
         ...ShadowUtils.noShadow(),

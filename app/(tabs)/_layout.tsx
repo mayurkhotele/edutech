@@ -67,6 +67,27 @@ function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="exam-category"
+        options={{
+          title: 'Exam Category',
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="exam-category-new"
+        options={{
+          title: 'Exam Category New',
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="practice-categories"
+        options={{
+          title: 'Practice Categories',
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
         name="user-profile"
         options={{
           title: 'User Profile',
@@ -105,6 +126,20 @@ function TabLayout() {
         name="spy-room"
         options={{
           title: 'Spy Room',
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="book-store"
+        options={{
+          title: 'Book Store',
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="book-details"
+        options={{
+          title: 'Book Details',
           href: null,
         }}
       />

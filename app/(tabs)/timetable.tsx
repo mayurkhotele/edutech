@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Image, LayoutAnimation, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, LayoutAnimation, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
@@ -84,7 +84,6 @@ export default function TimetableScreen() {
   const [expanded, setExpanded] = useState<{ [id: string]: boolean }>({});
   const [modalVisible, setModalVisible] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [viewMode, setViewMode] = useState<'calendar' | 'timeline'>('calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -196,14 +195,14 @@ export default function TimetableScreen() {
 
   // Time picker handlers
   const handleTimePress = (slotIndex: number, timeType: 'start' | 'end') => {
-    console.log('Time pressed:', slotIndex, timeType);
+
     setActiveTimeSlot(slotIndex);
     setActiveTimeType(timeType);
     if (timeType === 'start') {
-      console.log('Setting showStartTimePicker to true');
+
       setShowStartTimePicker(true);
     } else {
-      console.log('Setting showEndTimePicker to true');
+
       setShowEndTimePicker(true);
     }
   };
@@ -317,6 +316,17 @@ export default function TimetableScreen() {
     }));
   };
 
+  const getEventsForDate = (date: Date) => {
+    return timetables.flatMap(t => t.slots.filter((s: any) => {
+      const slotDate = new Date(s.startTime);
+      return (
+        slotDate.getFullYear() === date.getFullYear() &&
+        slotDate.getMonth() === date.getMonth() &&
+        slotDate.getDate() === date.getDate()
+      );
+    }));
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -328,431 +338,170 @@ export default function TimetableScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Section */}
-      <View style={styles.header}>
-        <LinearGradient
-          colors={['#F3E8FF', '#E9D5FF', '#D8B4FE']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
+      {/* Header */}
+      <View style={styles.appHeader}>
+        <Text style={styles.appTitle}>Schedule</Text>
+        <TouchableOpacity 
+          style={styles.headerAddButton}
+          onPress={() => setModalVisible(true)}
         >
-          {/* Background Graphics */}
-          <View style={styles.headerBgGraphics}>
-            <View style={styles.bgCircle1} />
-            <View style={styles.bgCircle2} />
-            <View style={styles.bgCircle3} />
-            <View style={styles.bgDots} />
-            <View style={styles.bgWave} />
-          </View>
-          
-          <View style={styles.headerContent}>
-            <View style={styles.headerLeft}>
-              <View style={styles.headerTitleRow}>
-                <View style={styles.iconContainer}>
-                  <Image 
-                    source={require('../../assets/images/icons/p-cat3.png')} 
-                    style={styles.headerIcon}
-                    resizeMode="contain"
-                  />
-                  <View style={styles.iconGlow} />
-                </View>
-                <View style={styles.headerTextContainer}>
-                  <Text style={styles.headerTitle}>My Timetable</Text>
-                  <Text style={styles.headerSubtitle}>
-                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
-      </View>
-
-      {/* Navigation Tabs */}
-      <View style={styles.tabContainer}>
-        <View style={styles.tabBackground}>
-          <TouchableOpacity 
-            style={[styles.tab, viewMode === 'calendar' && styles.tabActive]}
-            onPress={() => setViewMode('calendar')}
-          >
-            <Text style={[styles.tabText, viewMode === 'calendar' && styles.tabTextActive]}>
-              Calendar
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, viewMode === 'timeline' && styles.tabActive]}
-            onPress={() => setViewMode('timeline')}
-          >
-            <Text style={[styles.tabText, viewMode === 'timeline' && styles.tabTextActive]}>
-              Timeline
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <Ionicons name="add" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchTimetable} />}>
-        {viewMode === 'calendar' ? (
           <Animated.View style={[styles.calendarContent, { opacity: fadeAnim }]}>
             {/* Calendar Section */}
-            <View style={styles.calendarSection}>
-              <View style={styles.calendarGradient}>
-                <View style={styles.calendarHeader}>
-                  <TouchableOpacity 
-                    style={styles.calendarNavButton}
-                    onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-                  >
-                    <Ionicons name="chevron-back" size={20} color="#fff" />
-                  </TouchableOpacity>
-                  
-                  <Text style={styles.calendarMonthText}>
-                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                  </Text>
-                  
-                  <TouchableOpacity 
-                    style={styles.calendarNavButton}
-                    onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-                  >
-                    <Ionicons name="chevron-forward" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
+            <View style={styles.calendarCard}>
+              {/* Calendar Header */}
+              <View style={styles.calendarHeaderNew}>
+                <TouchableOpacity 
+                  style={styles.navButton}
+                  onPress={() => {
+                    const newMonth = new Date(currentMonth);
+                    newMonth.setMonth(newMonth.getMonth() - 1);
+                    setCurrentMonth(newMonth);
+                  }}
+                >
+                  <Ionicons name="chevron-back" size={20} color="#374151" />
+                </TouchableOpacity>
+                <Text style={styles.monthYearText}>
+                  {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </Text>
+                <TouchableOpacity 
+                  style={styles.navButton}
+                  onPress={() => {
+                    const newMonth = new Date(currentMonth);
+                    newMonth.setMonth(newMonth.getMonth() + 1);
+                    setCurrentMonth(newMonth);
+                  }}
+                >
+                  <Ionicons name="chevron-forward" size={20} color="#374151" />
+                </TouchableOpacity>
+              </View>
 
-                {/* Day Headers */}
-                <View style={styles.calendarDayHeaders}>
-                  {shortDayNames.map((day, index) => (
-                    <View key={index} style={styles.calendarDayHeader}>
-                      <Text style={styles.calendarDayHeaderText}>{day}</Text>
-                    </View>
-                  ))}
-                </View>
+              {/* Day Headers */}
+              <View style={styles.dayHeadersRow}>
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+                  <View key={index} style={styles.dayHeader}>
+                    <Text style={styles.dayHeaderText}>{day}</Text>
+                  </View>
+                ))}
+              </View>
 
-                {/* Calendar Grid */}
-                <View style={styles.calendarGrid}>
-                  {calendarDays.map((date, index) => {
-                    const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
-                    const isTodayDate = isToday(date);
-                    const isSelectedDateValue = isSelectedDate(date);
-                    const hasEventsOnDate = hasEvents(date);
-                    
-                    return (
-                      <TouchableOpacity
-                        key={index}
+              {/* Calendar Grid */}
+              <View style={styles.calendarGridNew}>
+                {calendarDays.map((date, index) => {
+                  const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+                  const isTodayDate = isToday(date);
+                  const isSelectedDateValue = isSelectedDate(date);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.calendarDayNew,
+                        isCurrentMonth && styles.calendarDayCurrentMonthNew,
+                        isTodayDate && styles.calendarDayTodayNew,
+                        isSelectedDateValue && styles.calendarDaySelectedNew,
+                      ]}
+                      onPress={() => setSelectedDate(date)}
+                    >
+                      <Text
                         style={[
-                          styles.calendarDay,
-                          isTodayDate && styles.calendarDayToday,
-                          isSelectedDateValue && styles.calendarDaySelected,
-                          !isCurrentMonth && styles.calendarDayOtherMonth
+                          styles.calendarDayTextNew,
+                          isCurrentMonth && styles.calendarDayTextCurrentMonthNew,
+                          isTodayDate && styles.calendarDayTextTodayNew,
+                          isSelectedDateValue && styles.calendarDayTextSelectedNew,
+                          !isCurrentMonth && styles.calendarDayTextOtherMonthNew,
                         ]}
-                        onPress={() => setSelectedDate(date)}
                       >
-                        <Text style={[
-                          styles.calendarDayText,
-                          isTodayDate && styles.calendarDayTextToday,
-                          isSelectedDateValue && styles.calendarDayTextSelected,
-                          !isCurrentMonth && styles.calendarDayTextOtherMonth
-                        ]}>
-                          {date.getDate()}
-                        </Text>
-                        {hasEventsOnDate && <View style={styles.eventDot} />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                        {date.getDate()}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
 
-            {/* Today's Schedule Section */}
-            <View style={styles.scheduleSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Today's Schedule</Text>
-                <View style={styles.sectionIconContainer}>
-                  <Image 
-                    source={require('../../assets/images/icons/p-cat3.png')} 
-                    style={styles.sectionIcon}
-                    resizeMode="contain"
-                  />
-                </View>
-              </View>
+
+            {/* Today's Events Section */}
+            <View style={styles.eventsSection}>
+              <Text style={styles.eventsSectionTitle}>Today's Events</Text>
               
               {selectedDateSlots.length === 0 ? (
                 <View style={styles.emptySchedule}>
-                  <Ionicons name="calendar-outline" size={48} color="#9CA3AF" />
-                  <Text style={styles.emptyScheduleText}>No plans for today</Text>
-                  <Text style={styles.emptyScheduleSubtext}>Tap the + button to add a schedule</Text>
+                  <Text style={styles.emptyScheduleText}>No events scheduled for today</Text>
                 </View>
               ) : (
-                <View style={styles.scheduleCards}>
+                <View style={styles.eventsList}>
                   {selectedDateSlots.map((slot, index) => {
-                    // Different faint background colors for each schedule card
-                    const scheduleBackgroundColors = [
-                      '#F0F4FF', // Light blue
-                      '#FFF0F4', // Light pink
-                      '#F0FFF4', // Light green
-                      '#FFF4F0', // Light orange
-                      '#F4F0FF', // Light purple
-                      '#FFFFF0', // Light yellow
-                      '#F0FFFF', // Light cyan
-                      '#FFF0F0', // Light red
+                    // Colorful event card colors matching the image
+                    const eventColors = [
+                      { bg: '#8B5CF6', iconBg: '#A78BFA', icon: 'school' }, // Purple - Calculus
+                      { bg: '#3B82F6', iconBg: '#60A5FA', icon: 'flask' }, // Blue - Physics
+                      { bg: '#EC4899', iconBg: '#F472B6', icon: 'book' }, // Pink - English
+                      { bg: '#10B981', iconBg: '#34D399', icon: 'calculator' }, // Green - Math
+                      { bg: '#F59E0B', iconBg: '#FBBF24', icon: 'nuclear' }, // Orange - Science
+                      { bg: '#EF4444', iconBg: '#F87171', icon: 'code-slash' }, // Red - Programming
                     ];
                     
-                    const scheduleBackgroundColor = scheduleBackgroundColors[index % scheduleBackgroundColors.length];
-                    
-                    // Dynamic data based on actual slot information
-                    const getSubjectIcon = (subject: string) => {
-                      const lowerSubject = subject.toLowerCase();
-                      if (lowerSubject.includes('math') || lowerSubject.includes('mathematics')) {
-                        return { icon: 'calculator', color: '#8B5CF6' };
-                      } else if (lowerSubject.includes('chemistry') || lowerSubject.includes('chem')) {
-                        return { icon: 'flask', color: '#3B82F6' };
-                      } else if (lowerSubject.includes('computer') || lowerSubject.includes('cs') || lowerSubject.includes('programming')) {
-                        return { icon: 'code-slash', color: '#F59E0B' };
-                      } else if (lowerSubject.includes('physics')) {
-                        return { icon: 'nuclear', color: '#EF4444' };
-                      } else if (lowerSubject.includes('biology')) {
-                        return { icon: 'leaf', color: '#10B981' };
-                      } else if (lowerSubject.includes('english') || lowerSubject.includes('literature')) {
-                        return { icon: 'book', color: '#8B5CF6' };
-                      } else if (lowerSubject.includes('history')) {
-                        return { icon: 'time', color: '#6B7280' };
-                      } else if (lowerSubject.includes('art') || lowerSubject.includes('drawing')) {
-                        return { icon: 'brush', color: '#EC4899' };
-                      } else {
-                        return { icon: 'book', color: '#8B5CF6' };
-                      }
-                    };
-
-                    const getStatusInfo = (startTime: string) => {
-                      const now = new Date();
-                      const slotStart = new Date(startTime);
-                      const slotEnd = new Date(startTime);
-                      slotEnd.setHours(slotEnd.getHours() + 1.5); // Assuming 1.5 hour duration
-                      
-                      if (now >= slotStart && now <= slotEnd) {
-                        return { status: 'In Progress', color: '#10B981' };
-                      } else if (now < slotStart) {
-                        return { status: 'Upcoming', color: '#6B7280' };
-                      } else {
-                        return { status: 'Completed', color: '#6B7280' };
-                      }
-                    };
-
-                    const subjectIcon = getSubjectIcon(slot.subject || 'Study Session');
-                    const statusInfo = getStatusInfo(slot.startTime);
-                    
-                    const data = {
-                      subject: slot.subject || 'Study Session',
-                      professor: slot.professor || 'Professor',
-                      time: `${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`,
-                      status: statusInfo.status,
-                      statusColor: statusInfo.color,
-                      room: slot.room || 'Study Room',
-                      icon: subjectIcon.icon,
-                      iconColor: subjectIcon.color,
-                      note: slot.notes
-                    };
-                    
+                    const eventColor = eventColors[index % eventColors.length];
+                  
+                  // Get subject icon
+                  const getSubjectIcon = (subject: string) => {
+                    const lowerSubject = subject.toLowerCase();
+                    if (lowerSubject.includes('programming') || lowerSubject.includes('coding')) {
+                      return 'code-slash';
+                    } else if (lowerSubject.includes('math') || lowerSubject.includes('mathematics')) {
+                      return 'calculator';
+                    } else if (lowerSubject.includes('physics')) {
+                      return 'nuclear';
+                    } else if (lowerSubject.includes('chemistry')) {
+                      return 'flask';
+                    } else if (lowerSubject.includes('biology')) {
+                      return 'leaf';
+                    } else if (lowerSubject.includes('english') || lowerSubject.includes('literature')) {
+                      return 'book';
+                    } else if (lowerSubject.includes('history')) {
+                      return 'time';
+                    } else if (lowerSubject.includes('art') || lowerSubject.includes('design')) {
+                      return 'brush';
+                    } else {
+                      return 'school';
+                    }
+                  };
+                  
                     return (
-                      <View key={index} style={[styles.scheduleCard, { backgroundColor: scheduleBackgroundColor }]}>
-                        <View style={styles.scheduleIcon}>
-                          <View style={[styles.iconBackground, { backgroundColor: data.iconColor }]}>
-                            <Ionicons name={data.icon as any} size={20} color="#fff" />
-                          </View>
+                      <View key={index} style={[styles.eventCard, { backgroundColor: eventColor.bg }]}>
+                        <View style={[styles.eventIcon, { backgroundColor: eventColor.iconBg }]}>
+                          <Ionicons 
+                            name={eventColor.icon as any} 
+                            size={24} 
+                            color="#FFFFFF" 
+                          />
                         </View>
-                        <View style={styles.scheduleContent}>
-                          <Text style={styles.scheduleSubject}>{data.subject}</Text>
-                          <Text style={styles.scheduleDetails}>
-                            {data.professor} • {data.time}
+                        <View style={styles.eventContent}>
+                          <Text style={styles.eventTitle}>
+                            {slot.subject || 'Study Session'}
                           </Text>
-                          <View style={styles.scheduleStatus}>
-                            <View style={[styles.statusDot, { backgroundColor: data.statusColor }]} />
-                            <Text style={[styles.statusText, { color: data.statusColor }]}>
-                              {data.status}
-                            </Text>
-                          </View>
-                          {data.note && (
-                            <View style={styles.scheduleNote}>
-                              <Ionicons name="warning" size={12} color="#F59E0B" />
-                              <Text style={styles.noteText}>{data.note}</Text>
-                            </View>
-                          )}
+                          <Text style={styles.eventTime}>
+                            {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                          </Text>
                         </View>
-                        <View style={styles.scheduleRoom}>
-                          <Text style={styles.roomText}>{data.room}</Text>
-                        </View>
+                        <TouchableOpacity style={styles.eventOptions}>
+                          <Ionicons name="ellipsis-vertical" size={20} color="#FFFFFF" />
+                        </TouchableOpacity>
                       </View>
                     );
                   })}
-                </View>
-              )}
-            </View>
-
-            {/* Upcoming Tasks Section */}
-            {upcomingPlans.length > 0 && (
-              <View style={styles.tasksSection}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Upcoming Tasks</Text>
-                  <View style={styles.sectionIconContainer}>
-                    <Image 
-                      source={require('../../assets/images/icons/p-cat3.png')} 
-                      style={styles.sectionIcon}
-                      resizeMode="contain"
-                    />
-                  </View>
-                </View>
-                <View style={styles.taskCards}>
-                  {upcomingPlans.map((plan, index) => {
-                    // Dynamic data based on actual plan information
-                    const getTaskIcon = (subject: string) => {
-                      const lowerSubject = subject.toLowerCase();
-                      if (lowerSubject.includes('math') || lowerSubject.includes('mathematics')) {
-                        return { icon: 'calculator', color: '#EF4444' };
-                      } else if (lowerSubject.includes('physics')) {
-                        return { icon: 'nuclear', color: '#8B5CF6' };
-                      } else if (lowerSubject.includes('chemistry')) {
-                        return { icon: 'flask', color: '#3B82F6' };
-                      } else if (lowerSubject.includes('computer') || lowerSubject.includes('cs')) {
-                        return { icon: 'code-slash', color: '#F59E0B' };
-                      } else if (lowerSubject.includes('biology')) {
-                        return { icon: 'leaf', color: '#10B981' };
-                      } else if (lowerSubject.includes('english') || lowerSubject.includes('literature')) {
-                        return { icon: 'book', color: '#8B5CF6' };
-                      } else {
-                        return { icon: 'document-text', color: '#8B5CF6' };
-                      }
-                    };
-
-                    const getDueDateInfo = (startTime: string) => {
-                      const now = new Date();
-                      const taskDate = new Date(startTime);
-                      const diffTime = taskDate.getTime() - now.getTime();
-                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                      
-                      if (diffDays === 0) {
-                        return { dueDate: 'Today', color: '#EF4444', priority: 'high' };
-                      } else if (diffDays === 1) {
-                        return { dueDate: 'Tomorrow', color: '#F59E0B', priority: 'medium' };
-                      } else if (diffDays === 2) {
-                        return { dueDate: 'Day After Tomorrow', color: '#8B5CF6', priority: 'medium' };
-                      } else if (diffDays <= 3) {
-                        return { dueDate: `In ${diffDays} days`, color: '#6B7280', priority: 'low' };
-                      } else {
-                        return { dueDate: taskDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), color: '#9CA3AF', priority: 'low' };
-                      }
-                    };
-
-                    const taskIcon = getTaskIcon(plan.subject || 'Task');
-                    const dueInfo = getDueDateInfo(plan.startTime);
-                    
-                    const data = {
-                      title: plan.subject || 'Task',
-                      details: plan.topic || 'Study Session',
-                      dueDate: dueInfo.dueDate,
-                      dueColor: dueInfo.color,
-                      priority: dueInfo.priority,
-                      icon: taskIcon.icon,
-                      iconColor: taskIcon.color,
-                      time: formatTime(plan.startTime)
-                    };
-                    
-                    return (
-                      <View key={index} style={styles.taskCard}>
-                        <View style={styles.taskIcon}>
-                          <View style={[styles.iconBackground, { backgroundColor: data.iconColor }]}>
-                            <Ionicons name={data.icon as any} size={18} color="#fff" />
-                          </View>
-                        </View>
-                        <View style={styles.taskContent}>
-                          <Text style={styles.taskTitle}>{data.title}</Text>
-                          <Text style={styles.taskDetails}>{data.details}</Text>
-                          <Text style={styles.taskTime}>{data.time}</Text>
-                        </View>
-                        <View style={styles.taskDue}>
-                          <View style={[styles.priorityBadge, { backgroundColor: data.dueColor + '20' }]}>
-                            <Text style={[styles.dueText, { color: data.dueColor }]}>
-                              {data.dueDate}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
               </View>
             )}
-          </Animated.View>
-        ) : (
-          <Animated.View style={[styles.timelineContent, { opacity: fadeAnim }]}>
-            {/* Timeline */}
-            <View style={styles.timelineContainer}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Today's Timeline</Text>
-              </View>
-              
-              {selectedDateSlots.length === 0 ? (
-                <View style={styles.emptyTimeline}>
-                  <Ionicons name="time-outline" size={48} color="#9CA3AF" />
-                    <Text style={styles.emptyTimelineText}>No plans scheduled</Text>
-                    <Text style={styles.emptyTimelineSubtext}>Add a schedule to get started</Text>
-                </View>
-              ) : (
-                <View style={styles.timelineItems}>
-                  {selectedDateSlots.map((slot, index) => {
-                    // Different enhanced background colors for each session
-                    const backgroundColors = [
-                      '#E0E7FF', // Enhanced light blue
-                      '#FCE7F3', // Enhanced light pink
-                      '#D1FAE5', // Enhanced light green
-                      '#FED7AA', // Enhanced light orange
-                      '#E9D5FF', // Enhanced light purple
-                      '#FEF3C7', // Enhanced light yellow
-                      '#CFFAFE', // Enhanced light cyan
-                      '#FEE2E2', // Enhanced light red
-                    ];
-                    
-                    const backgroundColor = backgroundColors[index % backgroundColors.length];
-                    
-                    return (
-                      <View key={index} style={[styles.timelineItem, { backgroundColor }]}>
-                        <View style={styles.timelineContentContainer}>
-                          <View style={styles.timelineCard}>
-                            <View style={styles.timelineTitleRow}>
-                              <Text style={styles.timelineTitle}>{slot.subject}</Text>
-                              <View style={styles.timelineTimeIcon}>
-                                <Image 
-                                  source={require('../../assets/images/icons/p-cat3.png')} 
-                                  style={styles.timelineTimeImage}
-                                  resizeMode="contain"
-                                />
-                              </View>
-                            </View>
-                            {slot.topic && (
-                              <Text style={styles.timelineSubtitle}>{slot.topic}</Text>
-                            )}
-                            <View style={styles.timelineLocation}>
-                              <Text style={styles.timelineLocationText}>Study Session</Text>
-                              <Text style={styles.timelineTimeInline}>{formatTime(slot.startTime)}</Text>
-                            </View>
-                          </View>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
             </View>
           </Animated.View>
-        )}
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
-        <LinearGradient
-          colors={['#8B5CF6', '#7C3AED']}
-          style={styles.fabGradient}
-        >
-          <Ionicons name="add" size={28} color="#fff" />
-        </LinearGradient>
-      </TouchableOpacity>
 
       {/* Add Timetable Modal */}
       <Modal
@@ -1008,7 +757,7 @@ export default function TimetableScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FF',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -1056,7 +805,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
   },
-  headerLeft: {
+  oldHeaderLeft: {
     flex: 1,
   },
   headerTitleRow: {
@@ -1207,137 +956,128 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
   },
   calendarContent: {
+    paddingTop: 0,
     paddingBottom: Platform.OS === 'ios' ? 120 : 140,
   },
   calendarSection: {
-    marginBottom: 20,
+    marginTop: 0,
+    marginBottom: 10,
+    marginHorizontal: 20,
   },
-  calendarGradient: {
-    borderRadius: 20,
-    padding: 20,
+  calendarContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
     shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    borderWidth: 2,
-    borderColor: '#C7D2FE',
-    backgroundColor: '#FCE7F3',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.1)',
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-  },
-  calendarNavButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
   calendarMonthText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#4C1D95',
-    textAlign: 'center',
-    flex: 1,
-    textShadowColor: 'rgba(139, 92, 246, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  calendarNavButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  calendarNavButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   calendarDayHeaders: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 15,
+    marginBottom: 8,
+    paddingHorizontal: 2,
   },
   calendarDayHeader: {
     alignItems: 'center',
+    paddingVertical: 4,
+    width: 32,
   },
   calendarDayHeaderText: {
-    fontSize: 14,
-    color: '#5B21B6',
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(139, 92, 246, 0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   calendarDay: {
-    width: '14.28%',
-    aspectRatio: 1,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.1)',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 4,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    position: 'relative',
   },
   calendarDayText: {
-    fontSize: 16,
-    color: '#4C1D95',
-    fontWeight: '600',
-    textShadowColor: 'rgba(139, 92, 246, 0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    fontSize: 13,
+    color: '#1F2937',
+    fontWeight: '500',
   },
   calendarDayToday: {
-    backgroundColor: 'rgba(139, 92, 246, 0.25)',
-    borderColor: 'rgba(139, 92, 246, 0.4)',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: '#F97316',
+    borderRadius: 8,
   },
   calendarDaySelected: {
-    backgroundColor: 'rgba(139, 92, 246, 0.35)',
-    borderColor: 'rgba(139, 92, 246, 0.5)',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: '#3B82F6',
+    borderRadius: 8,
   },
   calendarDayTextToday: {
-    color: '#4C1D95',
-    fontWeight: 'bold',
-    fontSize: 17,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
   calendarDayTextSelected: {
-    color: '#4C1D95',
-    fontWeight: 'bold',
-    fontSize: 17,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
   calendarDayTextOtherMonth: {
-    color: '#A78BFA',
-    opacity: 0.7,
+    color: '#D1D5DB',
+    opacity: 0.6,
   },
   calendarDayOtherMonth: {
-    opacity: 0.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'transparent',
+  },
+  eventIndicators: {
+    position: 'absolute',
+    bottom: 2,
+    left: 2,
+    right: 2,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 1,
+  },
+  eventIndicator: {
+    height: 2,
+    flex: 1,
+    borderRadius: 1,
   },
   eventDot: {
     width: 8,
@@ -1353,18 +1093,91 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FFFFFF',
   },
+  dateSelectorCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  currentDateText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  weekView: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  dayItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  dayLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    marginBottom: 8,
+  },
+  dayCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedDayCircle: {
+    backgroundColor: '#EF4444',
+  },
+  dayNumber: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  selectedDayNumber: {
+    color: '#FFFFFF',
+  },
+  expandButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
   scheduleSection: {
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  scheduleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 0,
     marginBottom: 15,
-    borderWidth: 2,
-    borderColor: '#C7D2FE',
-    borderRadius: 20,
-    padding: 12,
-    backgroundColor: 'transparent',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    paddingHorizontal: 20,
+  },
+  scheduleSectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  scheduleSectionTitleSmall: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  scheduleSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   tasksSection: {
     marginBottom: 20,
@@ -1383,8 +1196,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 5,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontWeight: 'bold',
@@ -1393,6 +1205,327 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(139, 92, 246, 0.2)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  scheduleTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  titleContainer: {
+    flex: 1,
+  },
+  scheduleTitle2: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  scheduleSubtitle2: {
+    fontSize: 16,
+    color: '#8B5CF6',
+    fontWeight: '500',
+  },
+  dateBadge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  dateBadgeText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  scheduleCount: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  viewAllButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  viewAllGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  scheduleItems: {
+    gap: 16,
+  },
+  scheduleCard: {
+    marginBottom: 12,
+    borderRadius: 12,
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingRight: 16,
+    paddingLeft: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.1)',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statusTagEnhanced: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  optionsButtonEnhanced: {
+    padding: 2,
+  },
+  lessonContent: {
+    flex: 1,
+  },
+  lessonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingLeft: 0,
+  },
+  subjectIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lessonTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#111827',
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 0,
+    marginRight: 0,
+  },
+  lessonDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.05)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    gap: 3,
+  },
+  detailText: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  timeSlot: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#8B5CF6',
+    textAlign: 'center',
+    flex: 1,
+  },
+  scheduleItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+  },
+  scheduleBulletEnhanced: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+    marginTop: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  bulletInner: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  scheduleItemContent: {
+    flex: 1,
+  },
+  scheduleItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 6,
+  },
+  oldTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  scheduleItemTime: {
+    fontSize: 13,
+    color: '#8B5CF6',
+    fontWeight: '500',
+  },
+  scheduleTopic: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontStyle: 'italic',
+  },
+  scheduleItemActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  actionButtonEnhanced: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  actionButtonGradient: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  notesSection: {
+    marginTop: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  notesGradient: {
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.05)',
+  },
+  notesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  notesTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  notesTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  notesItems: {
+    gap: 12,
+  },
+  noteItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  noteBulletEnhanced: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: 1,
+  },
+  noteBulletText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  noteText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+    flex: 1,
+  },
+  noteContent: {
+    flex: 1,
+  },
+  noteTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  noteTime: {
+    fontSize: 11,
+    color: '#8B5CF6',
+    fontWeight: '500',
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   seeAllText: {
     color: '#8B5CF6',
@@ -1426,7 +1559,7 @@ const styles = StyleSheet.create({
   scheduleCards: {
     backgroundColor: 'transparent',
   },
-  scheduleCard: {
+  oldScheduleCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF7FF',
@@ -1476,7 +1609,7 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
     marginRight: 5,
   },
-  statusText: {
+  oldStatusText: {
     fontSize: 11,
     fontWeight: '600',
   },
@@ -1485,7 +1618,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 0,
   },
-  noteText: {
+  oldNoteText: {
     color: '#F59E0B',
     fontSize: 11,
     marginLeft: 5,
@@ -1499,6 +1632,26 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 11,
     fontWeight: '500',
+  },
+  horizontalTaskScroll: {
+    marginTop: 12,
+  },
+  taskCardsContainer: {
+    paddingHorizontal: 4,
+    gap: 12,
+  },
+  horizontalTaskCard: {
+    width: 200,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.1)',
   },
   taskCards: {
     backgroundColor: 'transparent',
@@ -1726,7 +1879,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  fab: {
+  oldFab: {
     position: 'absolute',
     right: 25,
     bottom: Platform.OS === 'ios' ? 80 : 90,
@@ -2140,5 +2293,385 @@ const styles = StyleSheet.create({
   sectionIcon: {
     width: 24,
     height: 24,
+  },
+  
+  // ===== MODERN ENHANCED STYLES =====
+  modernHeader: {
+    paddingTop: 0,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  modernHeaderTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  modernHeaderSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+  },
+  oldHeaderAddButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  headerAddGradient: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  
+  // Modern Schedule Cards
+  modernScheduleCard: {
+    marginBottom: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  scheduleCardGradient: {
+    padding: 14,
+    position: 'relative',
+  },
+  accentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
+  modernLessonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  lessonTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 10,
+  },
+  modernSubjectIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lessonInfo: {
+    flex: 1,
+  },
+  modernLessonTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  lessonTopic: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  modernOptionsButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(156, 163, 175, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timeStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  modernTimeText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  modernStatusTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  modernStatusText: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  modernDetailsSection: {
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 10,
+    padding: 8,
+    gap: 6,
+  },
+  modernDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(102, 126, 234, 0.08)',
+    padding: 8,
+    borderRadius: 8,
+  },
+  detailIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: 'rgba(102, 126, 234, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modernDetailText: {
+    fontSize: 12,
+    color: '#374151',
+    flex: 1,
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  gridDetailItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(107, 114, 128, 0.06)',
+    padding: 6,
+    borderRadius: 6,
+  },
+  gridDetailText: {
+    fontSize: 11,
+    color: '#4B5563',
+    flex: 1,
+  },
+  
+  // ===== NEW IMAGE-BASED STYLES =====
+  appHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  appTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  headerAddButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  // Calendar Card
+  calendarCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginBottom: 15,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  calendarHeaderNew: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  navButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthYearText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  
+  // Day Headers
+  dayHeadersRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 10,
+  },
+  dayHeader: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dayHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  
+  // Calendar Grid
+  calendarGridNew: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDayNew: {
+    width: '14.28%',
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  calendarDayCurrentMonthNew: {
+    // Current month styling
+  },
+  calendarDayTodayNew: {
+    backgroundColor: '#F97316',
+    borderRadius: 12,
+  },
+  calendarDaySelectedNew: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: 12,
+  },
+  calendarDayTextNew: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  calendarDayTextCurrentMonthNew: {
+    // Current month text styling
+  },
+  calendarDayTextTodayNew: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  calendarDayTextSelectedNew: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  calendarDayTextOtherMonthNew: {
+    color: '#D1D5DB',
+  },
+  
+  // Events Section
+  eventsSection: {
+    paddingHorizontal: 20,
+  },
+  eventsSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 16,
+  },
+  eventsList: {
+    gap: 12,
+  },
+  
+  // Event Cards
+  eventCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  eventIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  eventContent: {
+    flex: 1,
+  },
+  eventTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  eventTime: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.9,
+  },
+  eventOptions: {
+    padding: 8,
+  },
+  
+  // FAB
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+  },
+  fabButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

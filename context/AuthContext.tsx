@@ -1,5 +1,6 @@
 import { auth } from '@/config/firebase';
 import { apiFetch } from '@/constants/api';
+import authService from '@/services/authServiceFirebaseJS';
 import { clearAuthData, getToken, getUser, storeAuthData } from '@/utils/storage';
 import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -48,6 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+    const [userStateVersion, setUserStateVersion] = useState(0); // Force re-renders
 
     useEffect(() => {
         const loadUser = async () => {
@@ -55,11 +57,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             try {
                 const token = await getToken();
                 const userData = await getUser();
+                console.log('🔄 AuthContext - Loading user from storage:', {
+                    hasToken: !!token,
+                    tokenLength: token?.length,
+                    hasUserData: !!userData,
+                    userId: userData?.id,
+                    userName: userData?.name
+                });
+
                 if (token && userData) {
-                    setUser({ ...userData, token });
+                    const userWithToken = { ...userData, token };
+                    console.log('✅ AuthContext - User loaded with token:', {
+                        id: userWithToken.id,
+                        name: userWithToken.name,
+                        hasToken: !!userWithToken.token,
+                        tokenLength: userWithToken.token?.length
+                    });
+                    setUser(userWithToken);
+                    setUserStateVersion(prev => prev + 1); // Force re-render
+                    console.log('🔄 User state updated from storage');
+                } else {
+                    console.log('❌ AuthContext - Missing token or user data');
+                    if (token) console.log('❌ Has token but no user data');
+                    if (userData) console.log('❌ Has user data but no token');
                 }
             } catch (e) {
-                console.error("Failed to load user", e);
+                console.error("❌ Failed to load user from storage:", e);
             } finally {
                 setLoading(false);
             }
@@ -106,8 +129,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 if (response.ok) {
                     const { token, user: userData } = response.data;
                     const userWithToken = { ...userData, token } as any;
+
+                    console.log('🔑 Login successful - Token details:', {
+                        tokenLength: token?.length,
+                        userId: userData?.id,
+                        userName: userData?.name,
+                        isFirebaseToken: token?.includes('eyJhbGciOiJSUzI1NiI') // Check if it's JWT
+                    });
+
                     setUser(userWithToken);
                     await storeAuthData(token, userData);
+
+                    console.log('✅ Login - User state set and data stored');
                     return userWithToken;
                 } else {
                     lastError = response.data || response;
@@ -173,9 +206,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Firebase OTP Methods
     const loginWithOTP = async (phoneNumber: string) => {
         try {
-            // This will be handled by the authService
-            // We just need to return a promise for consistency
-            return { success: true, phoneNumber };
+            console.log('🔥 Starting OTP login for:', phoneNumber);
+            const result = await authService.sendOTP(phoneNumber);
+            return result;
         } catch (error) {
             console.error('OTP login error:', error);
             throw error;
@@ -184,11 +217,59 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const verifyOTP = async (otp: string) => {
         try {
-            // This will be handled by the authService
-            // We just need to return a promise for consistency
-            return { success: true, otp };
+            console.log('🔥 Verifying OTP in AuthContext:', otp);
+            const result = await authService.verifyOTP(otp);
+            console.log('🔥 AuthContext - Firebase verifyOTP result:', result);
+
+            if (result.success && result.user) {
+                console.log('✅ OTP verified successfully, Firebase user:', result.user);
+
+                // 🔥 Step 1: Get Firebase ID token
+                const firebaseToken = await result.user.getIdToken();
+                console.log('🔑 Firebase token received, length:', firebaseToken.length);
+
+                // 🔥 Step 2: Exchange Firebase token for backend JWT token
+                console.log('🔄 Calling backend /auth/firebase to get backend token');
+                
+                try {
+                    const backendResponse = await apiFetch('/auth/firebase', {
+                        method: 'POST',
+                        body: {
+                            idToken: firebaseToken,
+                            phoneNumber: result.user.phoneNumber,
+                        },
+                    });
+
+                    if (backendResponse.ok) {
+                        // ✅ Backend returned token just like email/password login
+                        const { token, user: userData } = backendResponse.data;
+                        const userWithToken = { ...userData, token };
+
+                        console.log('✅ Backend JWT token received:', {
+                            tokenLength: token?.length,
+                            userId: userData?.id,
+                            userName: userData?.name,
+                            isBackendToken: !token?.includes('eyJhbGciOiJSUzI1NiIs')
+                        });
+
+                        setUser(userWithToken);
+                        setUserStateVersion(prev => prev + 1);
+                        await storeAuthData(token, userWithToken);
+                        console.log('✅ OTP login complete - Backend token stored');
+                        return { success: true, user: userWithToken };
+                    } else {
+                        console.error('❌ Backend /auth/firebase failed:', backendResponse.data);
+                        throw new Error(backendResponse.data?.message || 'Backend authentication failed');
+                    }
+                } catch (backendError: any) {
+                    console.error('❌ Backend /auth/firebase error:', backendError);
+                    throw new Error(backendError.data?.message || backendError.message || 'Backend authentication failed');
+                }
+            } else {
+                throw new Error(result.message || 'OTP verification failed');
+            }
         } catch (error) {
-            console.error('OTP verification error:', error);
+            console.error('❌ OTP verification error in AuthContext:', error);
             throw error;
         }
     };

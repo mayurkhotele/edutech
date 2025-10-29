@@ -4,13 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -28,7 +28,11 @@ interface QuestionData {
   correctAnswer?: number; // Alternative field for correct answer
 }
 
-const QuestionOfTheDay = () => {
+interface QuestionOfTheDayProps {
+  onTimerRender?: (timerElement: React.ReactNode) => void;
+}
+
+const QuestionOfTheDay = ({ onTimerRender }: QuestionOfTheDayProps = {}) => {
   const { user } = useAuth();
   const [questionData, setQuestionData] = useState<QuestionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -289,6 +293,28 @@ const QuestionOfTheDay = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Create timer element
+  const timerElement = questionData && !questionData.hasAttempted ? (
+    <View style={styles.timerCard}>
+      <Ionicons name="time" size={16} color={timeLeft < 30 ? "#F44336" : "#4F46E5"} />
+      <Text style={[styles.timerText, timeLeft < 30 && styles.timerWarning]}>
+        {formatTime(timeLeft)}
+      </Text>
+    </View>
+  ) : questionData?.hasAttempted ? (
+    <View style={styles.completedCard}>
+      <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+      <Text style={styles.completedText}>Done</Text>
+    </View>
+  ) : null;
+
+  // Pass timer to parent if callback provided
+  useEffect(() => {
+    if (onTimerRender && questionData) {
+      onTimerRender(timerElement);
+    }
+  }, [timeLeft, questionData, onTimerRender]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -321,48 +347,6 @@ const QuestionOfTheDay = () => {
         }
       ]}
     >
-      {/* Timer Section */}
-      <View style={styles.timerSection}>
-        {!questionData.hasAttempted ? (
-          <>
-            <View style={styles.timerCard}>
-              <Ionicons name="time" size={20} color={timeLeft < 30 ? "#F44336" : "#fff"} />
-              <Text style={[styles.timerText, timeLeft < 30 && styles.timerWarning]}>
-                {formatTime(timeLeft)}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={handleRefresh} style={styles.refreshButton}>
-              <Ionicons name="refresh" size={20} color="#fff" />
-            </TouchableOpacity>
-            <View style={styles.timerProgressContainer}>
-              <Animated.View 
-                style={[
-                  styles.timerProgress,
-                  {
-                    width: `${(timeLeft / questionData.timeLimit) * 100}%`,
-                    backgroundColor: timeLeft < 30 ? "#F44336" : "#fff"
-                  }
-                ]} 
-              />
-            </View>
-            {/* Add countdown display */}
-            <Text style={styles.countdownText}>
-              {timeLeft} seconds remaining
-            </Text>
-          </>
-        ) : (
-          <>
-            <View style={styles.completedCard}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={styles.completedText}>Question Completed</Text>
-            </View>
-            <Text style={styles.completedSubtext}>
-              You have already answered this question
-            </Text>
-          </>
-        )}
-      </View>
-
       {/* Question Container */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>{questionData.question}</Text>
@@ -511,43 +495,40 @@ const styles = StyleSheet.create({
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(160, 142, 254, 0.1)',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: 'rgba(160, 142, 254, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   timerText: {
-    fontSize: 16,
+    fontSize: 12, // Very small font size
     fontWeight: '600',
-    color: '#a08efe',
-    marginLeft: 8,
+    color: '#4F46E5',
+    marginLeft: 4, // Minimal margin
   },
   timerWarning: {
     color: '#F44336',
   },
-  timerProgressContainer: {
-    flex: 1,
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 3,
-    marginLeft: 15,
-    overflow: 'hidden',
-  },
-  timerProgress: {
-    height: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 3,
-  },
   questionContainer: {
     marginBottom: 24,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     minHeight: 80,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   questionText: {
     fontSize: 16,
@@ -559,22 +540,32 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   optionButton: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 16,
     padding: 14,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   selectedOption: {
-    backgroundColor: '#fff',
-    borderColor: '#a08efe',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: '#7C3AED',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   correctOption: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
     borderColor: '#4CAF50',
   },
   incorrectOption: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(244, 67, 54, 0.1)',
     borderColor: '#F44336',
   },
   disabledOption: {
@@ -635,19 +626,30 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  timerSection: {
+  questionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  questionTextWrapper: {
+    flex: 1,
   },
   timerCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-    padding: 10,
+    backgroundColor: '#FFFFFF', // White background
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.2)', // Light purple border
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   optionNumber: {
     backgroundColor: 'rgba(160, 142, 254, 0.2)',
@@ -662,18 +664,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#a08efe',
-  },
-  countdownText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  refreshButton: {
-    backgroundColor: 'rgba(160, 142, 254, 0.2)',
-    borderRadius: 20,
-    padding: 8,
-    marginLeft: 10,
   },
   victoryContainer: {
     alignItems: 'center',
@@ -737,13 +727,21 @@ const styles = StyleSheet.create({
   completedCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-    padding: 10,
-    gap: 6,
+    backgroundColor: '#FFFFFF', // White background
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.2)', // Light green border
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   completedText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#4CAF50',
   },

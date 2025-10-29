@@ -4,17 +4,18 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import CreatePost from '../../components/CreatePost';
 import { apiFetchAuth, uploadFile } from '../../constants/api';
@@ -48,6 +49,9 @@ export default function ProfileScreen() {
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   
 
   const fetchProfile = async () => {
@@ -221,7 +225,7 @@ export default function ProfileScreen() {
 
   const handleShareProfile = () => {
     // TODO: Implement share functionality
-    console.log('Share profile pressed');
+
   };
 
   const handleCreatePost = () => {
@@ -238,12 +242,49 @@ export default function ProfileScreen() {
 
   const handlePostPress = (post: any) => {
     // TODO: Navigate to post detail screen
-    console.log('Post pressed:', post.id);
+
   };
 
   const handleStatPress = (type: string) => {
     // TODO: Navigate to respective screens
-    console.log(`${type} pressed`);
+
+  };
+
+  // Delete post functionality
+  const handleDeletePost = (post: any) => {
+    setSelectedPost(post);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!selectedPost || !user?.token) return;
+
+    setDeleting(true);
+    try {
+      const response = await apiFetchAuth(`/student/posts/${selectedPost.id}/delete`, user.token, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove the post from the userPosts list
+        setUserPosts(prev => prev.filter(post => post.id !== selectedPost.id));
+        Alert.alert('Success', 'Post deleted successfully');
+        setDeleteModalVisible(false);
+        setSelectedPost(null);
+      } else {
+        Alert.alert('Error', 'Failed to delete post. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      Alert.alert('Error', 'Failed to delete post. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalVisible(false);
+    setSelectedPost(null);
   };
 
   const handleFollow = async () => {
@@ -256,7 +297,7 @@ export default function ProfileScreen() {
       if (res.ok) {
         // Update the profile to reflect the follow action
         // You might want to update the UI to show "Following" instead of "Follow"
-        console.log('Follow successful:', res.data);
+
         // Optionally refresh the profile data
         fetchProfile();
       }
@@ -298,12 +339,16 @@ export default function ProfileScreen() {
               </LinearGradient>
             </View>
           )}
-          <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
+          <TouchableOpacity 
+            style={styles.moreButton} 
+            activeOpacity={0.7}
+            onPress={() => handleDeletePost(item)}
+          >
             <LinearGradient
               colors={['#f0f2f5', '#e9ecef']}
               style={styles.moreButtonGradient}
             >
-              <Ionicons name="ellipsis-horizontal" size={18} color="#666" />
+              <Ionicons name="trash-outline" size={18} color="#FF4444" />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -395,48 +440,51 @@ export default function ProfileScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-                 {/* Enhanced Modern Profile Header */}
-         <View style={styles.enhancedProfileHeader}>
-           <View style={styles.profileHeaderContent}>
-             {/* Enhanced Avatar Section */}
-             <View style={styles.enhancedAvatarSection}>
-               <View style={styles.enhancedAvatarContainer}>
+                 {/* Professional Profile Header */}
+         <LinearGradient
+           colors={['#6366F1', '#8B5CF6', '#A855F7']}
+           start={{ x: 0, y: 0 }}
+           end={{ x: 1, y: 1 }}
+           style={styles.professionalProfileHeader}
+         >
+           {/* Professional Header Content */}
+           <View style={styles.professionalHeaderContent}>
+             {/* Professional Avatar Section */}
+             <View style={styles.professionalAvatarSection}>
+               <View style={styles.professionalAvatarContainer}>
                  {uploadingPhoto ? (
-                   <View style={styles.enhancedAvatarLoading}>
+                   <View style={styles.professionalAvatarLoading}>
                      <ActivityIndicator size="large" color="#fff" />
                    </View>
                  ) : profile?.profilePhoto ? (
-                   <Image source={{ uri: profile.profilePhoto }} style={styles.enhancedAvatar} />
+                   <Image source={{ uri: profile.profilePhoto }} style={styles.professionalAvatar} />
                  ) : (
                    <LinearGradient
-                     colors={['#ff6b6b', '#ff8e53']}
-                     style={styles.enhancedAvatarPlaceholder}
+                     colors={['#6366F1', '#8B5CF6']}
+                     style={styles.professionalAvatarPlaceholder}
                    >
-                     <Text style={styles.enhancedAvatarInitials}>{getInitials(profile?.name)}</Text>
+                     <Text style={styles.professionalAvatarInitials}>{getInitials(profile?.name)}</Text>
                    </LinearGradient>
                  )}
                  <TouchableOpacity 
-                   style={[styles.enhancedEditAvatarButton, uploadingPhoto && styles.editAvatarButtonDisabled]} 
+                   style={[styles.professionalEditAvatarButton, uploadingPhoto && styles.editAvatarButtonDisabled]} 
                    activeOpacity={0.8}
                    onPress={handleProfilePhotoUpload}
                    disabled={uploadingPhoto}
                  >
-                   <LinearGradient
-                     colors={['#4facfe', '#00f2fe']}
-                     style={styles.enhancedEditAvatarIcon}
-                   >
+                   <View style={styles.professionalEditAvatarIcon}>
                      {uploadingPhoto ? (
                        <ActivityIndicator size="small" color="#fff" />
                      ) : (
-                       <Ionicons name="camera" size={18} color="#fff" />
+                       <Ionicons name="camera" size={16} color="#fff" />
                      )}
-                   </LinearGradient>
+                   </View>
                  </TouchableOpacity>
                </View>
                
-                               <View style={styles.enhancedProfileInfo}>
-                  <Text style={styles.enhancedName}>{profile?.name || 'User'}</Text>
-                  <Text style={styles.enhancedEmail}>
+               <View style={styles.professionalProfileInfo}>
+                  <Text style={styles.professionalName}>{profile?.name || 'User'}</Text>
+                  <Text style={styles.professionalEmail}>
                     {profile?.handle
                       ? `@${profile.handle}`
                       : profile?.username
@@ -446,99 +494,83 @@ export default function ProfileScreen() {
                       : ''}
                   </Text>
                   {(profile?.course || profile?.year) && (
-                    <View style={styles.enhancedCourseInfo}>
-                      <Ionicons name="school-outline" size={16} color="#fff" />
-                      <Text style={styles.enhancedCourseText}>{[profile?.course, profile?.year].filter(Boolean).join(' • ')}</Text>
+                    <View style={styles.professionalCourseInfo}>
+                      <Ionicons name="school-outline" size={14} color="#94A3B8" />
+                      <Text style={styles.professionalCourseText}>{[profile?.course, profile?.year].filter(Boolean).join(' • ')}</Text>
                     </View>
                   )}
                 </View>
              </View>
 
-             {/* Enhanced Stats Cards */}
-             <View style={styles.enhancedStatsContainer}>
-               <View style={styles.enhancedStatCard}>
-                 <LinearGradient
-                   colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                   style={styles.enhancedStatGradient}
-                 >
-                   <View style={styles.statIconContainer}>
-                     <Ionicons name="document-text" size={20} color="#fff" />
+             {/* Professional Stats Cards */}
+             <View style={styles.professionalStatsContainer}>
+               <View style={styles.professionalStatCard}>
+                 <View style={styles.professionalStatGradient}>
+                   <View style={styles.professionalStatIconContainer}>
+                     <Ionicons name="document-text" size={20} color="#FFFFFF" />
                    </View>
-                   <Text style={styles.enhancedStatNumber}>{profile?._count?.posts || 0}</Text>
-                   <Text style={styles.enhancedStatLabel}>Posts</Text>
-                 </LinearGradient>
+                   <Text style={styles.professionalStatNumber}>{profile?._count?.posts || 0}</Text>
+                   <Text style={styles.professionalStatLabel}>Posts</Text>
+                 </View>
                </View>
-               <View style={styles.enhancedStatCard}>
-                 <LinearGradient
-                   colors={['#10B981', '#059669', '#047857']}
-                   style={styles.enhancedStatGradient}
-                 >
-                   <View style={styles.statIconContainer}>
-                     <Ionicons name="people" size={20} color="#fff" />
+               <View style={styles.professionalStatCard}>
+                 <View style={styles.professionalStatGradient}>
+                   <View style={styles.professionalStatIconContainer}>
+                     <Ionicons name="people" size={20} color="#FFFFFF" />
                    </View>
-                   <Text style={styles.enhancedStatNumber}>{profile?._count?.followers || 0}</Text>
-                   <Text style={styles.enhancedStatLabel}>Followers</Text>
-                 </LinearGradient>
+                   <Text style={styles.professionalStatNumber}>{profile?._count?.followers || 0}</Text>
+                   <Text style={styles.professionalStatLabel}>Followers</Text>
+                 </View>
                </View>
-               <View style={styles.enhancedStatCard}>
-                 <LinearGradient
-                   colors={['#F59E0B', '#D97706', '#B45309']}
-                   style={styles.enhancedStatGradient}
-                 >
-                   <View style={styles.statIconContainer}>
-                     <Ionicons name="person-add" size={20} color="#fff" />
+               <View style={styles.professionalStatCard}>
+                 <View style={styles.professionalStatGradient}>
+                   <View style={styles.professionalStatIconContainer}>
+                     <Ionicons name="person-add" size={20} color="#FFFFFF" />
                    </View>
-                   <Text style={styles.enhancedStatNumber}>{profile?._count?.following || 0}</Text>
-                   <Text style={styles.enhancedStatLabel}>Following</Text>
-                 </LinearGradient>
+                   <Text style={styles.professionalStatNumber}>{profile?._count?.following || 0}</Text>
+                   <Text style={styles.professionalStatLabel}>Following</Text>
+                 </View>
                </View>
              </View>
              
              
              
-             {/* Enhanced Action Buttons */}
-             <View style={styles.enhancedActionButtons}>
+             {/* Professional Action Buttons */}
+             <View style={styles.professionalActionButtons}>
                {user?.id !== profile?.id ? (
-                 <TouchableOpacity style={styles.enhancedFollowButton} activeOpacity={0.8} onPress={handleFollow}>
-                   <LinearGradient
-                     colors={['#10B981', '#059669']}
-                     style={styles.enhancedFollowButtonGradient}
-                   >
+                 <TouchableOpacity style={styles.professionalFollowButton} activeOpacity={0.8} onPress={handleFollow}>
+                   <View style={styles.professionalFollowButtonContent}>
                      <Ionicons name="person-add" size={18} color="#fff" />
-                     <Text style={styles.enhancedFollowButtonText}>Follow</Text>
-                   </LinearGradient>
+                     <Text style={styles.professionalFollowButtonText}>Follow</Text>
+                   </View>
                  </TouchableOpacity>
                ) : (
-                 <TouchableOpacity style={styles.enhancedEditButton} activeOpacity={0.8} onPress={handleEditProfile}>
-                   <LinearGradient
-                     colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                     style={styles.enhancedEditButtonGradient}
-                   >
+                 <TouchableOpacity style={styles.professionalEditButton} activeOpacity={0.8} onPress={handleEditProfile}>
+                   <View style={styles.professionalEditButtonContent}>
                      <Ionicons name="create" size={18} color="#fff" />
-                     <Text style={styles.enhancedEditButtonText}>Edit Profile</Text>
-                   </LinearGradient>
+                     <Text style={styles.professionalEditButtonText}>Edit Profile</Text>
+                   </View>
                  </TouchableOpacity>
                )}
-               <TouchableOpacity style={styles.enhancedShareButton} onPress={handleShareProfile}>
-                 <LinearGradient
-                   colors={['#10B981', '#059669', '#047857']}
-                   style={styles.enhancedShareButtonGradient}
-                 >
+               <TouchableOpacity style={styles.professionalShareButton} onPress={handleShareProfile}>
+                 <View style={styles.professionalShareButtonContent}>
                    <Ionicons name="share-social" size={20} color="#fff" />
-                 </LinearGradient>
+                 </View>
                </TouchableOpacity>
              </View>
            </View>
-         </View>
+         </LinearGradient>
 
-        {/* Enhanced Bio Section */}
+        {/* Professional Bio Section */}
         {profile?.bio && (
-          <View style={styles.bioSection}>
-            <View style={styles.bioHeader}>
-              <Ionicons name="information-circle" size={20} color="#4F46E5" />
-              <Text style={styles.bioTitle}>About Me</Text>
+          <View style={styles.professionalBioSection}>
+            <View style={styles.professionalBioHeader}>
+              <View style={styles.professionalBioIconContainer}>
+                <Ionicons name="information-circle" size={20} color="#6366F1" />
+              </View>
+              <Text style={styles.professionalBioTitle}>About Me</Text>
             </View>
-            <Text style={styles.bio}>{profile?.bio}</Text>
+            <Text style={styles.professionalBio}>{profile?.bio}</Text>
           </View>
         )}
 
@@ -572,11 +604,20 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Enhanced Posts Section */}
-        <View style={styles.postsSection}>
-          <View style={styles.postsHeader}>
-            <Text style={styles.postsTitle}>My Posts</Text>
-            <Text style={styles.postsCount}>{userPosts.length} posts</Text>
+        {/* Professional Posts Section */}
+        <View style={styles.professionalPostsSection}>
+          <View style={styles.professionalPostsHeader}>
+            <View style={styles.professionalPostsHeaderContent}>
+              <View style={styles.professionalPostsTitleContainer}>
+                <View style={styles.professionalPostsIconContainer}>
+                  <Ionicons name="document-text" size={20} color="#6366F1" />
+                </View>
+                <Text style={styles.professionalPostsTitle}>My Posts</Text>
+              </View>
+              <View style={styles.professionalPostsCountContainer}>
+                <Text style={styles.professionalPostsCount}>{userPosts.length} posts</Text>
+              </View>
+            </View>
           </View>
 
           {postsLoading ? (
@@ -622,19 +663,19 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* Enhanced Floating Action Button */}
+      {/* Professional Floating Action Button */}
       <TouchableOpacity
-        style={styles.fab}
+        style={styles.professionalFab}
         onPress={() => setCreatePostVisible(true)}
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
+          colors={['#6366F1', '#8B5CF6']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
+          style={styles.professionalFabGradient}
         >
-          <Ionicons name="add" size={28} color="#fff" />
+          <Ionicons name="add" size={24} color="#fff" />
         </LinearGradient>
       </TouchableOpacity>
 
@@ -645,6 +686,65 @@ export default function ProfileScreen() {
         onPostCreated={handlePostCreated}
       />
 
+      {/* Delete Post Modal */}
+      <Modal
+        visible={deleteModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closeDeleteModal}
+      >
+        <View style={styles.deleteModalOverlay}>
+          <View style={styles.deleteModalContent}>
+            <View style={styles.deleteModalHeader}>
+              <Text style={styles.deleteModalTitle}>Delete Post</Text>
+              <TouchableOpacity onPress={closeDeleteModal} style={styles.deleteModalCloseButton}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.deleteModalBody}>
+              <View style={styles.deleteModalIcon}>
+                <LinearGradient
+                  colors={['#FF6B6B', '#FF4444']}
+                  style={styles.deleteIconGradient}
+                >
+                  <Ionicons name="trash" size={48} color="#fff" />
+                </LinearGradient>
+              </View>
+              
+              <Text style={styles.deleteModalText}>
+                Are you sure you want to delete this post?
+              </Text>
+              
+              <Text style={styles.deleteModalSubtext}>
+                This action cannot be undone.
+              </Text>
+              
+              <View style={styles.deleteModalActions}>
+                <TouchableOpacity
+                  style={styles.deleteCancelButton}
+                  onPress={closeDeleteModal}
+                  disabled={deleting}
+                >
+                  <Text style={styles.deleteCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.deleteConfirmButton, deleting && styles.deleteConfirmButtonDisabled]}
+                  onPress={confirmDeletePost}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.deleteConfirmButtonText}>Delete</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
     </View>
   );
@@ -1947,4 +2047,435 @@ const styles = StyleSheet.create({
      marginTop: 8,
      textAlign: 'center',
    },
-});
+
+   // Delete Modal Styles
+   deleteModalOverlay: {
+     flex: 1,
+     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+     justifyContent: 'center',
+     alignItems: 'center',
+   },
+   deleteModalContent: {
+     backgroundColor: '#fff',
+     borderRadius: 20,
+     padding: 20,
+     width: '90%',
+     maxWidth: 400,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 10 },
+     shadowOpacity: 0.25,
+     shadowRadius: 20,
+     elevation: 10,
+   },
+   deleteModalHeader: {
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     alignItems: 'center',
+     marginBottom: 20,
+     paddingBottom: 15,
+     borderBottomWidth: 1,
+     borderBottomColor: '#E5E7EB',
+   },
+   deleteModalTitle: {
+     fontSize: 20,
+     fontWeight: 'bold',
+     color: '#1F2937',
+   },
+   deleteModalCloseButton: {
+     padding: 8,
+   },
+   deleteModalBody: {
+     alignItems: 'center',
+   },
+   deleteModalIcon: {
+     marginBottom: 20,
+   },
+   deleteIconGradient: {
+     width: 80,
+     height: 80,
+     borderRadius: 40,
+     justifyContent: 'center',
+     alignItems: 'center',
+   },
+   deleteModalText: {
+     fontSize: 18,
+     fontWeight: '600',
+     color: '#1F2937',
+     textAlign: 'center',
+     marginBottom: 8,
+   },
+   deleteModalSubtext: {
+     fontSize: 14,
+     color: '#6B7280',
+     textAlign: 'center',
+     marginBottom: 30,
+   },
+   deleteModalActions: {
+     flexDirection: 'row',
+     gap: 12,
+     width: '100%',
+   },
+   deleteCancelButton: {
+     flex: 1,
+     padding: 16,
+     borderRadius: 12,
+     borderWidth: 1,
+     borderColor: '#D1D5DB',
+     backgroundColor: '#F9FAFB',
+     alignItems: 'center',
+   },
+   deleteCancelButtonText: {
+     fontSize: 16,
+     fontWeight: '600',
+     color: '#374151',
+   },
+   deleteConfirmButton: {
+     flex: 1,
+     padding: 16,
+     borderRadius: 12,
+     backgroundColor: '#EF4444',
+     alignItems: 'center',
+   },
+   deleteConfirmButtonDisabled: {
+     backgroundColor: '#9CA3AF',
+   },
+   deleteConfirmButtonText: {
+     fontSize: 16,
+     fontWeight: '600',
+     color: '#fff',
+   },
+
+   // Professional Profile Styles
+   professionalProfileHeader: {
+     paddingTop: 40,
+     paddingBottom: 20,
+     paddingHorizontal: 20,
+     borderBottomLeftRadius: 20,
+     borderBottomRightRadius: 20,
+     shadowColor: '#1E293B',
+     shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.2,
+     shadowRadius: 8,
+     elevation: 8,
+   },
+   professionalHeaderContent: {
+     zIndex: 1,
+   },
+   professionalAvatarSection: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'flex-start',
+     marginBottom: 20,
+     paddingHorizontal: 4,
+   },
+   professionalAvatarContainer: {
+     position: 'relative',
+     marginRight: 16,
+   },
+   professionalAvatar: {
+     width: 70,
+     height: 70,
+     borderRadius: 35,
+     borderWidth: 3,
+     borderColor: 'rgba(255, 255, 255, 0.3)',
+   },
+   professionalAvatarPlaceholder: {
+     width: 70,
+     height: 70,
+     borderRadius: 35,
+     justifyContent: 'center',
+     alignItems: 'center',
+     borderWidth: 3,
+     borderColor: 'rgba(255, 255, 255, 0.3)',
+   },
+   professionalAvatarInitials: {
+     fontSize: 24,
+     fontWeight: 'bold',
+     color: '#FFFFFF',
+   },
+   professionalAvatarLoading: {
+     width: 70,
+     height: 70,
+     borderRadius: 35,
+     backgroundColor: 'rgba(255,255,255,0.2)',
+     justifyContent: 'center',
+     alignItems: 'center',
+     borderWidth: 3,
+     borderColor: 'rgba(255, 255, 255, 0.3)',
+   },
+   professionalEditAvatarButton: {
+     position: 'absolute',
+     bottom: 0,
+     right: 0,
+   },
+   professionalEditAvatarIcon: {
+     width: 28,
+     height: 28,
+     borderRadius: 14,
+     backgroundColor: '#6366F1',
+     justifyContent: 'center',
+     alignItems: 'center',
+     borderWidth: 2,
+     borderColor: '#FFFFFF',
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.2,
+     shadowRadius: 4,
+     elevation: 4,
+   },
+   professionalProfileInfo: {
+     flex: 1,
+   },
+   professionalName: {
+     fontSize: 22,
+     fontWeight: '700',
+     color: '#FFFFFF',
+     marginBottom: 4,
+     letterSpacing: 0.3,
+   },
+   professionalEmail: {
+     fontSize: 14,
+     color: 'rgba(255, 255, 255, 0.8)',
+     marginBottom: 6,
+     fontWeight: '500',
+   },
+   professionalCourseInfo: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+     paddingHorizontal: 10,
+     paddingVertical: 4,
+     borderRadius: 12,
+   },
+   professionalCourseText: {
+     fontSize: 12,
+     color: 'rgba(255, 255, 255, 0.9)',
+     fontWeight: '500',
+     marginLeft: 6,
+   },
+   professionalStatsContainer: {
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     marginBottom: 20,
+     paddingHorizontal: 4,
+     gap: 8,
+   },
+   professionalStatCard: {
+     flex: 1,
+     borderRadius: 12,
+     overflow: 'hidden',
+     borderWidth: 1,
+     borderColor: 'rgba(255, 255, 255, 0.2)',
+   },
+   professionalStatGradient: {
+     backgroundColor: '#F97316',
+     padding: 12,
+     alignItems: 'center',
+   },
+   professionalStatIconContainer: {
+     width: 32,
+     height: 32,
+     borderRadius: 16,
+     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+     justifyContent: 'center',
+     alignItems: 'center',
+     marginBottom: 6,
+   },
+   professionalStatNumber: {
+     fontSize: 18,
+     fontWeight: '700',
+     color: '#FFFFFF',
+     marginBottom: 2,
+     textAlign: 'center',
+   },
+   professionalStatLabel: {
+     fontSize: 10,
+     color: 'rgba(255, 255, 255, 0.9)',
+     fontWeight: '500',
+     textTransform: 'uppercase',
+     letterSpacing: 0.5,
+     textAlign: 'center',
+   },
+   professionalActionButtons: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     gap: 12,
+     marginTop: 4,
+     paddingHorizontal: 4,
+   },
+   professionalFollowButton: {
+     flex: 1,
+     backgroundColor: '#6366F1',
+     borderRadius: 12,
+     shadowColor: '#6366F1',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.3,
+     shadowRadius: 4,
+     elevation: 4,
+   },
+   professionalFollowButtonContent: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingVertical: 12,
+     paddingHorizontal: 16,
+     borderRadius: 12,
+   },
+   professionalFollowButtonText: {
+     color: '#fff',
+     fontSize: 14,
+     fontWeight: '600',
+     marginLeft: 6,
+     letterSpacing: 0.3,
+   },
+   professionalEditButton: {
+     flex: 1,
+     backgroundColor: '#10B981',
+     borderRadius: 12,
+     shadowColor: '#10B981',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.3,
+     shadowRadius: 4,
+     elevation: 4,
+   },
+   professionalEditButtonContent: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingVertical: 12,
+     paddingHorizontal: 16,
+     borderRadius: 12,
+   },
+   professionalEditButtonText: {
+     color: '#fff',
+     fontSize: 14,
+     fontWeight: '600',
+     marginLeft: 6,
+     letterSpacing: 0.3,
+   },
+   professionalShareButton: {
+     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+     borderRadius: 12,
+     borderWidth: 1,
+     borderColor: 'rgba(255, 255, 255, 0.3)',
+   },
+   professionalShareButtonContent: {
+     width: 44,
+     height: 44,
+     borderRadius: 12,
+     justifyContent: 'center',
+     alignItems: 'center',
+   },
+   professionalBioSection: {
+     margin: 16,
+     marginTop: 24,
+     backgroundColor: '#FFFFFF',
+     borderRadius: 16,
+     padding: 16,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.1,
+     shadowRadius: 8,
+     elevation: 4,
+   },
+   professionalBioHeader: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     marginBottom: 8,
+   },
+   professionalBioIconContainer: {
+     width: 28,
+     height: 28,
+     borderRadius: 14,
+     backgroundColor: 'rgba(99, 102, 241, 0.1)',
+     justifyContent: 'center',
+     alignItems: 'center',
+     marginRight: 10,
+   },
+   professionalBioTitle: {
+     fontSize: 16,
+     fontWeight: '700',
+     color: '#1F2937',
+     letterSpacing: 0.2,
+   },
+   professionalBio: {
+     fontSize: 14,
+     color: '#374151',
+     lineHeight: 20,
+     fontWeight: '500',
+   },
+   professionalPostsSection: {
+     marginHorizontal: 16,
+     marginTop: 24,
+     marginBottom: 100,
+     backgroundColor: '#FFFFFF',
+     borderRadius: 16,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.1,
+     shadowRadius: 8,
+     elevation: 4,
+   },
+   professionalPostsHeader: {
+     borderBottomWidth: 1,
+     borderBottomColor: '#F3F4F6',
+   },
+   professionalPostsHeaderContent: {
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     alignItems: 'center',
+     padding: 16,
+   },
+   professionalPostsTitleContainer: {
+     flexDirection: 'row',
+     alignItems: 'center',
+   },
+   professionalPostsIconContainer: {
+     width: 28,
+     height: 28,
+     borderRadius: 14,
+     backgroundColor: 'rgba(99, 102, 241, 0.1)',
+     justifyContent: 'center',
+     alignItems: 'center',
+     marginRight: 10,
+   },
+   professionalPostsTitle: {
+     fontSize: 18,
+     fontWeight: '700',
+     color: '#1F2937',
+     letterSpacing: 0.2,
+   },
+   professionalPostsCountContainer: {
+     backgroundColor: 'rgba(99, 102, 241, 0.1)',
+     paddingHorizontal: 10,
+     paddingVertical: 4,
+     borderRadius: 12,
+   },
+   professionalPostsCount: {
+     fontSize: 12,
+     fontWeight: '600',
+     color: '#6366F1',
+   },
+   professionalFab: {
+     position: 'absolute',
+     bottom: 100,
+     right: 20,
+     width: 56,
+     height: 56,
+     borderRadius: 28,
+     overflow: 'hidden',
+     shadowColor: '#6366F1',
+     shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.3,
+     shadowRadius: 8,
+     elevation: 8,
+     zIndex: 1000,
+   },
+   professionalFabGradient: {
+     width: 56,
+     height: 56,
+     borderRadius: 28,
+     justifyContent: 'center',
+     alignItems: 'center',
+   },
+ });

@@ -9,7 +9,7 @@ interface GlobalHeaderProps {
   showBackButton?: boolean;
   onBackPress?: () => void;
   rightComponent?: React.ReactNode;
-  gradientColors?: readonly [string, string];
+  gradientColors?: readonly string[];
 }
 
 const GlobalHeader: React.FC<GlobalHeaderProps> = ({
@@ -18,11 +18,11 @@ const GlobalHeader: React.FC<GlobalHeaderProps> = ({
   showBackButton = true,
   onBackPress,
   rightComponent,
-  gradientColors = ['#667eea', '#764ba2'] as const
+  gradientColors = ['#1E40AF', '#3B82F6', '#6366F1']
 }) => {
   return (
     <LinearGradient
-      colors={gradientColors}
+      colors={gradientColors as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.header}

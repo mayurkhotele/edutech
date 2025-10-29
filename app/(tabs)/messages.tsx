@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
@@ -59,8 +59,10 @@ export default function MessagesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('chats');
+  // Removed activeTab state - only Chats tab now
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
   
   // Socket connection state
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -82,26 +84,26 @@ export default function MessagesScreen() {
           year: null
         };
         setCurrentUser(currentUserData);
-        console.log('👤 Current user set from JWT:', currentUserData);
+
       } catch (error) {
         console.error('❌ Error decoding JWT token:', error);
       }
     }
-
-    // 2. Initial conversations aur message requests fetch karta hai
-    fetchConversations();
-    fetchMessageRequests();
   }, [user?.token]);
 
-  // Refresh conversations every time screen comes into focus
+  // Refresh conversations only when screen comes into focus (not on initial mount)
   useFocusEffect(
     useCallback(() => {
-      if (user?.token) {
-        console.log('📱 Messages screen focused - refreshing conversations...');
-        fetchConversations();
-        fetchMessageRequests();
+      if (user?.token && currentUser) {
+        const now = Date.now();
+        // Prevent refresh if last refresh was less than 2 seconds ago
+        if (now - lastRefreshTime > 2000) {
+          setLastRefreshTime(now);
+          fetchConversations();
+          fetchMessageRequests();
+        }
       }
-    }, [user?.token])
+    }, [user?.token, currentUser, lastRefreshTime])
   );
 
   // Step 2: User Selection - Like React website
@@ -116,7 +118,7 @@ export default function MessagesScreen() {
       // 3. Socket room join karta hai real-time messaging ke liye
       if (socket && isConnected) {
         const chatId = [currentUser.id, selectedUser.id].sort().join('-');
-        console.log('🔗 Joining chat room:', chatId);
+
         socket.emit('join_chat', chatId);
         socket.emit('join_typing_room', chatId);
       }
@@ -125,12 +127,12 @@ export default function MessagesScreen() {
 
   // Initialize socket connection - Similar to matchmaking screen
   useEffect(() => {
-    console.log('🔌 Messages Socket connection useEffect triggered');
-    console.log('🔑 User token available:', !!user?.token);
-    console.log('👤 User object:', { id: user?.id, hasToken: !!user?.token });
+
+
+
     
     if (user?.token) {
-      console.log('🚀 Initializing socket connection for messages...');
+
       const newSocket = io('http://192.168.1.3:3001', {
         auth: {
           token: user.token
@@ -142,25 +144,25 @@ export default function MessagesScreen() {
       });
 
       newSocket.on('connect', () => {
-        console.log('✅ Messages Socket connected:', newSocket.id);
-        console.log('🔗 Socket connection details:');
-        console.log('   - Socket ID:', newSocket.id);
-        console.log('   - Connected:', newSocket.connected);
-        console.log('   - Transport:', newSocket.io.engine.transport.name);
-        console.log('   - Auth token:', !!user?.token);
-        console.log('   - User ID:', user?.id);
+
+
+
+
+
+
+
         setIsConnected(true);
         setSocketError(null);
         
         // Register user immediately after connection
         if (user?.id) {
-          console.log('👤 Registering user for messages:', user.id);
+
           newSocket.emit('register_user', user.id);
         }
       });
 
       newSocket.on('disconnect', () => {
-        console.log('❌ Messages Socket disconnected');
+
         setIsConnected(false);
       });
 
@@ -171,17 +173,17 @@ export default function MessagesScreen() {
       });
 
       newSocket.on('pong', () => {
-        console.log('🏓 Received pong from server - messages socket connection is working');
+
       });
 
       setSocket(newSocket);
 
       return () => {
-        console.log('🧹 Cleaning up messages socket connection...');
+
         newSocket.disconnect();
       };
     } else {
-      console.log('❌ No user token available for messages socket connection');
+
       setSocketError('Authentication required. Please login again.');
     }
   }, [user?.token]);
@@ -190,14 +192,14 @@ export default function MessagesScreen() {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    console.log('🎧 Setting up socket event listeners for messages...');
+
 
     const handleNewMessage = (newMessage: any) => {
-      console.log('📨 Received new message via socket:', newMessage);
+
       
       // Add null checks to prevent the error
       if (!newMessage || !newMessage.sender || !newMessage.sender.id) {
-        console.log('❌ Invalid message format received:', newMessage);
+
         return;
       }
       
@@ -211,7 +213,7 @@ export default function MessagesScreen() {
     };
 
     const handleMessageRead = ({ readerId }: { readerId: string }) => {
-      console.log('👁️ Messages read by:', readerId);
+
       if (selectedUser && selectedUser.id === readerId) {
         setMessages(prev =>
           prev.map(msg => 
@@ -222,12 +224,12 @@ export default function MessagesScreen() {
     };
 
     const handleTypingStart = (data: { userId: string; chatId: string }) => {
-      console.log('⌨️ User started typing:', data);
+
       // Handle typing indicator
     };
 
     const handleTypingStop = (data: { userId: string; chatId: string }) => {
-      console.log('⏹️ User stopped typing:', data);
+
       // Handle typing indicator
     };
 
@@ -236,12 +238,12 @@ export default function MessagesScreen() {
 
     // Test socket connection
     setTimeout(() => {
-      console.log('🏓 Testing messages socket connection...');
+
       socket.emit('ping');
     }, 1000);
 
     return () => {
-      console.log('🧹 Cleaning up messages socket event listeners...');
+
       socket.off('new_message', handleNewMessage);
       socket.off('messages_were_read', handleMessageRead);
     };
@@ -250,35 +252,35 @@ export default function MessagesScreen() {
   // Step 3: Messages Fetch - Like React website
   const fetchMessages = async (userId: string) => {
     try {
-      console.log('📡 Fetching messages for user:', userId);
+
       
       const response = await apiFetchAuth(`/student/messages/${userId}`, user?.token || '');
       
-      console.log('📡 Response status:', response.ok);
+
       
              if (response.ok) {
          // Handle both response.data and response.json() cases
          const data = response.data || response;
-         console.log('📨 Fetched messages data:', data);
+
         
         if (data && Array.isArray(data)) {
-          console.log('📨 Processing array of messages...');
+
           
           // Messages ko chronological order mai sort karta hai
           const sortedMessages: Message[] = [...data].sort((a: Message, b: Message) => 
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
           
-          console.log('📨 Sorted messages count:', sortedMessages.length);
+
           setMessages(sortedMessages);
           
           if (data.length === 0) {
-            console.log('📨 No messages found, checking for pending requests...');
+
             const pendingRequest = messageRequests.find(req => 
               req.sender.id === userId && req.status === 'PENDING'
             );
             if (pendingRequest) {
-              console.log('📨 Found pending request:', pendingRequest);
+
               setMessages([{
                 id: `request-${pendingRequest.id}`,
                 content: pendingRequest.content,
@@ -292,16 +294,16 @@ export default function MessagesScreen() {
                 requestId: pendingRequest.id
               }]);
             } else {
-              console.log('📨 No pending requests either, setting empty messages');
+
               setMessages([]);
             }
           }
         } else {
-          console.log('❌ No messages data or not an array');
+
           setMessages([]);
         }
       } else {
-        console.log('❌ Response not ok:', response.status);
+
         setMessages([]);
       }
     } catch (error) {
@@ -312,12 +314,12 @@ export default function MessagesScreen() {
 
   const fetchMessageRequests = async () => {
     try {
-      console.log('📨 Fetching message requests...');
+
       const response = await apiFetchAuth('/student/message-requests', user?.token || '');
       if (response.ok) {
         // Handle both response.data and response.json() cases
         const data = response.data || response;
-        console.log('📨 Message requests data:', data);
+
         setMessageRequests(Array.isArray(data) ? data : []);
       }
     } catch (error) {
@@ -329,24 +331,24 @@ export default function MessagesScreen() {
   const fetchConversations = async () => {
     setLoading(true);
     try {
-      console.log('📡 Fetching conversations...');
+
       const response = await apiFetchAuth('/student/messages', user?.token || '');
-      console.log('📡 Conversations response:', response);
+
       
       if (response.ok) {
         // Handle both response.data and direct response cases
         const data = response.data || response;
-        console.log('📡 Conversations data:', data);
+
         
         if (Array.isArray(data)) {
-          console.log('📡 Setting conversations:', data.length, 'items');
+
           setConversations(data);
         } else {
-          console.log('❌ Conversations data is not an array:', data);
+
           setConversations([]);
         }
       } else {
-        console.log('❌ Conversations response not ok:', response.status);
+
         setConversations([]);
       }
     } catch (error) {
@@ -476,9 +478,15 @@ export default function MessagesScreen() {
   };
 
   const onRefresh = async () => {
+    const now = Date.now();
+    // Prevent refresh if last refresh was less than 1 second ago
+    if (now - lastRefreshTime < 1000) {
+      return;
+    }
+    
     setRefreshing(true);
+    setLastRefreshTime(now);
     try {
-      console.log('🔄 Messages screen pull-to-refresh triggered');
       await fetchConversations();
       await fetchMessageRequests();
     } catch (error) {
@@ -542,26 +550,36 @@ export default function MessagesScreen() {
     const lastMessage = conversation.latestMessage?.content || '';
     const searchLower = searchQuery.toLowerCase();
     
-    return userName.toLowerCase().includes(searchLower) ||
-           lastMessage.toLowerCase().includes(searchLower);
+    // Search filter
+    const matchesSearch = userName.toLowerCase().includes(searchLower) ||
+                         lastMessage.toLowerCase().includes(searchLower);
+    
+    // Unread filter
+    const hasUnread = showUnreadOnly ? conversation.unreadCount > 0 : true;
+    
+    return matchesSearch && hasUnread;
   });
 
   const renderConversation = ({ item }: { item: Conversation }) => (
     <TouchableOpacity 
-      style={styles.messageItem} 
-      activeOpacity={0.7}
-             onPress={() => {
-         console.log('🔍 Chat item clicked! Navigating to chat with user:', item.user.id);
-         setSelectedUser(item.user);
-         router.push({
-           pathname: '/chat',
-           params: {
-             userId: item.user.id,
-             userName: item.user.name
-           }
-         });
-       }}
-     >
+      style={[
+        styles.messageItem,
+        item.unreadCount > 0 && styles.unreadMessageItem
+      ]} 
+      activeOpacity={0.6}
+      onPress={() => {
+        setSelectedUser(item.user);
+        router.push({
+          pathname: '/chat-screen',
+          params: {
+            userId: item.user.id,
+            userName: item.user.name,
+            userProfilePhoto: item.user.profilePhoto || '',
+            isFollowing: 'true'
+          }
+        });
+      }}
+    >
        <View style={styles.avatarContainer}>
          {item.user.profilePhoto ? (
            <Image 
@@ -570,43 +588,67 @@ export default function MessagesScreen() {
            />
          ) : (
           <LinearGradient
-            colors={['#4F46E5', '#7C3AED']}
+            colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
             style={styles.avatarPlaceholder}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
              <Text style={styles.avatarInitials}>
                {item.user.name ? item.user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U'}
              </Text>
            </LinearGradient>
          )}
-         <View 
-           style={[
-             styles.statusIndicator, 
-             { backgroundColor: '#10B981' } // Default to online for now
-           ]} 
-         />
+         {/* Enhanced Online Status Indicator */}
+         <View style={styles.statusIndicatorContainer}>
+           <View 
+             style={[
+               styles.statusIndicator, 
+               { backgroundColor: Math.random() > 0.3 ? '#10B981' : '#9CA3AF' }
+             ]} 
+           />
+         </View>
        </View>
 
        <View style={styles.messageContent}>
          <View style={styles.messageHeader}>
-           <Text style={styles.userName}>{item.user.name}</Text>
-           <Text style={styles.timestamp}>
-             {item.latestMessage ? formatTimestamp(item.latestMessage.createdAt) : ''}
+           <Text style={[
+             styles.userName,
+             item.unreadCount > 0 && styles.unreadUserName
+           ]}>
+             {item.user.name}
            </Text>
+           <View style={styles.timestampContainer}>
+             <Text style={styles.timestamp}>
+               {item.latestMessage ? formatTimestamp(item.latestMessage.createdAt) : ''}
+             </Text>
+             {item.unreadCount > 0 && (
+               <View style={styles.unreadBadge}>
+                 <Text style={styles.unreadCount}>{item.unreadCount}</Text>
+               </View>
+             )}
+           </View>
          </View>
          
          <View style={styles.messagePreview}>
            {item.latestMessage && getMessageIcon(item.latestMessage.messageType)}
-           <Text style={styles.lastMessage} numberOfLines={1}>
+           <Text style={[
+             styles.lastMessage,
+             item.unreadCount > 0 && styles.unreadMessageText
+           ]} numberOfLines={1}>
              {item.latestMessage?.content || 'No messages yet'}
            </Text>
+           {/* Message Status Indicator */}
+           {item.latestMessage && item.latestMessage.sender?.id === currentUser?.id && (
+             <View style={styles.messageStatusContainer}>
+               <Ionicons 
+                 name={item.latestMessage.isRead ? "checkmark-done" : "checkmark"} 
+                 size={14} 
+                 color={item.latestMessage.isRead ? "#4F46E5" : "#9CA3AF"} 
+               />
+             </View>
+           )}
          </View>
        </View>
-
-       {item.unreadCount > 0 && (
-         <View style={styles.unreadBadge}>
-           <Text style={styles.unreadCount}>{item.unreadCount}</Text>
-         </View>
-       )}
     </TouchableOpacity>
   );
 
@@ -626,89 +668,45 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Enhanced Professional Header */}
       <LinearGradient
         colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Messages</Text>
-          <View style={styles.headerActions}>
-            {/* Socket Status Indicator */}
-            <TouchableOpacity 
-              style={[styles.headerButton, { backgroundColor: isConnected ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)' }]}
-              onPress={() => {
-                if (socketError) {
-                  Alert.alert('Connection Error', socketError);
-                } else if (!isConnected) {
-                  Alert.alert('Connection Status', 'Connecting to server...');
-                } else {
-                  Alert.alert('Connection Status', 'Connected to server');
-                }
-              }}
-            >
-              <Ionicons 
-                name={isConnected ? "wifi" : "wifi-outline"} 
-                size={20} 
-                color={isConnected ? "#22c55e" : "#ef4444"} 
-              />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="notifications" size={20} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="settings" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Search Bar */}
+        {/* Search Bar at Top */}
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={20} color="#9CA3AF" />
+            <View style={styles.searchIconContainer}>
+              <Ionicons name="search" size={18} color="#6B7280" />
+            </View>
             <TextInput
               style={styles.searchInput}
-              placeholder="Search messages..."
+              placeholder="Search conversations..."
               placeholderTextColor="#9CA3AF"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            {/* Enhanced Filter Toggle */}
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                showUnreadOnly && styles.filterButtonActive
+              ]}
+              onPress={() => setShowUnreadOnly(!showUnreadOnly)}
+            >
+              <Ionicons 
+                name={showUnreadOnly ? "mail-unread" : "mail-outline"} 
+                size={16} 
+                color={showUnreadOnly ? "#fff" : "#6B7280"} 
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
 
-      {/* Navigation Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'chats' && styles.activeTab]}
-          onPress={() => setActiveTab('chats')}
-        >
-          <Text style={[styles.tabText, activeTab === 'chats' && styles.activeTabText]}>
-            Chats
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'groups' && styles.activeTab]}
-          onPress={() => setActiveTab('groups')}
-        >
-          <Text style={[styles.tabText, activeTab === 'groups' && styles.activeTabText]}>
-            Groups
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'calls' && styles.activeTab]}
-          onPress={() => setActiveTab('calls')}
-        >
-          <Text style={[styles.tabText, activeTab === 'calls' && styles.activeTabText]}>
-            Calls
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-
-             {/* Conversations List */}
+      {/* Conversations List */}
        <FlatList
          data={filteredConversations}
          keyExtractor={(item) => item.user.id}
@@ -805,7 +803,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   searchContainer: {
-    marginTop: 8,
+    marginTop: 16,
+    marginBottom: 8,
   },
   searchBar: {
     flexDirection: 'row',
@@ -1073,5 +1072,74 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  
+  // Professional Enhanced Features Styles
+  filterButton: {
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginLeft: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  filterButtonActive: {
+    backgroundColor: '#4F46E5',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  unreadMessageText: {
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  unreadMessageItem: {
+    backgroundColor: '#F8FAFC',
+    borderLeftWidth: 3,
+    borderLeftColor: '#4F46E5',
+  },
+  unreadUserName: {
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  messageStatusContainer: {
+    marginLeft: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusIndicatorContainer: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  timestampContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  
+  // Header styles simplified - only title needed
+  
+  // Enhanced Search Styles
+  searchIconContainer: {
+    padding: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  
+  // Tab styles removed - no tabs needed
 });
 

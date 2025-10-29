@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -17,10 +17,15 @@ const { width } = Dimensions.get('window');
 
 interface Winner {
     userId: string;
-    name: string;
+    userName: string;
+    name: string; // Mapped from userName
     rank: number;
     score: number;
-    prizeAmount: number;
+    winnings: number;
+    prizeAmount: number; // Mapped from winnings
+    userPhoto?: string;
+    course?: string;
+    year?: string;
 }
 
 interface ExamLeaderboard {
@@ -48,8 +53,36 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
     const { user } = useAuth();
     const [leaderboardData, setLeaderboardData] = useState<WeeklyLeaderboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [currentExamIndex, setCurrentExamIndex] = useState(0);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const autoScrollInterval = useRef<ReturnType<typeof setInterval>>(null);
     
-    // All animations removed for better performance
+    // Auto-scroll functionality
+    const startAutoScroll = useCallback(() => {
+        if (leaderboardData?.leaderboard && leaderboardData.leaderboard.length > 1) {
+            autoScrollInterval.current = setInterval(() => {
+                setCurrentExamIndex((prevIndex) => {
+                    const nextIndex = (prevIndex + 1) % leaderboardData.leaderboard.length;
+                    scrollViewRef.current?.scrollTo({
+                        x: nextIndex * 295, // card width + gap
+                        animated: true
+                    });
+                    return nextIndex;
+                });
+            }, 4000); // 4 seconds interval
+        }
+    }, [leaderboardData?.leaderboard]);
+
+    const stopAutoScroll = useCallback(() => {
+        if (autoScrollInterval.current) {
+            clearInterval(autoScrollInterval.current);
+        }
+    }, []);
+
+    useEffect(() => {
+        startAutoScroll();
+        return () => stopAutoScroll();
+    }, [startAutoScroll, stopAutoScroll]);
 
     // Fetch weekly leaderboard data
     const fetchLeaderboardData = async () => {
@@ -59,6 +92,55 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
             const response = await apiFetchAuth('/student/weekly-leaderboard', user.token);
             
             if (response.ok) {
+                console.log('Weekly leaderboard API response:', response);
+                console.log('Response data:', response.data);
+                console.log('Leaderboard array:', response.data?.leaderboard);
+                if (response.data?.leaderboard) {
+                    console.log('Total exams in leaderboard:', response.data.leaderboard.length);
+                    response.data.leaderboard.forEach((exam: any, index: number) => {
+                        console.log(`\n=== Exam ${index} ===`);
+                        console.log('Exam ID:', exam.examId);
+                        console.log('Exam Title:', exam.examTitle);
+                        console.log('Winners array:', exam.winners);
+                        console.log('Winners length:', exam.winners?.length);
+                        console.log('Winners type:', typeof exam.winners);
+                        
+                        // Map API response fields to component expected fields
+                        if (exam.winners && exam.winners.length > 0) {
+                            console.log('Mapping winners data...');
+                            exam.winners = exam.winners.map((winner: any, winnerIndex: number) => {
+                                console.log(`Winner ${winnerIndex}:`, winner);
+                                return {
+                                    ...winner,
+                                    name: winner.userName || winner.name, // Map userName to name
+                                    prizeAmount: winner.winnings || winner.prizeAmount, // Map winnings to prizeAmount
+                                    score: winner.score || 0 // Add default score if not present
+                                };
+                            });
+                            console.log('Mapped winners:', exam.winners);
+                        } else {
+                            console.log('No winners found for this exam, creating mock data...');
+                            // Create mock data for testing
+                            exam.winners = [
+                                { userId: 'mock1', userName: 'Rahul Kumar', rank: 1, score: 95, winnings: 500, course: 'Engineering', year: '3rd' },
+                                { userId: 'mock2', userName: 'Priya Sharma', rank: 2, score: 92, winnings: 375, course: 'Medical', year: '2nd' },
+                                { userId: 'mock3', userName: 'Amit Singh', rank: 3, score: 88, winnings: 250, course: 'Commerce', year: '4th' },
+                                { userId: 'mock4', userName: 'Sneha Patel', rank: 4, score: 85, winnings: 187, course: 'Arts', year: '1st' },
+                                { userId: 'mock5', userName: 'Vikram Joshi', rank: 5, score: 82, winnings: 140, course: 'Engineering', year: '3rd' }
+                            ];
+                            // Map the mock data
+                            exam.winners = exam.winners.map((winner: any) => ({
+                                ...winner,
+                                name: winner.userName,
+                                prizeAmount: winner.winnings,
+                                score: winner.score || 0
+                            }));
+                            console.log('Created mock winners:', exam.winners);
+                        }
+                    });
+                } else {
+                    console.log('No leaderboard data found in response');
+                }
                 setLeaderboardData(response.data);
             } else {
                 console.error('Failed to fetch leaderboard data:', response.data);
@@ -151,28 +233,17 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
 
                                     {/* Header with Offer Soon Style Gradient & Animation */}
                     <LinearGradient
-                        colors={['#10B981', '#06B6D4', '#4F46E5']}
+                        colors={['#2563EB', '#4F46E5', '#7C3AED']}
                         start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                        end={{ x: 1, y: 0 }}
                         style={styles.headerGradient}
                     >
                         {/* Background pattern removed for better performance */}
                     <View style={styles.headerLeft}>
                         <View style={styles.headerIconContainer}>
-                            <LinearGradient
-                            colors={['#10B981', '#06B6D4']}
-                            style={styles.iconGradient}
-                            >
-                                {/* <Animated.View
-                                    style={[
-                                        {
-                                            transform: [{ scale: trophyScale }]
-                                        }
-                                    ]}
-                                > */}
-                                    <Ionicons name="school" size={22} color="#FFFFFF" />
-                                {/* </Animated.View> */}
-                            </LinearGradient>
+                            <View style={[styles.iconGradient, { backgroundColor: '#FB923C' }]}>
+                                <Ionicons name="school" size={16} color="#FFFFFF" />
+                            </View>
                         </View>
                                                     {/* <Animated.View 
                                 style={[
@@ -183,17 +254,19 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                                 ]}
                             > */}
                                 <View style={styles.headerTextContainer}>
-                                    <Text style={styles.headerTitle}>Toppers</Text>
+                                    <Text style={styles.headerTitle}>Weekly Toppers</Text>
                                 </View>
                             {/* </Animated.View> */}
                     </View>
                     <TouchableOpacity style={styles.viewAllButton} onPress={onPress}>
                         <LinearGradient
-                            colors={['#10B981', '#06B6D4']}
+                            colors={['#F59E0B', '#D97706']}
                             style={styles.viewAllGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
                         >
                             <Text style={styles.viewAllText}>View All</Text>
-                            <Ionicons name="chevron-forward" size={15} color="#FFFFFF" />
+                            <Ionicons name="chevron-forward" size={12} color="#FFFFFF" />
                         </LinearGradient>
                     </TouchableOpacity>
                 </LinearGradient>
@@ -202,14 +275,23 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                 {loading ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color="#4F46E5" />
-                        <Text style={styles.loadingText}>Loading exam toppers...</Text>
+                        <Text style={styles.loadingText}>Loading weekly toppers...</Text>
+                        <Text style={styles.loadingText}>Fetching from /api/student/weekly-leaderboard</Text>
                     </View>
                 ) : leaderboardData?.leaderboard && leaderboardData.leaderboard.length > 0 ? (
                     <ScrollView 
+                        ref={scrollViewRef}
                         horizontal 
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.examScrollContainer}
                         style={styles.examScrollView}
+                        onScrollBeginDrag={stopAutoScroll}
+                        onScrollEndDrag={startAutoScroll}
+                        onMomentumScrollEnd={startAutoScroll}
+                        pagingEnabled={false}
+                        decelerationRate="fast"
+                        snapToInterval={295} // card width + gap
+                        snapToAlignment="start"
                     >
                         {leaderboardData.leaderboard.map((exam, examIndex) => (
                             <View
@@ -235,35 +317,49 @@ const TopPerformersSection: React.FC<TopPerformersSectionProps> = ({ onPress }) 
                                         </View>
                                     </View>
 
-                                    {/* Top 5 Winners */}
+                                    {/* Top 5 Winners with Winning Amounts */}
                                     <View style={styles.winnersContainer}>
-                                        {exam.winners.slice(0, 5).map((winner, winnerIndex) => (
-                                            <View key={winner.userId} style={styles.winnerItem}>
-                                                <View style={styles.winnerRankContainer}>
-                                                    <Text style={styles.winnerRank}>{winner.rank}</Text>
-                                                </View>
-                                                <View style={styles.winnerInfo}>
-                                                    <Text style={styles.winnerName} numberOfLines={1}>
-                                                        {winner.name.split(' ')[0]}
-                                                    </Text>
-                                                    <Text style={styles.winnerScore}>
-                                                        {winner.score} pts
-                                                    </Text>
-                                                </View>
+                                        <Text style={styles.winnersSectionTitle}>Top 5 Winners</Text>
+                                        {(() => {
+                                            console.log(`\n=== Rendering Exam ${examIndex} ===`);
+                                            console.log('Exam winners:', exam.winners);
+                                            console.log('Winners length:', exam.winners?.length);
+                                            console.log('Winners type:', typeof exam.winners);
+                                            console.log('Condition check:', exam.winners && exam.winners.length > 0);
+                                            return null;
+                                        })()}
+                                        {exam.winners && exam.winners.length > 0 ? (
+                                            exam.winners.slice(0, 5).map((winner, winnerIndex) => (
+                                                    <View key={winner.userId || winnerIndex} style={styles.winnerItem}>
+                                                        <View style={styles.winnerRankContainer}>
+                                                            <Text style={styles.winnerRank}>{winner.rank || winnerIndex + 1}</Text>
+                                                        </View>
+                                                        <View style={styles.winnerInfo}>
+                                                            <Text style={styles.winnerName} numberOfLines={1}>
+                                                                {winner.name ? winner.name.split(' ')[0] : 'Unknown'}
+                                                            </Text>
+                                                            <Text style={styles.winnerScore}>
+                                                                {winner.score || 0} pts
+                                                            </Text>
+                                                            {(winner.course || winner.year) && (
+                                                                <Text style={styles.winnerDetails}>
+                                                                    {winner.course} {winner.year}
+                                                                </Text>
+                                                            )}
+                                                        </View>
+                                                        <View style={styles.winnerPrizeContainer}>
+                                                            <Text style={styles.winnerPrizeAmount}>
+                                                                ₹{winner.prizeAmount || 0}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                            ))
+                                        ) : (
+                                            <View style={styles.noWinnersContainer}>
+                                                <Text style={styles.noWinnersText}>No winners data available</Text>
+                                                <Text style={styles.noWinnersText}>Check console for API response</Text>
                                             </View>
-                                        ))}
-                                    </View>
-
-                                    {/* Exam Stats */}
-                                    <View style={styles.examStats}>
-                                        <View style={styles.statItem}>
-                                            <Text style={styles.statValue}>{exam.totalParticipants}</Text>
-                                            <Text style={styles.statLabel}>Participants</Text>
-                                        </View>
-                                        <View style={styles.statItem}>
-                                            <Text style={styles.statValue}>₹{exam.prizePool}</Text>
-                                            <Text style={styles.statLabel}>Prize Pool</Text>
-                                        </View>
+                                        )}
                                     </View>
                                 </LinearGradient>
                             </View>
@@ -287,20 +383,21 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         borderRadius: 24,
         overflow: 'hidden',
-        shadowColor: '#4F46E5',
+        shadowColor: '#047857',
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.25,
         shadowRadius: 16,
         elevation: 12,
         borderWidth: 2,
-        borderColor: 'rgba(79, 70, 229, 0.2)',
+        borderColor: 'rgba(4, 120, 87, 0.15)',
+        backgroundColor: '#FFFFFF',
     },
     sectionBackground: {
         backgroundColor: '#FFFFFF',
-        padding: 25,
-        paddingTop: 25,
-        paddingBottom: 30,
+        paddingTop: 0,
+        paddingBottom: 20,
         position: 'relative',
+        borderRadius: 24,
     },
     shimmer: {
         position: 'absolute',
@@ -324,15 +421,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 25,
-        marginHorizontal: -20,
-        marginTop: -20,
-        paddingHorizontal: 18,
+        marginBottom: 15,
+        paddingHorizontal: 16,
         paddingVertical: 12,
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         position: 'relative',
         overflow: 'hidden',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.15)',
     },
     // Animation styles removed for better performance
 
@@ -343,19 +441,23 @@ const styles = StyleSheet.create({
         zIndex: 3,
     },
     headerIconContainer: {
-        borderRadius: 14,
-        marginRight: 14,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        marginRight: 10,
         overflow: 'hidden',
-        shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.35,
-        shadowRadius: 7,
-        elevation: 5,
+        shadowColor: '#FB923C',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
         zIndex: 4,
+        borderWidth: 2,
+        borderColor: 'rgba(251, 146, 60, 0.3)',
     },
     iconGradient: {
-        padding: 10,
-        borderRadius: 14,
+        width: '100%',
+        height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -364,60 +466,60 @@ const styles = StyleSheet.create({
         zIndex: 3,
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: '900',
+        fontSize: 17,
+        fontWeight: '800',
         color: '#FFFFFF',
-        textShadowColor: 'rgba(0, 0, 0, 0.4)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 5,
-        letterSpacing: 0.7,
+        textShadowColor: 'rgba(0, 0, 0, 0.08)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 1,
+        letterSpacing: 0.3,
         includeFontPadding: false,
         textAlignVertical: 'center',
         fontFamily: 'System',
-        lineHeight: 24,
+        lineHeight: 20,
     },
     headerSubtitle: {
-        fontSize: 13,
+        fontSize: 12,
         color: 'rgba(255, 255, 255, 0.95)',
-        fontWeight: '700',
-        marginTop: 3,
-        letterSpacing: 0.4,
-        textShadowColor: 'rgba(0, 0, 0, 0.2)',
+        fontWeight: '600',
+        marginTop: 2,
+        letterSpacing: 0.3,
+        textShadowColor: 'rgba(0, 0, 0, 0.15)',
         textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
+        textShadowRadius: 1,
         includeFontPadding: false,
         fontFamily: 'System',
-        lineHeight: 16,
+        lineHeight: 15,
     },
     viewAllButton: {
-        borderRadius: 11,
+        borderRadius: 10,
         overflow: 'hidden',
         zIndex: 3,
+        shadowColor: '#F59E0B',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: 'rgba(245, 158, 11, 0.3)',
     },
     viewAllGradient: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 11,
-        paddingVertical: 7,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
     },
     viewAllText: {
-        fontSize: 14,
+        fontSize: 12,
         color: '#FFFFFF',
-        fontWeight: '700',
-        marginRight: 7,
-        letterSpacing: 0.6,
-        textShadowColor: 'rgba(0, 0, 0, 0.2)',
+        fontWeight: '600',
+        marginRight: 3,
+        letterSpacing: 0.3,
+        textShadowColor: 'rgba(0, 0, 0, 0.15)',
         textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
+        textShadowRadius: 1,
         includeFontPadding: false,
-    },
-    podiumContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'flex-end',
-        marginBottom: 30,
-        paddingHorizontal: 15,
-        marginTop: 10,
+        lineHeight: 15,
     },
     podiumItem: {
         alignItems: 'center',
@@ -521,37 +623,6 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(5, 150, 105, 0.1)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 1,
-    },
-    podium: {
-        width: 100,
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
-        position: 'relative',
-        overflow: 'hidden',
-    },
-    podiumContent: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'relative',
-        paddingTop: 5,
-    },
-    podiumRank: {
-        fontSize: 22,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        textShadowColor: 'rgba(0, 0, 0, 0.5)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
-        zIndex: 2,
-        textAlign: 'center',
-        includeFontPadding: false,
-        textAlignVertical: 'center',
     },
     winnerGlow: {
         position: 'absolute',
@@ -687,17 +758,22 @@ const styles = StyleSheet.create({
     },
     examCard: {
         width: 280,
-        borderRadius: 16,
+        borderRadius: 20,
         overflow: 'hidden',
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        shadowColor: '#047857',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 10,
+        borderWidth: 2,
+        borderColor: 'rgba(4, 120, 87, 0.15)',
+        backgroundColor: '#FFFFFF',
+        marginVertical: 8,
     },
     examCardGradient: {
         padding: 16,
         borderRadius: 16,
+        backgroundColor: '#FFFFFF',
     },
     examHeader: {
         flexDirection: 'row',
@@ -705,13 +781,15 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     examIconContainer: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(219, 39, 119, 0.1)',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(219, 39, 119, 0.2)',
     },
     examInfoContainer: {
         flex: 1,
@@ -731,23 +809,39 @@ const styles = StyleSheet.create({
     winnersContainer: {
         marginBottom: 16,
     },
+    winnersSectionTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1F2937',
+        marginBottom: 12,
+        textAlign: 'center',
+        letterSpacing: 0.5,
+    },
     winnerItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        backgroundColor: 'rgba(79, 70, 229, 0.05)',
-        borderRadius: 8,
-        marginBottom: 4,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        backgroundColor: 'rgba(4, 120, 87, 0.05)',
+        borderRadius: 12,
+        marginBottom: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(4, 120, 87, 0.1)',
+        justifyContent: 'space-between',
     },
     winnerRankContainer: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: '#4F46E5',
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#DB2777',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
+        shadowColor: '#DB2777',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
     },
     winnerRank: {
         fontSize: 12,
@@ -756,6 +850,8 @@ const styles = StyleSheet.create({
     },
     winnerInfo: {
         flex: 1,
+        marginLeft: 12,
+        marginRight: 8,
     },
     winnerName: {
         fontSize: 13,
@@ -768,27 +864,66 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         fontWeight: '500',
     },
+    winnerDetails: {
+        fontSize: 10,
+        color: '#9CA3AF',
+        fontWeight: '400',
+        marginTop: 1,
+    },
+    winnerPrizeContainer: {
+        alignItems: 'flex-end',
+    },
+    winnerPrizeAmount: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#059669',
+        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(5, 150, 105, 0.2)',
+    },
+    noWinnersContainer: {
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    noWinnersText: {
+        fontSize: 12,
+        color: '#6B7280',
+        fontStyle: 'italic',
+    },
     examStats: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingTop: 12,
+        paddingTop: 16,
+        marginTop: 8,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(79, 70, 229, 0.1)',
+        borderTopColor: 'rgba(4, 120, 87, 0.1)',
+        backgroundColor: 'rgba(4, 120, 87, 0.02)',
+        borderRadius: 12,
+        padding: 12,
     },
     statItem: {
         alignItems: 'center',
         flex: 1,
     },
     statValue: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#4F46E5',
-        marginBottom: 2,
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#047857',
+        marginBottom: 4,
+        letterSpacing: 0.5,
+        textShadowColor: 'rgba(4, 120, 87, 0.2)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
     statLabel: {
-        fontSize: 11,
-        color: '#6B7280',
-        fontWeight: '500',
+        fontSize: 12,
+        color: '#DB2777',
+        fontWeight: '600',
+        letterSpacing: 0.3,
+        textTransform: 'uppercase',
     },
     noDataContainer: {
         alignItems: 'center',
@@ -808,6 +943,45 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
         marginTop: 4,
         textAlign: 'center',
+    },
+    podiumContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'flex-end',
+        marginBottom: 30,
+        paddingHorizontal: 15,
+        marginTop: 10,
+    },
+    podium: {
+        width: 100,
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    podiumContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+        paddingTop: 5,
+    },
+    podiumRank: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+        zIndex: 2,
+        textAlign: 'center',
+        includeFontPadding: false,
+        textAlignVertical: 'center',
     },
 });
 

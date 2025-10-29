@@ -88,13 +88,13 @@ export default function ReferScreen() {
 
     try {
       setGeneratingCode(true);
-      console.log('Generating referral code...');
+
       const response = await apiFetchAuth('/student/referral/generate-code', user.token, {
         method: 'POST'
       });
       
       if (response.ok) {
-        console.log('Referral code generated successfully:', response.data);
+
         // Refresh the data to get the new referral code
         await fetchTicketDetails();
       } else {
@@ -228,42 +228,6 @@ export default function ReferScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.inviteGradient}
         >
-          {/* Animated Sparkle Pattern */}
-          <View style={styles.sparkleContainer}>
-            {[...Array(8)].map((_, index) => (
-              <Animated.View
-                key={index}
-                style={[
-                  styles.sparkle,
-                  {
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                    transform: [
-                      {
-                        translateY: sparkleAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, -15],
-                        }),
-                      },
-                      {
-                        scale: sparkleAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [0.6, 1.4, 0.6],
-                        }),
-                      },
-                    ],
-                    opacity: sparkleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.3, 1, 0.3],
-                    }),
-                  },
-                ]}
-              >
-                <Text style={styles.sparkleText}>✨</Text>
-              </Animated.View>
-            ))}
-          </View>
-
           <View style={styles.inviteContent}>
             <Animated.View 
               style={[
@@ -313,7 +277,7 @@ export default function ReferScreen() {
               <Ionicons name="cash" size={20} color="#10B981" />
             </View>
             <Text style={styles.rewardLabel}>Total Earned</Text>
-            <Text style={styles.rewardValue}>₹{data?.totalEarnings || 300}</Text>
+            <Text style={styles.rewardValue}>₹{data?.totalEarnings || 0}</Text>
           </View>
           <View style={styles.rewardDivider} />
           <View style={styles.rewardItem}>
@@ -321,7 +285,7 @@ export default function ReferScreen() {
               <Ionicons name="wallet" size={20} color="#3B82F6" />
             </View>
             <Text style={styles.rewardLabel}>Available Balance</Text>
-            <Text style={styles.rewardValue}>₹{data?.totalEarnings || 200}</Text>
+            <Text style={styles.rewardValue}>₹{data?.availableBalance || 0}</Text>
           </View>
         </View>
         
@@ -331,11 +295,11 @@ export default function ReferScreen() {
             <Text style={styles.progressLabel}>Referral Progress</Text>
           </View>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${Math.min((data?.referralCount || 3) * 20, 100)}%` }]} />
+            <View style={[styles.progressFill, { width: `${Math.min((data?.referralCount || 0) / (data?.totalAttempts || 1) * 100, 100)}%` }]} />
           </View>
           <View style={styles.progressStats}>
             <Text style={styles.progressText}>
-              {data?.referralCount || 3} successful referrals out of 5 attempts
+              {data?.referralCount || 0} successful referrals out of {data?.totalAttempts || 0} attempts
             </Text>
             <View style={styles.progressIcon}>
               <Ionicons name="checkmark-circle" size={16} color="#10B981" />

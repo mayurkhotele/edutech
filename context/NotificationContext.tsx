@@ -28,13 +28,13 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   const { user } = useAuth();
 
   useEffect(() => {
-    // Register for push notifications
-    registerForPushNotificationsAsync().then(token => {
-      if (token) {
-        setExpoPushToken(token);
-        console.log('Expo push token:', token);
-      }
-    });
+    // Register for push notifications (disabled for now to avoid errors)
+    // registerForPushNotificationsAsync().then(token => {
+    //   if (token) {
+    //     setExpoPushToken(token);
+    //     console.log('Expo push token:', token);
+    //   }
+    // });
 
     // Setup notification handler
     Notifications.setNotificationHandler({
@@ -61,8 +61,8 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     });
 
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener);
-      Notifications.removeNotificationSubscription(responseListener);
+      notificationListener.remove();
+      responseListener.remove();
     };
   }, []);
 
@@ -103,9 +103,13 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       }
       
       try {
-        token = (await Notifications.getExpoPushTokenAsync()).data;
+        token = (await Notifications.getExpoPushTokenAsync({
+          projectId: 'your-project-id' // Add your Expo project ID here
+        })).data;
       } catch (error) {
         console.error('Error getting push token:', error);
+        // Don't throw error, just continue without push notifications
+        return null;
       }
     } else {
       console.log('Must use physical device for Push Notifications');

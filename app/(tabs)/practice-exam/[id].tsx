@@ -1145,11 +1145,6 @@ const styles = StyleSheet.create({
         backgroundColor: AppColors.primary,
         borderRadius: 4,
     },
-    progressText: {
-        fontSize: 14,
-        color: AppColors.grey,
-        textAlign: 'center',
-    },
     actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -3044,11 +3039,7 @@ const styles = StyleSheet.create({
         marginRight: 10,
         flexShrink: 0,
     },
-    instructionNumberText: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
+   
     enhancedInstructionText: {
         flex: 1,
         fontSize: 13,
@@ -3168,6 +3159,33 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
         color: '#fff',
+    },
+    beginButtonGradient: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+    },
+    loadingContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    beginButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    cancelButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
     },
     // Info Tab Styles (keeping original)
     enhancedOverviewCard: {
@@ -3310,463 +3328,29 @@ const styles = StyleSheet.create({
     modalTitleWrapper: {
         flexDirection: 'column',
     },
-    modalSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.8)',
-        marginTop: 4,
-    },
-    instructionsHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
+  
     declarationHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 10,
     },
-    beginButtonGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 32,
-        borderRadius: 8,
-        gap: 4,
-    },
+  
     // Enhanced Leaderboard Styles
-    leaderboardScrollView: {
-        flex: 1,
-    },
-    leaderboardScrollContent: {
-        paddingBottom: 20,
-    },
-    enhancedLeaderboardHeader: {
-        marginBottom: 20,
-        borderRadius: 16,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    headerGradient: {
-        padding: 20,
-    },
-    headerContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    trophyIconContainer: {
-        marginRight: 16,
-    },
-    trophyGradient: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    headerTextContainer: {
-        flex: 1,
-    },
-    leaderboardTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        marginBottom: 4,
-    },
-    leaderboardSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    enhancedCurrentUserCard: {
-        marginHorizontal: 20,
-        marginBottom: 20,
-        borderRadius: 16,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    currentUserGradient: {
-        padding: 16,
-    },
-    currentUserContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    currentUserLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    rankBadge: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-    },
-    rankBadgeGradient: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'row',
-    },
-    rankNumber: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#10B981',
-        marginLeft: 4,
-    },
-    currentUserInfo: {
-        flex: 1,
-    },
-    currentUserName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        marginBottom: 4,
-    },
-    currentUserScoreLabel: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-        marginBottom: 8,
-    },
-    currentUserBadges: {
-        flexDirection: 'row',
-        gap: 6,
-    },
-    performanceBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 3,
-        gap: 3,
-    },
-    badgeText: {
-        fontSize: 10,
-        color: '#FFFFFF',
-        fontWeight: '500',
-    },
-    currentUserRight: {
-        alignItems: 'flex-end',
-    },
-    scoreContainer: {
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    currentUserScore: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-    },
-    scoreLabel: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.8)',
-        marginTop: 2,
-    },
-    timeContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    currentUserTime: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    enhancedParticipantsList: {
-        marginHorizontal: 20,
-    },
-    participantsHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-    },
+  
+  
     participantsTitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
     },
-    titleIconContainer: {
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-        borderRadius: 8,
-        padding: 8,
-        marginRight: 12,
-    },
-    titleTextContainer: {
-        flex: 1,
-    },
-    participantsTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1F2937',
-        marginBottom: 2,
-    },
+  
     participantsSubtitle: {
         fontSize: 12,
         color: '#6B7280',
     },
-    participantsFilter: {
-        marginLeft: 12,
-    },
-    filterGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 8,
-        gap: 4,
-    },
-    filterText: {
-        fontSize: 10,
-        color: '#8B5CF6',
-        fontWeight: '600',
-    },
-    enhancedParticipantCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.05)',
-    },
-    participantLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    enhancedRankBadge: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    },
-    firstPlaceBadge: {
-        backgroundColor: 'rgba(255, 215, 0, 0.2)',
-    },
-    secondPlaceBadge: {
-        backgroundColor: 'rgba(192, 192, 192, 0.2)',
-    },
-    thirdPlaceBadge: {
-        backgroundColor: 'rgba(205, 127, 50, 0.2)',
-    },
-    enhancedParticipantAvatar: {
-        marginRight: 12,
-        position: 'relative',
-    },
-    currentUserIndicator: {
-        position: 'absolute',
-        top: -2,
-        right: -2,
-        backgroundColor: '#FFD700',
-        borderRadius: 8,
-        width: 16,
-        height: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    participantInfo: {
-        flex: 1,
-    },
-    participantName: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#1F2937',
-        marginBottom: 4,
-    },
-    participantDetails: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    participantTime: {
-        fontSize: 11,
-        color: '#6B7280',
-    },
-    participantRight: {
-        alignItems: 'flex-end',
-    },
-    participantScore: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1F2937',
-        marginBottom: 4,
-    },
-    currentUserBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#8B5CF6',
-        borderRadius: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 3,
-        gap: 3,
-    },
-    currentUserBadgeText: {
-        fontSize: 9,
-        color: '#FFFFFF',
-        fontWeight: '600',
-    },
-    currentUserParticipantCard: {
-        borderWidth: 2,
-        borderColor: '#10B981',
-        backgroundColor: 'rgba(16, 185, 129, 0.05)',
-    },
-    firstPlaceCard: {
-        borderWidth: 2,
-        borderColor: '#FFD700',
-        backgroundColor: 'rgba(255, 215, 0, 0.05)',
-    },
-    secondPlaceCard: {
-        borderWidth: 2,
-        borderColor: '#C0C0C0',
-        backgroundColor: 'rgba(192, 192, 192, 0.05)',
-    },
-    thirdPlaceCard: {
-        borderWidth: 2,
-        borderColor: '#CD7F32',
-        backgroundColor: 'rgba(205, 127, 50, 0.05)',
-    },
-    
-    // Live exam leaderboard styles
-    leaderboardHeader: {
-        paddingHorizontal: 20,
-        paddingVertical: 20,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        marginBottom: 20,
-        marginHorizontal: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 3,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    
-    
-    // Current User Section Styles
-    currentUserSection: {
-        marginBottom: 20,
-        paddingHorizontal: 5,
-    },
-    currentUserTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#2D3748',
-        marginBottom: 15,
-        paddingHorizontal: 15,
-        textAlign: 'center',
-    },
-    currentUserCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 20,
-        marginHorizontal: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        minHeight: 80,
-    },
-    currentUserTopThree: {
-        borderColor: '#FFD700',
-        backgroundColor: '#FFFBF0',
-    },
-    currentUserLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    currentUserRank: {
-        minWidth: 60,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#667eea',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 15,
-        paddingHorizontal: 8,
-    },
-    currentUserRankText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        textAlign: 'center',
-    },
-    currentUserInfo: {
-        flex: 1,
-        marginLeft: 15,
-    },
-    currentUserName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#2D3748',
-        marginBottom: 4,
-    },
-    currentUserScoreLabel: {
-        fontSize: 12,
-        color: '#718096',
-        fontWeight: '500',
-    },
-    currentUserRight: {
-        alignItems: 'flex-end',
-    },
-    currentUserScore: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: AppColors.primary,
-    },
-    currentUserTime: {
-        fontSize: 12,
-        color: AppColors.grey,
-        marginTop: 2,
-    },
-    
+  
+
+   
     // Statistics Section
     statisticsSection: {
         marginBottom: 20,

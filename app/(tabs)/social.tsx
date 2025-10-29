@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useState } from 'react';
-import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import CreatePost from '../../components/CreatePost';
 import SocialFeed from '../../components/SocialFeed';
 
@@ -13,10 +13,11 @@ export default function SocialScreen() {
   const [createPostVisible, setCreatePostVisible] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
-  // Debug navigation object
-  console.log('🔍 SocialScreen - Navigation object:', navigation);
-  console.log('🔍 SocialScreen - Navigation type:', typeof navigation);
-  console.log('🔍 SocialScreen - Navigation methods:', Object.keys(navigation || {}));
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const fabScale = useRef(new Animated.Value(1)).current;
+  const fabRotation = useRef(new Animated.Value(0)).current;
 
   const handlePostCreated = () => {
     // Trigger refresh of the social feed when a new post is created
@@ -31,25 +32,108 @@ export default function SocialScreen() {
     }, [])
   );
 
+  // Entry animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // FAB animations
+  const handleFabPress = () => {
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(fabScale, {
+          toValue: 0.9,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fabRotation, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(fabScale, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fabRotation, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      setCreatePostVisible(true);
+    });
+  };
+
   return (
     <View style={styles.container}>
-      <SocialFeed refreshTrigger={refreshTrigger} navigation={navigation} />
-      
-      {/* Enhanced Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setCreatePostVisible(true)}
-        activeOpacity={0.8}
+      {/* Premium Background Pattern */}
+      <View style={styles.backgroundPattern}>
+        <View style={[styles.circle, styles.circle1]} />
+        <View style={[styles.circle, styles.circle2]} />
+        <View style={[styles.circle, styles.circle3]} />
+      </View>
+
+      <Animated.View 
+        style={[
+          styles.contentContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }
+        ]}
       >
-        <LinearGradient
-          colors={['#FF6B6B', '#FF8E53']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
+        <SocialFeed refreshTrigger={refreshTrigger} navigation={navigation} />
+      </Animated.View>
+      
+      {/* Premium Floating Action Button */}
+      <Animated.View
+        style={[
+          styles.fabContainer,
+          {
+            transform: [
+              { scale: fabScale },
+              { 
+                rotate: fabRotation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '45deg']
+                })
+              }
+            ]
+          }
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleFabPress}
+          activeOpacity={0.8}
         >
-          <Ionicons name="add" size={28} color="#fff" />
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={['#6366F1', '#8B5CF6', '#A855F7']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.fabGradient}
+          >
+            <View style={styles.fabGlow} />
+            <Ionicons name="add" size={32} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
       {/* Create Post Modal */}
       <CreatePost
@@ -67,33 +151,81 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     position: 'relative',
   },
-  fab: {
+  backgroundPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  circle: {
+    position: 'absolute',
+    borderRadius: 1000,
+    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+  },
+  circle1: {
+    width: 200,
+    height: 200,
+    top: -100,
+    right: -100,
+  },
+  circle2: {
+    width: 150,
+    height: 150,
+    bottom: 200,
+    left: -75,
+  },
+  circle3: {
+    width: 100,
+    height: 100,
+    top: 300,
+    left: 50,
+  },
+  contentContainer: {
+    flex: 1,
+    zIndex: 1,
+  },
+  fabContainer: {
     position: 'absolute',
     bottom: 100,
     right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    shadowColor: '#FF6B6B',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 12,
     zIndex: 1000,
   },
+  fab: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    shadowColor: '#6366F1',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 16,
+  },
   fabGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  fabGlow: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    borderRadius: 45,
+    backgroundColor: 'rgba(99, 102, 241, 0.3)',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 10,
   },
 }); 

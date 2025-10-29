@@ -76,18 +76,18 @@ export default function PendingPostsScreen() {
           <View style={styles.pendingPostAuthorInfo}>
             <Text style={styles.pendingPostAuthorName}>Your Post</Text>
             <View style={styles.pendingPostMetaRow}>
-              <Ionicons name="time-outline" size={14} color="#F59E0B" />
-              <Text style={styles.pendingPostTime}>{timeAgo(item.createdAt)}</Text>
+              <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+              <Text style={styles.pendingPostTime}>Published {timeAgo(item.createdAt)}</Text>
             </View>
           </View>
         </View>
         <View style={styles.pendingPostStatus}>
           <LinearGradient
-            colors={['#F59E0B', '#D97706']}
+            colors={['#10B981', '#059669']}
             style={styles.pendingStatusGradient}
           >
-            <Ionicons name="time-outline" size={14} color="#FFFFFF" />
-            <Text style={styles.pendingStatusText}>PENDING</Text>
+            <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
+            <Text style={styles.pendingStatusText}>PUBLISHED</Text>
           </LinearGradient>
         </View>
       </View>
@@ -154,8 +154,8 @@ export default function PendingPostsScreen() {
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Pending for Review</Text>
-          <Text style={styles.headerSubtitle}>{pendingPosts.length} post{pendingPosts.length !== 1 ? 's' : ''} awaiting approval</Text>
+          <Text style={styles.headerTitle}>Your Posts</Text>
+          <Text style={styles.headerSubtitle}>{pendingPosts.length} post{pendingPosts.length !== 1 ? 's' : ''} published</Text>
         </View>
       </LinearGradient>
 
@@ -187,8 +187,8 @@ export default function PendingPostsScreen() {
               <Ionicons name="checkmark-circle" size={64} color="#FFFFFF" />
             </LinearGradient>
           </View>
-          <Text style={styles.emptyTitle}>No pending posts</Text>
-          <Text style={styles.emptySubtitle}>All your posts have been reviewed</Text>
+          <Text style={styles.emptyTitle}>No posts yet</Text>
+          <Text style={styles.emptySubtitle}>Create your first post to get started</Text>
         </View>
       )}
     </View>

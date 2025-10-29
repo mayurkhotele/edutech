@@ -1,4 +1,3 @@
-import { ShadowUtils } from '@/utils/shadowUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -133,9 +132,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
-        ...ShadowUtils.topShadow(),
-        borderTopWidth: 2,
-        borderTopColor: '#F1F5F9',
+        elevation: 0,
+        borderWidth: 1,
+        borderColor: 'rgba(226, 232, 240, 0.6)',
     },
     backgroundPattern: {
         position: 'absolute',
@@ -199,12 +198,13 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(248, 250, 252, 0.8)',
         borderWidth: 1.5,
         borderColor: 'rgba(226, 232, 240, 0.6)',
-        ...ShadowUtils.cardShadow(),
+        elevation: 0,
     },
     activeIconContainer: {
         backgroundColor: 'rgba(99, 102, 241, 0.12)',
         borderColor: 'rgba(99, 102, 241, 0.4)',
-        ...ShadowUtils.coloredShadow('#6366F1', 0.25),
+        borderWidth: 1.5,
+        elevation: 0,
         transform: [{ scale: 1.05 }],
     },
     label: {
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 32,
-        ...ShadowUtils.coloredShadow('#FF6B35', 0.35),
+        elevation: 0,
     },
     centerTabGradient: {
         width: '100%',
@@ -236,11 +236,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 3.5,
         borderColor: '#FFFFFF',
-        shadowColor: '#1E293B',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-        elevation: 6,
+        elevation: 0,
     },
     centerLabel: {
         fontSize: 11,
@@ -261,11 +257,7 @@ const styles = StyleSheet.create({
         height: 5,
         borderRadius: 2.5,
         backgroundColor: '#6366F1',
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.9,
-        shadowRadius: 3,
-        elevation: 4,
+        elevation: 0,
     },
 });
 

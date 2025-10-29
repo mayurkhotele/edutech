@@ -6,15 +6,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Easing,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Easing,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -219,7 +219,7 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
   };
 
   const handleCategoryClick = (category: string) => {
-    router.push({ pathname: '/exam-category', params: { category } });
+    router.push(`/(tabs)/exam-category?category=${encodeURIComponent(category)}`);
   };
 
   const handleViewAll = () => {
@@ -269,17 +269,32 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
     <View style={styles.container}>
       {/* Header with Stats */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.headerIconContainer}>
-            <Ionicons name="library-outline" size={24} color="#4F46E5" />
+          <View style={styles.headerLeft}>
+            <View style={styles.headerIconContainer}>
+              <Ionicons name="library-outline" size={24} color="#4F46E5" />
+            </View>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>Practice Exams</Text>
+              <Text style={styles.headerSubtitle}>
+                {totalAttempted} of {totalExams} completed
+              </Text>
+            </View>
           </View>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Practice Exams</Text>
-            <Text style={styles.headerSubtitle}>
-              {totalAttempted} of {totalExams} completed
-            </Text>
-          </View>
-        </View>
+          <TouchableOpacity 
+            style={styles.headerViewAllButton}
+            onPress={handleViewAll}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#DB2777', '#BE185D']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.headerViewAllGradient}
+            >
+              <Text style={styles.headerViewAllText}>View All</Text>
+              <Ionicons name="chevron-forward" size={12} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
       </View>
 
       {/* Progress Overview */}
@@ -353,36 +368,6 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
         </View>
       )}
 
-      {/* Enhanced View All Button */}
-      <TouchableOpacity style={styles.viewAllButton} onPress={handleButtonPress}>
-        <Animated.View style={[{ transform: [{ scale: buttonScale }] }]}>
-          <LinearGradient
-            colors={['#FF6B6B', '#FF8E53']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.viewAllGradient}
-          >
-            <View style={styles.viewAllContent}>
-              <Text style={styles.viewAllText}>View All Categories</Text>
-              <Animated.View 
-                style={[
-                  styles.viewAllIconContainer,
-                  {
-                    transform: [{
-                      rotate: iconRotation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '360deg'],
-                      })
-                    }]
-                  }
-                ]}
-              >
-                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-              </Animated.View>
-            </View>
-          </LinearGradient>
-        </Animated.View>
-      </TouchableOpacity>
     </View>
   );
 });
@@ -390,17 +375,19 @@ const PracticeExamSection = forwardRef<any, {}>((props, ref) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: AppColors.white,
-    borderRadius: 16,
+    borderRadius: 24,
     margin: 15,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: '#2563EB',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(37, 99, 235, 0.1)',
   },
   loadingContainer: {
     alignItems: 'center',
@@ -427,6 +414,36 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 15,
+    marginTop: 5,
+  },
+  headerViewAllButton: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    shadowColor: '#DB2777',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(219, 39, 119, 0.2)',
+  },
+  headerViewAllGradient: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  headerViewAllText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+    lineHeight: 15,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -434,10 +451,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerIconContainer: {
-    backgroundColor: '#E0E7FF',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: 'rgba(219, 39, 119, 0.1)',
+    borderRadius: 16,
+    padding: 10,
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(219, 39, 119, 0.2)',
   },
   headerTextContainer: {
     flex: 1,
@@ -467,38 +486,45 @@ const styles = StyleSheet.create({
   },
   progressOverview: {
     marginBottom: 20,
-    backgroundColor: 'rgba(79, 70, 229, 0.08)',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.1)',
   },
   progressBar: {
-    height: 10,
-    backgroundColor: 'rgba(79, 70, 229, 0.2)',
-    borderRadius: 8,
-    marginBottom: 10,
+    height: 12,
+    backgroundColor: 'rgba(203, 213, 225, 0.4)',
+    borderRadius: 6,
+    marginBottom: 12,
     overflow: 'hidden',
-    shadowColor: AppColors.primary,
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.1)',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: AppColors.primary,
-    borderRadius: 8,
-    shadowColor: AppColors.primary,
+    backgroundColor: '#2563EB',
+    borderRadius: 6,
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     elevation: 2,
   },
   progressText: {
-    fontSize: 13,
-    color: AppColors.primary,
+    fontSize: 14,
+    color: '#2563EB',
     textAlign: 'center',
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(37, 99, 235, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   categoriesContainer: {
     gap: 12,
@@ -506,16 +532,18 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '48%',
-    borderRadius: 12,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#2563EB',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.1)',
   },
   categoryGradient: {
     padding: 16,
@@ -526,15 +554,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryIconContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 14,
+    shadowColor: '#047857',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
   categoryInfo: {
     alignItems: 'center',
@@ -561,15 +591,22 @@ const styles = StyleSheet.create({
   },
   categoryProgressBar: {
     width: '100%',
-    height: 4,
-    backgroundColor: 'rgba(44, 62, 80, 0.2)',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: 'rgba(203, 213, 225, 0.4)',
+    borderRadius: 3,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.1)',
   },
   categoryProgressFill: {
     height: '100%',
-    backgroundColor: '#3498DB',
-    borderRadius: 2,
+    backgroundColor: '#2563EB',
+    borderRadius: 3,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 2,
   },
   leftCard: {
     marginRight: 6,
@@ -581,60 +618,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
-  },
-  viewAllButton: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    shadowColor: '#4F46E5',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-    marginTop: 6,
-    alignSelf: 'center',
-    maxWidth: '80%',
-  },
-  viewAllGradient: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  viewAllContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewAllText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-    marginRight: 6,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-    letterSpacing: 0.4,
-  },
-  viewAllIconContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 8,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
 });
 

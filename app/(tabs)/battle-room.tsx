@@ -5,13 +5,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Animated,
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 
@@ -270,16 +270,16 @@ export default function BattleRoomScreen() {
 
   // Initialize socket connection
   useEffect(() => {
-    console.log('🔌 Socket connection useEffect triggered');
-    console.log('🔑 User token available:', !!user?.token);
-    console.log('🎯 Match ID for connection:', matchId);
+
+
+
     
     if (user?.token) {
-      console.log('🚀 Initializing battle room socket connection...');
-      console.log('   - Server URL: http://192.168.1.6:3001');
-      console.log('   - Auth token length:', user.token.length);
-      console.log('   - User ID:', user.id);
-      console.log('   - Match ID:', matchId);
+
+
+
+
+
       
       const newSocket = io('http://192.168.1.6:3001', {
         auth: {
@@ -292,30 +292,30 @@ export default function BattleRoomScreen() {
       });
 
       newSocket.on('connect', () => {
-        console.log('✅ Battle Room Socket connected:', newSocket.id);
-        console.log('🔗 Socket connection details:');
-        console.log('   - Socket ID:', newSocket.id);
-        console.log('   - Connected:', newSocket.connected);
-        console.log('   - Transport:', newSocket.io.engine.transport.name);
-        console.log('   - Auth token:', !!user?.token);
-        console.log('   - User ID:', user?.id);
-        console.log('   - Match ID:', matchId);
+
+
+
+
+
+
+
+
         setIsConnected(true);
         setError(null);
         
         // Register user immediately after connection (like matchmaking.tsx)
         if (user?.id) {
-          console.log('👤 Registering user for battle room:', user.id);
+
           newSocket.emit('register_user', user.id);
         }
         // Join the match room
-        console.log('�� Joining match room:', matchId);
+
         newSocket.emit('join_match', { matchId, userId: user?.id });
-        console.log('✅ join_match event emitted');
+
       });
 
       newSocket.on('disconnect', () => {
-        console.log('❌ Battle Room Socket disconnected');
+
         setIsConnected(false);
       });
 
@@ -331,17 +331,17 @@ export default function BattleRoomScreen() {
       });
 
       newSocket.on('pong', () => {
-        console.log('🏓 Received pong from server - battle room socket connection is working');
+
       });
 
       setSocket(newSocket);
 
       return () => {
-        console.log('�� Cleaning up socket connection...');
+
         newSocket.disconnect();
       };
     } else {
-      console.log('❌ No user token available for battle room socket connection');
+
       setError('Authentication required.');
     }
   }, [user?.token, matchId]);
@@ -350,14 +350,14 @@ export default function BattleRoomScreen() {
   const cleanupSocketListeners = useCallback(() => {
     if (!socket) return;
     
-    console.log('�� Cleaning up socket listeners...');
+
     const events = ['match_started', 'next_question', 'match_ended', 'opponent_answered', 'match_not_found', 'pong', 'session_cleanup_complete'];
     
     events.forEach(event => {
       if (socketListenersRef.current.has(event)) {
         socket.off(event);
         socketListenersRef.current.delete(event);
-        console.log(`✅ Removed listener for: ${event}`);
+
       }
     });
   }, [socket]);
@@ -365,18 +365,18 @@ export default function BattleRoomScreen() {
   // Setup socket listeners
   const setupSocketListeners = useCallback(() => {
     if (!socket || !isConnected) {
-      console.log('❌ Cannot setup listeners - socket not connected');
+
       return;
     }
 
-    console.log('✅ Setting up battle socket listeners for match:', matchId);
-    console.log('   - Socket ID:', socket.id);
+
+
 
     // Clean up existing listeners first
     cleanupSocketListeners();
 
     // Listen for battle events
-    console.log('🎧 Attaching socket listeners...');
+
     
     // Match started event
     const handleMatchStarted = (data: { 
@@ -385,11 +385,11 @@ export default function BattleRoomScreen() {
       question: Question; 
       timeLimit: number 
     }) => {
-      console.log('🎮 Match started event received:', data);
-      console.log('   - Match ID:', data.matchId);
-      console.log('   - Question index:', data.questionIndex);
-      console.log('   - Question text:', data.question?.text?.substring(0, 50) + '...');
-      console.log('   - Time limit:', data.timeLimit);
+
+
+
+
+
       
       setBattleState(prev => ({
         ...prev,
@@ -400,7 +400,7 @@ export default function BattleRoomScreen() {
       }));
       startQuestionTimer(data.timeLimit);
       
-      console.log('✅ Match started state updated');
+
     };
 
     // Next question event
@@ -408,15 +408,15 @@ export default function BattleRoomScreen() {
       questionIndex: number; 
       question: Question 
     }) => {
-      console.log('🎯 Next question event received:', data);
-      console.log('   - Question index:', data.questionIndex);
-      console.log('   - Question text:', data.question?.text?.substring(0, 50) + '...');
-      console.log('   - Question options:', data.question?.options);
-      console.log('   - Last processed question:', lastQuestionIndexRef.current);
+
+
+
+
+
       
       // Prevent duplicate processing
       if (data.questionIndex === lastQuestionIndexRef.current) {
-        console.log('⚠️ Duplicate next_question event, ignoring');
+
         return;
       }
       
@@ -424,7 +424,7 @@ export default function BattleRoomScreen() {
       
       // Force state update with setTimeout for React Native compatibility
       setTimeout(() => {
-        console.log('🔄 Updating battle state for next question...');
+
         setBattleState(prev => {
           const newState = {
             ...prev,
@@ -432,19 +432,19 @@ export default function BattleRoomScreen() {
             question: data.question,
             timeLeft: 10 // Default time limit
           };
-          console.log('🔄 New battle state:', newState);
+
           return newState;
         });
         
         // Start timer after state update
         setTimeout(() => {
-          console.log('⏰ Starting question timer...');
+
           startQuestionTimer(10);
-          console.log('✅ Next question timer started');
+
         }, 100);
       }, 100); // Longer delay for React Native
       
-      console.log('✅ Next question state update triggered');
+
     };
 
     // Match ended event
@@ -485,11 +485,11 @@ const handleMatchEnded = (data: {
   winner: string; 
   isDraw: boolean 
 }) => {
-  console.log('🏁 Match ended event received:', data);
-  console.log('   - My score:', data.myScore);
-  console.log('   - Opponent score:', data.opponentScore);
-  console.log('   - Winner:', data.winner);
-  console.log('   - Is draw:', data.isDraw);
+
+
+
+
+
   
   if (timerRef.current) {
     clearInterval(timerRef.current);
@@ -508,9 +508,9 @@ const handleMatchEnded = (data: {
   }));
 
   // 🧹 FRONTEND SESSION CLEANUP - यहाँ add करें
-  console.log('🧹 Frontend session cleanup...');
-  console.log('   - Match ID:', data.matchId);
-  console.log('   - User ID:', user?.id);
+
+
+
   
   // Send cleanup request to server
   if (socket && socket.connected) {
@@ -518,13 +518,13 @@ const handleMatchEnded = (data: {
       matchId: data.matchId,
       userId: user?.id
     });
-    console.log('✅ Cleanup request sent to server');
+
   }
   
   // Local state cleanup
   setTimeout(() => {
-    console.log('🧹 Local state cleanup completed');
-    console.log('✅ Ready for new match!');
+
+
   }, 3000);
 };
     // Opponent answered event
@@ -544,10 +544,10 @@ const handleMatchEnded = (data: {
     //   console.log('✅ Opponent answered state updated');
     // };
     const handleOpponentAnswered = (data: { questionIndex: number; answer: number }) => {
-      console.log('👥 Opponent answered event received:', data);
-      console.log('   - Question index:', data.questionIndex);
-      console.log('   - Opponent answer:', data.answer);
-      console.log('   - Current question:', battleState.currentQuestion);
+
+
+
+
       
       setBattleState(prev => ({
         ...prev,
@@ -557,18 +557,18 @@ const handleMatchEnded = (data: {
         }
       }));
       
-      console.log('✅ Opponent answered state updated with answer:', data.answer);
+
     };
 
     // Match not found event
     const handleMatchNotFound = (data: { matchId: string }) => {
-      console.log('Match not found:', data.matchId);
+
       setError('Match not found or has already ended. Please start a new match.');
     };
 
     // Pong event for connection testing
     const handlePong = () => {
-      console.log('�� Received pong from server - socket connection is working');
+
     };
     const handleSessionCleanupComplete = (data: { 
       matchId: string; 
@@ -576,11 +576,11 @@ const handleMatchEnded = (data: {
       success: boolean; 
       error?: string 
     }) => {
-      console.log('🧹 Session cleanup confirmation received:', data);
+
       if (data.success) {
-        console.log('✅ Session cleanup successful - ready for new match!');
+
       } else {
-        console.log('❌ Session cleanup failed:', data.error);
+
       }
     };
     // Attach listeners
@@ -600,44 +600,44 @@ const handleMatchEnded = (data: {
     socketListenersRef.current.add('pong');
     socketListenersRef.current.add('session_cleanup_complete');
     // Request match status from server
-    console.log('📤 Requesting match status from server...');
-    console.log('   - Match ID:', matchId);
-    console.log('   - Socket ID:', socket.id);
+
+
+
     socket.emit('get_match_status', { matchId });
-    console.log('✅ get_match_status event emitted');
+
     
     // Test socket connection by sending a ping
     setTimeout(() => {
-      console.log('🏓 Testing socket connection...');
+
       socket.emit('ping');
     }, 1000);
 
-    console.log('📱 React Native socket setup completed');
-    console.log('   - Socket connected:', socket.connected);
-    console.log('   - Socket ID:', socket.id);
-    console.log('   - Transport:', socket.io.engine.transport.name);
+
+
+
+
 
   }, [socket, isConnected, matchId, cleanupSocketListeners]);
 
   // Battle useEffect
   useEffect(() => {
-    console.log('🔄 Battle useEffect triggered:');
-    console.log('   - Socket exists:', !!socket);
-    console.log('   - Socket connected:', isConnected);
-    console.log('   - Match ID:', matchId);
-    console.log('   - Socket ID:', socket?.id);
+
+
+
+
+
     
     if (!socket || !isConnected) {
-      console.log('❌ Socket not connected, waiting...');
+
       return;
     }
 
     setupSocketListeners();
 
     return () => {
-      console.log(' Cleaning up battle socket listeners');
-      console.log('   - Socket ID:', socket?.id);
-      console.log('   - Match ID:', matchId);
+
+
+
       cleanupSocketListeners();
       
       // Clear timers
@@ -751,17 +751,17 @@ const handleMatchEnded = (data: {
 
   const handleAnswer = (answerIndex: number) => {
     if (!socket || !isConnected) {
-      console.log('❌ Cannot submit answer - socket not connected');
+
       return;
     }
     
     const questionIndex = battleState.currentQuestion;
     const timeSpent = 10 - battleState.timeLeft;
     
-    console.log('📝 Submitting answer:', { questionIndex, answerIndex, timeSpent });
-    console.log('   - Match ID:', matchId);
-    console.log('   - User ID:', user?.id);
-    console.log('   - Socket connected:', isConnected);
+
+
+
+
     
     // Record answer locally
     setBattleState(prev => ({
@@ -781,9 +781,9 @@ const handleMatchEnded = (data: {
       timeSpent
     };
     
-    console.log('📤 Emitting answer_question:', answerData);
+
     socket.emit('answer_question', answerData);
-    console.log('✅ answer_question event emitted');
+
     
     // Clear timer
     if (questionTimerRef.current) {
@@ -1071,7 +1071,7 @@ const handleMatchEnded = (data: {
               <TouchableOpacity 
                 style={styles.victoryButton}
                 onPress={() => {
-                  console.log('Share victory!');
+
                 }}
               >
                 <LinearGradient

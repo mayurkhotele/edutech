@@ -3,8 +3,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,6 +26,8 @@ interface QuestionStatus {
   marked: boolean;
   visited: boolean;
   selectedOption?: number;
+  timeSpent: number;
+  eliminated: number[]; // Track eliminated options
 }
 
 const LiveExamQuestionsScreen = () => {
@@ -40,8 +42,16 @@ const LiveExamQuestionsScreen = () => {
   const [statuses, setStatuses] = useState<QuestionStatus[]>([]);
   const [timer, setTimer] = useState(() => duration ? parseInt(duration) * 60 : 12 * 60);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const questionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [currentSelection, setCurrentSelection] = useState<number | undefined>(undefined);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // NEW FEATURES STATE
+  const [liveRank, setLiveRank] = useState<number | null>(null);
+  const [totalParticipants, setTotalParticipants] = useState(0);
+  const [showLiveRank, setShowLiveRank] = useState(true);
 
   // Animation refs - removed to fix clickable issues
   // const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -59,8 +69,29 @@ const LiveExamQuestionsScreen = () => {
     
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (questionTimerRef.current) clearInterval(questionTimerRef.current);
     };
   }, [id, user?.token]);
+
+  // Question timer effect
+  useEffect(() => {
+    questionTimerRef.current = setInterval(() => {
+      setStatuses((prev) => {
+        const updated = [...prev];
+        if (updated[current]) {
+          updated[current] = {
+            ...updated[current],
+            timeSpent: (updated[current].timeSpent || 0) + 1,
+          };
+        }
+        return updated;
+      });
+    }, 1000);
+
+    return () => {
+      if (questionTimerRef.current) clearInterval(questionTimerRef.current);
+    };
+  }, [current]);
 
   useEffect(() => {
     if (duration) {
@@ -86,14 +117,20 @@ const LiveExamQuestionsScreen = () => {
 
   const fetchQuestions = async () => {
     if (!user?.token) return;
-    console.log('Fetching questions with user ID:', user.id, 'Exam ID:', id);
+
     setLoading(true);
     try {
       const res = await apiFetchAuth(`/student/live-exams/${id}/questions`, user.token);
       if (res.ok) {
-        console.log('Successfully fetched questions');
+
         setQuestions(res.data);
-        setStatuses(res.data.map(() => ({ answered: false, marked: false, visited: false })));
+        setStatuses(res.data.map(() => ({ 
+          answered: false, 
+          marked: false, 
+          visited: false,
+          timeSpent: 0,
+          eliminated: []
+        })));
         setLoading(false);
         startTimer();
       } else {
@@ -127,13 +164,53 @@ const LiveExamQuestionsScreen = () => {
     return `${h} : ${m} : ${s}`;
   };
 
+  const formatQuestionTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  };
+
+  const handleEliminateOption = (optionIdx: number) => {
+    setStatuses((prev) => {
+      const updated = [...prev];
+      const currentEliminated = updated[current].eliminated || [];
+      
+      if (currentEliminated.includes(optionIdx)) {
+        // Remove from eliminated
+        updated[current] = {
+          ...updated[current],
+          eliminated: currentEliminated.filter(i => i !== optionIdx),
+        };
+      } else {
+        // Add to eliminated
+        updated[current] = {
+          ...updated[current],
+          eliminated: [...currentEliminated, optionIdx],
+        };
+      }
+      return updated;
+    });
+  };
+
   const handleOptionSelect = (optionIdx: number) => {
-    console.log('Option selected:', optionIdx);
+
     setCurrentSelection(optionIdx);
+    
+    // Immediately save to statuses as well
+    setStatuses((prev) => {
+      const updated = [...prev];
+      updated[current] = {
+        ...updated[current],
+        answered: true,
+        selectedOption: optionIdx,
+        visited: true,
+      };
+      return updated;
+    });
   };
 
   const handleMark = () => {
-    console.log('Mark button pressed');
+
     setStatuses((prev) => {
       const updated = [...prev];
       updated[current] = {
@@ -146,7 +223,7 @@ const LiveExamQuestionsScreen = () => {
   };
 
   const handleNext = () => {
-    console.log('Next button pressed');
+
     // Just move to next question without saving
     if (current < questions.length - 1) {
       setCurrent(current + 1);
@@ -155,7 +232,7 @@ const LiveExamQuestionsScreen = () => {
   };
 
   const handleSaveAndNext = () => {
-    console.log('Save & Next button pressed');
+
     // Save the current selection
     setStatuses((prev) => {
       const updated = [...prev];
@@ -216,68 +293,65 @@ const LiveExamQuestionsScreen = () => {
       });
     }
 
-    Alert.alert('Submit Test', 'Are you sure you want to submit the test?', [
-      { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Submit', 
-        style: 'destructive', 
-        onPress: async () => {
-          try {
-            // Wait a bit to ensure state is updated
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Prepare answers payload - include current selection if it exists
-            const answers: { [key: string]: number } = {};
-            
-            // Add all previously answered questions
-            statuses.forEach((status, index) => {
-              if (status.answered && status.selectedOption !== undefined) {
-                answers[questions[index].id] = status.selectedOption;
-              }
-            });
-            
-            // Add current question if it has a selection
-            if (currentSelection !== undefined) {
-              answers[questions[current].id] = currentSelection;
-            }
-
-            console.log('Submitting answers:', answers);
-            console.log('Current question:', current);
-            console.log('Current selection:', currentSelection);
-
-            // Make API call to submit the test
-            const response = await apiFetchAuth(`/student/live-exams/${id}/submit`, user?.token || '', {
-              method: 'POST',
-              body: { answers }
-            });
-
-            if (response.ok) {
-              console.log('Test submitted successfully');
-              console.log('Submit response:', response.data);
-              
-              // Store the result data
-              const resultData = response.data;
-              
-              // Navigate directly to result page with the exam ID and result data
-              router.push({
-                pathname: '/(tabs)/live-exam/result/[id]' as any,
-                params: { 
-                  id: id,
-                  resultData: JSON.stringify(resultData)
-                }
-              });
-            } else {
-              console.error('Failed to submit test:', response);
-              Alert.alert('Error', 'Failed to submit the test. Please try again.');
-            }
-          } catch (error) {
-            console.error('Error submitting test:', error);
-            Alert.alert('Error', 'An error occurred while submitting the test. Please try again.');
-          }
-        }
-      }
-    ]);
+    // Show enhanced submit modal
+    setShowSubmitModal(true);
   };
+
+  const confirmSubmit = async () => {
+    setSubmitting(true);
+    try {
+      // Wait a bit to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Prepare answers payload - include current selection if it exists
+      const answers: { [key: string]: number } = {};
+      
+      // Add all previously answered questions
+      statuses.forEach((status, index) => {
+        if (status.answered && status.selectedOption !== undefined) {
+          answers[questions[index].id] = status.selectedOption;
+        }
+      });
+      
+      // Add current question if it has a selection
+      if (currentSelection !== undefined) {
+        answers[questions[current].id] = currentSelection;
+      }
+
+
+
+      const response = await apiFetchAuth(`/student/live-exams/${id}/submit`, user!.token, {
+        method: 'POST',
+        body: { answers }
+      });
+
+      if (response.ok) {
+
+
+        
+        // Store the result data
+        const resultData = response.data;
+        
+        // Navigate directly to result page with the exam ID and result data
+        router.push({
+          pathname: '/(tabs)/live-exam/result/[id]' as any,
+          params: { 
+            id: id,
+            resultData: JSON.stringify(resultData)
+          }
+        });
+      } else {
+        throw new Error(response.data?.message || 'Failed to submit exam');
+      }
+    } catch (error: any) {
+      console.error('❌ Error submitting exam:', error);
+      Alert.alert('Error', error.message || 'Failed to submit exam. Please try again.');
+    } finally {
+      setSubmitting(false);
+      setShowSubmitModal(false);
+    }
+  };
+
 
   // Summary counts
   const answered = statuses.filter(s => s.answered).length;
@@ -321,6 +395,16 @@ const LiveExamQuestionsScreen = () => {
           </TouchableOpacity>
           
           <View style={styles.headerCenter}>
+            {/* Live Rank Indicator */}
+            {showLiveRank && liveRank && (
+              <View style={styles.liveRankBadge}>
+                <Ionicons name="trophy" size={14} color="#FFA500" />
+                <Text style={styles.liveRankText}>
+                  Rank #{liveRank}/{totalParticipants}
+                </Text>
+              </View>
+            )}
+            
             <Text style={styles.questionProgress}>Question {current + 1} of {questions.length}</Text>
             
             {/* Progress Bar */}
@@ -364,25 +448,32 @@ const LiveExamQuestionsScreen = () => {
           {/* Question Header */}
           <View style={styles.questionHeader}>
             <View style={styles.headerLeft}>
-              <LinearGradient
-                colors={['#4F46E5', '#7C3AED']}
-                style={styles.questionNumberBadge}
+              <View style={styles.questionNumberBadge}>
+                <Text style={styles.questionNumber}>Q{current + 1}.</Text>
+              </View>
+              <ScrollView 
+                style={styles.questionScrollContainer}
+                showsVerticalScrollIndicator={true}
               >
-                <Text style={styles.questionNumber}>Q{current + 1}</Text>
-              </LinearGradient>
-            </View>
-            <View style={styles.questionMarks}>
-              <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.marksText}>{questions[current]?.marks || 1} mark</Text>
+                <Text style={styles.questionTitleInline}>
+                  {questions[current]?.text}
+                </Text>
+              </ScrollView>
+              <View style={styles.rightBadges}>
+                <View style={styles.timeSpentBadge}>
+                  <Ionicons name="time-outline" size={12} color="#667eea" />
+                  <Text style={styles.timeSpentText}>
+                    {formatQuestionTime(statuses[current]?.timeSpent || 0)}
+                  </Text>
+                </View>
+                <View style={styles.questionMarks}>
+                  <Ionicons name="star" size={12} color="#B45309" />
+                  <Text style={styles.marksText}>{questions[current]?.marks || 1}m</Text>
+                </View>
+              </View>
             </View>
           </View>
 
-          {/* Question Text - Below Header */}
-          <View style={styles.questionTextSection}>
-            <Text style={styles.questionTitleInline}>
-              {questions[current]?.text}
-            </Text>
-          </View>
 
           {/* Options */}
           <View style={styles.optionsContainer}>
@@ -421,37 +512,61 @@ const LiveExamQuestionsScreen = () => {
                 ))}
               </View>
             ) : (
-              // MCQ Options
-              questions[current]?.options.map((opt, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={[
-                    styles.optionButton,
-                    (currentSelection === idx || statuses[current]?.selectedOption === idx) && styles.optionButtonSelected
-                  ]}
-                  onPress={() => handleOptionSelect(idx)}
-                >
-                  <View style={styles.optionContent}>
-                    <View style={[
-                      styles.radioButton,
-                      (currentSelection === idx || statuses[current]?.selectedOption === idx) && styles.radioButtonSelected
-                    ]}>
-                      {(currentSelection === idx || statuses[current]?.selectedOption === idx) && (
-                        <View style={styles.radioButtonInner} />
+              // MCQ Options with Elimination Feature
+              questions[current]?.options.map((opt, idx) => {
+                const isEliminated = statuses[current]?.eliminated?.includes(idx);
+                const isSelected = currentSelection === idx || statuses[current]?.selectedOption === idx;
+                
+                return (
+                  <View key={idx} style={styles.optionRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.optionButton,
+                        isSelected && styles.optionButtonSelected,
+                        isEliminated && styles.optionEliminated
+                      ]}
+                      onPress={() => !isEliminated && handleOptionSelect(idx)}
+                      disabled={isEliminated}
+                    >
+                      <View style={styles.optionContent}>
+                        <View style={[
+                          styles.radioButton,
+                          isSelected && styles.radioButtonSelected
+                        ]}>
+                          {isSelected && (
+                            <View style={styles.radioButtonInner} />
+                          )}
+                        </View>
+                        <Text style={[
+                          styles.optionText,
+                          isSelected && styles.optionTextSelected,
+                          isEliminated && styles.optionTextEliminated
+                        ]}>
+                          {opt}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
                       )}
-                    </View>
-                    <Text style={[
-                      styles.optionText,
-                      (currentSelection === idx || statuses[current]?.selectedOption === idx) && styles.optionTextSelected
-                    ]}>
-                      {opt}
-                    </Text>
+                    </TouchableOpacity>
+                    
+                    {/* Elimination Button */}
+                    <TouchableOpacity
+                      style={[
+                        styles.eliminateBtn,
+                        isEliminated && styles.eliminateBtnActive
+                      ]}
+                      onPress={() => handleEliminateOption(idx)}
+                    >
+                      <Ionicons 
+                        name={isEliminated ? "close-circle" : "close-circle-outline"} 
+                        size={20} 
+                        color={isEliminated ? "#EF4444" : "#9CA3AF"} 
+                      />
+                    </TouchableOpacity>
                   </View>
-                  {(currentSelection === idx || statuses[current]?.selectedOption === idx) && (
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                  )}
-                </TouchableOpacity>
-              ))
+                );
+              })
             )}
           </View>
 
@@ -519,7 +634,6 @@ const LiveExamQuestionsScreen = () => {
               colors={['#FF6B6B', '#FF5252', '#FF1744']}
               style={styles.submitButtonGradient}
             >
-              <Ionicons name="checkmark-circle" size={26} color="#fff" />
               <Text style={styles.submitButtonText}>Submit Test</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -535,42 +649,32 @@ const LiveExamQuestionsScreen = () => {
 
             {/* Progress Summary */}
             <View style={styles.sidePanelSection}>
-              <View style={styles.sidePanelTitleRow}>
-                <Ionicons name="stats-chart" size={18} color="#374151" style={styles.sidePanelTitleIcon} />
-                <Text style={styles.sidePanelTitle}>Progress Summary</Text>
+              {/* Total Time Spent Card */}
+              <View style={styles.totalTimeCard}>
+                <Ionicons name="time" size={16} color="#667eea" />
+                <Text style={styles.totalTimeText}>
+                  Total Time: {formatQuestionTime(statuses.reduce((acc, s) => acc + (s.timeSpent || 0), 0))}
+                </Text>
               </View>
-              <View style={styles.progressBarWrap}>
-                <View style={styles.progressBarOuter}>
-                  <LinearGradient
-                    colors={['#4F46E5', '#7C3AED']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[
-                      styles.progressBarInner,
-                      { width: `${Math.min(100, (answered / Math.max(1, questions.length)) * 100)}%` }
-                    ]}
-                  />
-                </View>
-                <Text style={styles.progressBarText}>{answered}/{questions.length} completed</Text>
-              </View>
+
               <View style={styles.progressGrid}>
                 <View style={[styles.progressCard, styles.progressCardGreen]}>
-                  <Ionicons name="checkmark-circle" size={16} color="#059669" style={styles.progressCardIcon} />
+                  <Ionicons name="checkmark-circle" size={14} color="#059669" style={styles.progressCardIcon} />
                   <Text style={[styles.progressNumber, styles.progressNumberGreen]}>{answered}</Text>
                   <Text style={[styles.progressLabel, styles.progressLabelGreen]}>Answered</Text>
                 </View>
                 <View style={[styles.progressCard, styles.progressCardAmber]}>
-                  <Ionicons name="bookmark" size={16} color="#B45309" style={styles.progressCardIcon} />
+                  <Ionicons name="bookmark" size={14} color="#B45309" style={styles.progressCardIcon} />
                   <Text style={[styles.progressNumber, styles.progressNumberAmber]}>{marked}</Text>
                   <Text style={[styles.progressLabel, styles.progressLabelAmber]}>Marked</Text>
                 </View>
                 <View style={[styles.progressCard, styles.progressCardGray]}>
-                  <Ionicons name="eye-off" size={16} color="#4B5563" style={styles.progressCardIcon} />
+                  <Ionicons name="eye-off" size={14} color="#4B5563" style={styles.progressCardIcon} />
                   <Text style={[styles.progressNumber, styles.progressNumberGray]}>{notVisited}</Text>
                   <Text style={[styles.progressLabel, styles.progressLabelGray]}>Not Visited</Text>
                 </View>
                 <View style={[styles.progressCard, styles.progressCardRed]}>
-                  <Ionicons name="close-circle" size={16} color="#B91C1C" style={styles.progressCardIcon} />
+                  <Ionicons name="close-circle" size={14} color="#B91C1C" style={styles.progressCardIcon} />
                   <Text style={[styles.progressNumber, styles.progressNumberRed]}>{notAnswered}</Text>
                   <Text style={[styles.progressLabel, styles.progressLabelRed]}>Not Answered</Text>
                 </View>
@@ -636,6 +740,122 @@ const LiveExamQuestionsScreen = () => {
           </ScrollView>
         </View>
       )}
+
+      {/* Enhanced Submit Confirmation Modal */}
+      <Modal
+        visible={showSubmitModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowSubmitModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSubmitModal(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalContainer}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <LinearGradient
+              colors={['#FB923C', '#F97316', '#FB923C']}
+              style={styles.modalHeader}
+            >
+              <View style={styles.modalIconContainer}>
+                <Ionicons name="checkmark-circle" size={32} color="#fff" />
+              </View>
+              <View style={styles.modalTitleContainer}>
+                <Text style={styles.modalTitle}>Final Submit</Text>
+                <Text style={styles.modalSubtitle}>Review your answers before final submission</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => setShowSubmitModal(false)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="close-circle" size={24} color="#fff" />
+              </TouchableOpacity>
+            </LinearGradient>
+
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: '#10B981' }]}>
+                    <Ionicons name="checkmark-done" size={24} color="#fff" />
+                  </View>
+                  <Text style={styles.statNumber}>{answered}</Text>
+                  <Text style={styles.statLabel}>Answered</Text>
+                </View>
+
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: '#F59E0B' }]}>
+                    <Ionicons name="bookmark" size={24} color="#fff" />
+                  </View>
+                  <Text style={styles.statNumber}>{marked}</Text>
+                  <Text style={styles.statLabel}>Marked</Text>
+                </View>
+
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: '#EF4444' }]}>
+                    <Ionicons name="close-circle" size={24} color="#fff" />
+                  </View>
+                  <Text style={styles.statNumber}>{notVisited}</Text>
+                  <Text style={styles.statLabel}>Not Visited</Text>
+                </View>
+              </View>
+
+              <View style={styles.warningBox}>
+                <Ionicons name="warning" size={24} color="#DC2626" />
+                <View style={styles.warningTextContainer}>
+                  <Text style={styles.warningTitle}>Important Notice</Text>
+                  <Text style={styles.warningText}>
+                    • This action cannot be undone{'\n'}
+                    • All marked answers will be submitted{'\n'}
+                    • Your result will be shown immediately
+                  </Text>
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowSubmitModal(false)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.cancelButtonContent}>
+                  <Ionicons name="arrow-back" size={18} color="#6B7280" />
+                  <Text style={styles.cancelButtonText}>Review Again</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.submitConfirmButton}
+                onPress={confirmSubmit}
+                disabled={submitting}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={submitting ? ['#9CA3AF', '#6B7280'] : ['#FB923C', '#F97316']}
+                  style={styles.submitButtonGradient}
+                >
+                  {submitting ? (
+                    <View style={styles.submitButtonContent}>
+                      <ActivityIndicator size="small" color="#fff" />
+                      <Text style={styles.submitConfirmButtonText}>Submitting...</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.submitButtonContent}>
+                      <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                      <Text style={styles.submitConfirmButtonText}>Submit Exam</Text>
+                    </View>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -643,7 +863,7 @@ const LiveExamQuestionsScreen = () => {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#F8FAFC'
+    backgroundColor: '#F1F5F9'
   },
   loadingContainer: { 
     flex: 1, 
@@ -723,6 +943,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600'
   },
+  liveRankBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginBottom: 6,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  liveRankText: {
+    fontSize: 11,
+    color: '#fff',
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   questionProgress: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.9)',
@@ -788,98 +1026,165 @@ const styles = StyleSheet.create({
   },
   questionCard: { 
     backgroundColor: '#fff', 
-    borderRadius: 20, 
+    borderRadius: 24, 
     marginTop: 0,
     marginBottom: 20,
-    padding: 20, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 4 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 12, 
-    elevation: 8,
+    padding: 24, 
+    paddingBottom: 30,
+    shadowColor: '#4F46E5', 
+    shadowOffset: { width: 0, height: 8 }, 
+    shadowOpacity: 0.15, 
+    shadowRadius: 24, 
+    elevation: 0,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: 'rgba(79, 70, 229, 0.1)',
+    transform: [{ scale: 1.02 }],
+    minHeight: 400
   },
   questionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
-    paddingBottom: 12,
+    marginBottom: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0'
+    borderBottomColor: '#E2E8F0',
+    gap: 12,
+    minHeight: 100,
+    maxHeight: 160,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     flex: 1,
-    gap: 12,
+    gap: 10,
   },
   questionTextSection: {
-    marginBottom: 16,
-    paddingHorizontal: 4,
+    flex: 1,
   },
   questionNumberBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: '#4F46E5',
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.2)',
+    elevation: 0,
+    alignSelf: 'flex-start',
   },
   questionNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff'
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+    letterSpacing: 0.2,
+  },
+  rightBadges: {
+    flexDirection: 'column',
+    gap: 6,
+    alignItems: 'flex-end',
+  },
+  timeSpentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  timeSpentText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#667eea',
   },
   questionMarks: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12
+    backgroundColor: 'rgba(217, 119, 6, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(217, 119, 6, 0.15)',
   },
   marksText: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#D97706'
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B45309',
+    letterSpacing: 0.2,
+  },
+  questionScrollContainer: {
+    flex: 1,
+    maxHeight: 140,
   },
   questionTitleInline: { 
     fontSize: 15, 
     lineHeight: 22,
-    color: '#111827', 
+    color: '#1F2937', 
     fontWeight: '600',
     letterSpacing: 0.2,
-    textAlign: 'left'
+    textAlign: 'left',
+    paddingRight: 8,
   },
   optionsContainer: { 
     marginBottom: 16
   },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  eliminateBtn: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  eliminateBtnActive: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  optionEliminated: {
+    opacity: 0.4,
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+  },
+  optionTextEliminated: {
+    textDecorationLine: 'line-through',
+    color: '#9CA3AF',
+  },
   optionButton: { 
+    flex: 1,
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between',
     backgroundColor: '#F8FAFC', 
-    borderRadius: 16, 
+    borderRadius: 14, 
     paddingVertical: 12,
     paddingHorizontal: 14,
-    marginBottom: 8,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 0,
+    transform: [{ scale: 0.98 }]
   },
   optionButtonSelected: { 
     backgroundColor: '#EEF2FF', 
     borderColor: '#4F46E5',
     shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.15,
     shadowRadius: 16,
-    elevation: 8,
-    transform: [{ scale: 1.03 }]
+    elevation: 0,
+    transform: [{ scale: 1 }]
   },
   optionContent: {
     flexDirection: 'row',
@@ -890,26 +1195,26 @@ const styles = StyleSheet.create({
     width: 20, 
     height: 20, 
     borderRadius: 10, 
-    borderWidth: 2, 
+    borderWidth: 1.5, 
     borderColor: '#CBD5E1', 
-    marginRight: 12, 
+    marginRight: 10, 
     alignItems: 'center', 
     justifyContent: 'center', 
     backgroundColor: '#fff',
     shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 0
   },
   radioButtonSelected: { 
     backgroundColor: '#4F46E5',
     borderColor: '#4F46E5',
     shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 0
   },
   radioButtonInner: { 
     width: 8, 
@@ -917,22 +1222,25 @@ const styles = StyleSheet.create({
     borderRadius: 4, 
     backgroundColor: '#fff',
     shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 0
   },
   optionText: { 
-    fontSize: 15, 
+    fontSize: 14, 
     color: '#1F2937',
     flex: 1,
-    lineHeight: 22,
-    fontWeight: '600',
-    letterSpacing: 0.2
+    lineHeight: 20,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   optionTextSelected: {
-    color: '#1F2937',
-    fontWeight: '800'
+    color: '#4F46E5',
+    fontWeight: '700',
+    textShadowColor: 'rgba(79, 70, 229, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   actionButtonsContainer: { 
     flexDirection: 'row', 
@@ -1030,29 +1338,34 @@ const styles = StyleSheet.create({
   submitContainer: {
     paddingHorizontal: 16,
     paddingBottom: 16,
-    marginTop: 4
+    marginTop: 20
   },
   submitButton: {
-    borderRadius: 24,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#FF1744',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 12
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 23, 68, 0.2)',
+    alignSelf: 'center',
+    minWidth: '70%'
   },
   submitButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    gap: 10
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    gap: 8
   },
   submitButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18
+    fontWeight: '700',
+    fontSize: 17,
+    letterSpacing: 0.5,
   },
   // ✅ Question Type Badge Styles
 questionTypeContainer: {
@@ -1132,16 +1445,16 @@ trueFalseTextSelected: {
     position: 'absolute',
     right: 0,
     top: 0,
-    width: 320,
+    width: 280,
     height: '100%',
     backgroundColor: '#fff',
     borderLeftWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
+    shadowColor: '#4F46E5',
     shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 10,
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 0,
     zIndex: 1000
   },
   sidePanelScroll: {
@@ -1155,15 +1468,26 @@ trueFalseTextSelected: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    backgroundColor: '#F8FAFC',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   sidePanelTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 0
+    marginBottom: 0,
+    letterSpacing: 0.2,
   },
   sidePanelTitleIcon: {
     marginRight: 8,
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+    padding: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.15)',
   },
   userProfileCard: {
     borderRadius: 16,
@@ -1196,42 +1520,73 @@ trueFalseTextSelected: {
     fontSize: 14, 
     color: 'rgba(255, 255, 255, 0.8)'
   },
+  totalTimeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  totalTimeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#667eea',
+  },
   progressGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10
   },
   progressBarWrap: {
-    marginBottom: 12,
+    marginBottom: 16,
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   progressBarOuter: {
-    height: 8,
-    backgroundColor: '#E5E7EB',
+    height: 6,
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
     borderRadius: 999,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.1)',
   },
   progressBarInner: {
     height: '100%',
-    backgroundColor: '#10B981',
+    backgroundColor: '#4F46E5',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 0,
   },
   progressBarText: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 12,
-    color: '#374151',
+    color: '#4F46E5',
     fontWeight: '600',
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
   progressCard: { 
     flex: 1,
     minWidth: '45%',
     borderRadius: 10, 
-    padding: 12, 
+    padding: 10, 
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 0,
     borderWidth: 1,
+    backgroundColor: '#FFFFFF',
   },
   progressSub: {
     marginTop: 2,
@@ -1260,9 +1615,13 @@ trueFalseTextSelected: {
   },
   progressNumber: { 
     color: '#111827', 
-    fontWeight: 'bold', 
-    fontSize: 20,
-    marginBottom: 2
+    fontWeight: '600', 
+    fontSize: 16,
+    marginBottom: 2,
+    letterSpacing: 0.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.04)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   progressNumberGreen: { color: '#065F46' },
   progressNumberAmber: { color: '#92400E' },
@@ -1271,7 +1630,8 @@ trueFalseTextSelected: {
   progressLabel: { 
     color: '#374151', 
     fontSize: 11,
-    fontWeight: '500'
+    fontWeight: '500',
+    letterSpacing: 0.1,
   },
   progressLabelGreen: { color: '#047857' },
   progressLabelAmber: { color: '#B45309' },
@@ -1314,7 +1674,161 @@ trueFalseTextSelected: {
     height: 16,
     alignItems: 'center',
     justifyContent: 'center'
-  }
+  },
+  // Submit Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    gap: 12,
+  },
+  modalIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitleContainer: {
+    flex: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    maxHeight: 400,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  warningBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  warningTextContainer: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#DC2626',
+    marginBottom: 8,
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#991B1B',
+    lineHeight: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  cancelButton: {
+    flex: 0.8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  cancelButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  submitConfirmButton: {
+    flex: 1.2,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  submitButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  submitConfirmButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
 });
 
 export default LiveExamQuestionsScreen; 

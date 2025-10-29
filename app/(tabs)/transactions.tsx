@@ -38,16 +38,15 @@ export default function TransactionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('deposit');
   const scrollY = React.useRef(new Animated.Value(0)).current;
 
   // Filter transactions based on active filter - moved before conditional returns
   const filteredTransactions = React.useMemo(() => {
-    if (activeFilter === 'all') return transactions;
     if (activeFilter === 'deposit') return transactions.filter(t => t.type === 'DEPOSIT');
     if (activeFilter === 'withdrawal') return transactions.filter(t => t.type === 'WITHDRAWAL');
     if (activeFilter === 'winning') return transactions.filter(t => t.type === 'WINNING');
-    return transactions;
+    return transactions.filter(t => t.type === 'DEPOSIT');
   }, [transactions, activeFilter]);
 
   const fetchTransactions = async () => {
@@ -61,17 +60,17 @@ export default function TransactionsScreen() {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching transactions with token:', user.token ? 'Token present' : 'No token');
+
       
       // Try the transactions endpoint first, fallback to wallet endpoint
       let response;
       try {
         response = await apiFetchAuth('/student/transactions', user.token);
-        console.log('Transactions API response:', response);
+
       } catch (err) {
-        console.log('Transactions endpoint failed, trying wallet endpoint...');
+
         response = await apiFetchAuth('/student/wallet', user.token);
-        console.log('Wallet API response:', response);
+
       }
       
       if (response.ok && response.data) {
@@ -98,8 +97,8 @@ export default function TransactionsScreen() {
           balanceData = response.data.wallet.balance;
         }
         
-        console.log('Processed transactions:', transactionsData);
-        console.log('Processed balance:', balanceData);
+
+
         
         setTransactions(transactionsData);
         setError(null);
@@ -144,8 +143,8 @@ export default function TransactionsScreen() {
   };
 
   useEffect(() => {
-    console.log('TransactionsScreen mounted, user:', user ? 'Present' : 'Missing');
-    console.log('User token:', user?.token ? 'Present' : 'Missing');
+
+
     fetchTransactions();
   }, []);
 
@@ -206,13 +205,29 @@ export default function TransactionsScreen() {
     switch (status) {
       case 'COMPLETED':
       case 'SUCCESS':
-        return '#10B981';
+        return {
+          bg: 'rgba(16, 185, 129, 0.1)',
+          text: '#10B981',
+          border: 'rgba(16, 185, 129, 0.2)'
+        };
       case 'PENDING':
-        return '#F59E0B';
+        return {
+          bg: 'rgba(245, 158, 11, 0.1)',
+          text: '#F59E0B',
+          border: 'rgba(245, 158, 11, 0.2)'
+        };
       case 'FAILED':
-        return '#EF4444';
+        return {
+          bg: 'rgba(239, 68, 68, 0.1)',
+          text: '#EF4444',
+          border: 'rgba(239, 68, 68, 0.2)'
+        };
       default:
-        return '#6B7280';
+        return {
+          bg: 'rgba(107, 114, 128, 0.1)',
+          text: '#6B7280',
+          border: 'rgba(107, 114, 128, 0.2)'
+        };
     }
   };
 
@@ -266,9 +281,20 @@ export default function TransactionsScreen() {
             </Text>
             <View style={[
               styles.statusBadge,
-              { backgroundColor: getStatusColor(item.status) }
+              { 
+                backgroundColor: getStatusColor(item.status).bg,
+                borderColor: getStatusColor(item.status).border
+              }
             ]}>
-              <Text style={fonts.captionSmall}>{item.status}</Text>
+              <Text style={[
+                fonts.captionSmall,
+                { 
+                  color: getStatusColor(item.status).text,
+                  fontSize: 12,
+                  fontWeight: '600',
+                  letterSpacing: 0.2
+                }
+              ]}>{item.status}</Text>
             </View>
           </View>
         </View>
@@ -324,28 +350,67 @@ export default function TransactionsScreen() {
         {/* Filter tabs */}
         <View style={styles.filterContainer}>
           <TouchableOpacity 
-            style={[styles.filterTab, activeFilter === 'all' && styles.activeFilterTab]}
-            onPress={() => setActiveFilter('all')}
-          >
-            <Text style={[fonts.bodyMedium, activeFilter === 'all' && styles.activeFilterText]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.filterTab, activeFilter === 'deposit' && styles.activeFilterTab]}
+            style={[
+              styles.filterTab, 
+              activeFilter === 'deposit' && styles.activeFilterTab,
+              { backgroundColor: activeFilter === 'deposit' ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }
+            ]}
             onPress={() => setActiveFilter('deposit')}
           >
-            <Text style={[fonts.bodyMedium, activeFilter === 'deposit' && styles.activeFilterText]}>Deposits</Text>
+            <View style={styles.filterContent}>
+              <MaterialIcons 
+                name="add-circle" 
+                size={18} 
+                color={activeFilter === 'deposit' ? '#10B981' : '#6B7280'} 
+                style={styles.filterIcon}
+              />
+              <Text style={[
+                fonts.bodyMedium, 
+                activeFilter === 'deposit' && { ...styles.activeFilterText, color: '#10B981' }
+              ]}>Deposits</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.filterTab, activeFilter === 'withdrawal' && styles.activeFilterTab]}
+            style={[
+              styles.filterTab, 
+              activeFilter === 'withdrawal' && styles.activeFilterTab,
+              { backgroundColor: activeFilter === 'withdrawal' ? 'rgba(239, 68, 68, 0.1)' : 'transparent' }
+            ]}
             onPress={() => setActiveFilter('withdrawal')}
           >
-            <Text style={[fonts.bodyMedium, activeFilter === 'withdrawal' && styles.activeFilterText]}>Withdrawals</Text>
+            <View style={styles.filterContent}>
+              <MaterialIcons 
+                name="remove-circle" 
+                size={18} 
+                color={activeFilter === 'withdrawal' ? '#EF4444' : '#6B7280'} 
+                style={styles.filterIcon}
+              />
+              <Text style={[
+                fonts.bodyMedium, 
+                activeFilter === 'withdrawal' && { ...styles.activeFilterText, color: '#EF4444' }
+              ]}>Withdraw</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.filterTab, activeFilter === 'winning' && styles.activeFilterTab]}
+            style={[
+              styles.filterTab, 
+              activeFilter === 'winning' && styles.activeFilterTab,
+              { backgroundColor: activeFilter === 'winning' ? 'rgba(245, 158, 11, 0.1)' : 'transparent' }
+            ]}
             onPress={() => setActiveFilter('winning')}
           >
-            <Text style={[fonts.bodyMedium, activeFilter === 'winning' && styles.activeFilterText]}>Winnings</Text>
+            <View style={styles.filterContent}>
+              <FontAwesome5 
+                name="trophy" 
+                size={16} 
+                color={activeFilter === 'winning' ? '#F59E0B' : '#6B7280'} 
+                style={styles.filterIcon}
+              />
+              <Text style={[
+                fonts.bodyMedium, 
+                activeFilter === 'winning' && { ...styles.activeFilterText, color: '#F59E0B' }
+              ]}>Winnings</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -397,8 +462,8 @@ export default function TransactionsScreen() {
             <TouchableOpacity 
               style={styles.debugButton} 
               onPress={() => {
-                console.log('Current user:', user);
-                console.log('User token:', user?.token ? 'Present' : 'Missing');
+
+
                 fetchTransactions();
               }}
             >
@@ -443,26 +508,29 @@ export default function TransactionsScreen() {
             <View style={styles.emptyIconContainer}>
               <Ionicons name="receipt" size={64} color="#8B5CF6" />
             </View>
-            <Text style={fonts.headerMedium}>No Transactions Yet</Text>
-            <Text style={fonts.bodyMedium}>
-              {activeFilter === 'all' 
-                ? 'Your transaction history will appear here once you start using the app. Try making a deposit or participating in a quiz!'
-                : `No ${activeFilter} transactions found. Try a different filter or check back later.`}
+            <Text style={[fonts.headerMedium, {
+              fontSize: 22,
+              fontWeight: '700',
+              color: '#1F2937',
+              marginBottom: 8,
+              letterSpacing: 0.3,
+              textAlign: 'center'
+            }]}>No Transactions Yet</Text>
+            <Text style={[fonts.bodyMedium, {
+              fontSize: 15,
+              color: '#64748B',
+              textAlign: 'center',
+              lineHeight: 22,
+              letterSpacing: 0.2,
+              marginHorizontal: 10,
+              marginBottom: 10
+            }]}>
+              {activeFilter === 'deposit' 
+                ? 'Start your journey by adding funds to your wallet. Make a deposit to participate in quizzes and win exciting rewards!'
+                : activeFilter === 'withdrawal'
+                ? 'No withdraw transactions found. Win some quizzes and earn rewards to make withdrawals!'
+                : 'No winnings yet. Participate in quizzes to win rewards and see your earnings here!'}
             </Text>
-            <View style={styles.emptyButtonContainer}>
-              <TouchableOpacity 
-                style={styles.emptyButton}
-                onPress={() => router.push('/(tabs)/wallet')}
-              >
-                <Text style={fonts.buttonMedium}>Go to Wallet</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.emptyButtonSecondary}
-                onPress={() => router.push('/(tabs)/quiz')}
-              >
-                <Text style={fonts.buttonMedium}>Take a Quiz</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         )}
       />
@@ -471,6 +539,14 @@ export default function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
+  filterContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterIcon: {
+    marginRight: 6,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -633,7 +709,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     marginHorizontal: 16,
-    marginTop: -20,
+    marginTop: -25,
+    marginBottom: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -647,12 +724,26 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: 16,
+    marginHorizontal: 2,
   },
   activeFilterTab: {
     backgroundColor: 'rgba(79, 70, 229, 0.1)',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.2)',
   },
   activeFilterText: {
     color: '#4F46E5',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(79, 70, 229, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   listContainer: {
     paddingHorizontal: 16,
@@ -661,20 +752,22 @@ const styles = StyleSheet.create({
   },
   transactionCard: {
     backgroundColor: '#FFFFFF',
-    marginBottom: 16,
-    borderRadius: 20,
+    marginBottom: 12,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 0,
     borderWidth: 1,
-    borderColor: 'rgba(79, 70, 229, 0.1)',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
+    overflow: 'hidden',
   },
   transactionContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   transactionLeft: {
     flexDirection: 'row',
@@ -682,78 +775,51 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginRight: 14,
+    elevation: 0,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   transactionInfo: {
     flex: 1,
+    marginRight: 8,
   },
   transactionRight: {
     alignItems: 'flex-end',
+    minWidth: 90,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 6,
+    elevation: 0,
+    borderWidth: 1,
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 24,
+    margin: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   emptyIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  emptyButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  emptyButton: {
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  emptyButtonSecondary: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.15)',
   },
 });

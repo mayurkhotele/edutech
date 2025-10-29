@@ -1,15 +1,13 @@
-import { AppColors } from '@/constants/Colors';
 import { apiFetchAuth } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
-    FlatList,
     Modal,
     RefreshControl,
     SafeAreaView,
@@ -43,7 +41,6 @@ const MyExamsScreen = () => {
     const [error, setError] = useState<string | null>(null);
     const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'LIVE' | 'PRACTICE'>('ALL');
     const [showOnlyCompleted, setShowOnlyCompleted] = useState(true);
-    const [compactView, setCompactView] = useState(false);
     const [fadeAnim] = useState(new Animated.Value(0));
     const [showDetails, setShowDetails] = useState(false);
     const [selectedExam, setSelectedExam] = useState<MyExam | null>(null);
@@ -58,10 +55,9 @@ const MyExamsScreen = () => {
             const response = await apiFetchAuth('/student/my-exams', user.token);
             if (response.ok) {
                 setExams(response.data || []);
-                // Animate in the content
                 Animated.timing(fadeAnim, {
                     toValue: 1,
-                    duration: 800,
+                    duration: 600,
                     useNativeDriver: true,
                 }).start();
             } else {
@@ -104,7 +100,7 @@ const MyExamsScreen = () => {
         const secs = seconds % 60;
 
         if (hours > 0) {
-            return `${hours}h ${minutes}m ${secs}s`;
+            return `${hours}h ${minutes}m`;
         } else if (minutes > 0) {
             return `${minutes}m ${secs}s`;
         } else {
@@ -112,323 +108,178 @@ const MyExamsScreen = () => {
         }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'COMPLETED':
-                return '#10B981';
-            case 'IN_PROGRESS':
-                return '#F59E0B';
-            case 'PENDING':
-                return '#3B82F6';
-            default:
-                return AppColors.grey;
-        }
-    };
-
-    const getExamTypeColor = (type: string) => {
-        switch (type) {
-            case 'LIVE':
-                return '#FF4444';
-            case 'PRACTICE':
-                return '#4F46E5';
-            default:
-                return AppColors.grey;
-        }
-    };
-
-    const getScorePercentage = (score: number, totalQuestions: number) => {
+    const getAccuracy = (correctAnswers: number, totalQuestions: number) => {
         if (totalQuestions === 0) return 0;
-        return Math.round((score / totalQuestions) * 100);
+        const accuracy = Math.round((correctAnswers / totalQuestions) * 100);
+        return Math.min(accuracy, 100);
     };
 
-    const getPerformanceLevel = (percentage: number) => {
-        if (percentage >= 90) return { level: 'Excellent', color: '#10B981', icon: 'star' };
-        if (percentage >= 80) return { level: 'Good', color: '#059669', icon: 'thumbs-up' };
-        if (percentage >= 70) return { level: 'Average', color: '#F59E0B', icon: 'checkmark' };
-        if (percentage >= 60) return { level: 'Below Average', color: '#EF4444', icon: 'alert' };
-        return { level: 'Needs Improvement', color: '#DC2626', icon: 'warning' };
-    };
-
-    const getFilteredExams = () => {
+    // Optimized filtering with useMemo
+    const filteredExams = useMemo(() => {
         let filtered = exams;
         
-        // Apply search filter
         if (searchQuery.trim()) {
             filtered = filtered.filter(exam =>
                 exam.examName.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
         
-        // Apply type filter
         if (selectedFilter !== 'ALL') {
             filtered = filtered.filter(exam => exam.examType === selectedFilter);
         }
 
-        // Show only completed attempts by default
         if (showOnlyCompleted) {
             filtered = filtered.filter(exam => exam.status === 'COMPLETED');
         }
         
-        // Sort by completion date - most recent first
         filtered = filtered.sort((a, b) => {
             const dateA = new Date(a.completedAt || 0);
             const dateB = new Date(b.completedAt || 0);
-            return dateB.getTime() - dateA.getTime(); // Descending order (newest first)
+            return dateB.getTime() - dateA.getTime();
         });
         
         return filtered;
-    };
+    }, [exams, searchQuery, selectedFilter, showOnlyCompleted]);
 
-    const filteredExams = getFilteredExams();
+    // Analytics calculations - Optimized with useMemo
+    const analytics = useMemo(() => {
+        const completedExams = exams.filter(e => e.status === 'COMPLETED');
+        const totalExams = completedExams.length;
+        const avgScore = totalExams > 0
+            ? Math.round(completedExams.reduce((sum, e) => sum + getAccuracy(e.correctAnswers, e.totalQuestions), 0) / totalExams)
+            : 0;
+        const bestScore = totalExams > 0
+            ? Math.max(...completedExams.map(e => getAccuracy(e.correctAnswers, e.totalQuestions)))
+            : 0;
+        const totalTimeTaken = completedExams.reduce((sum, e) => sum + e.timeTaken, 0);
+
+        return { totalExams, avgScore, bestScore, totalTimeTaken };
+    }, [exams]);
+
+    const { totalExams, avgScore, bestScore, totalTimeTaken } = analytics;
+
+    const getScorePercentage = (score: number, total: number) => {
+        return total > 0 ? Math.round((score / total) * 100) : 0;
+    };
 
     const renderFilterButton = (filter: 'ALL' | 'LIVE' | 'PRACTICE', label: string, icon: string) => (
         <TouchableOpacity
             style={[
-                styles.filterButton,
-                selectedFilter === filter && styles.filterButtonActive
+                styles.filterChip,
+                selectedFilter === filter && styles.filterChipActive
             ]}
             onPress={() => setSelectedFilter(filter)}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
         >
-            {selectedFilter === filter ? (
-                <LinearGradient
-                    colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.filterButtonGradient}
-                >
-                    <Ionicons 
-                        name={icon as any} 
-                        size={14} 
-                        color={AppColors.white} 
-                    />
-                    <Text style={styles.filterButtonTextActive}>
-                        {label}
-                    </Text>
-                </LinearGradient>
-            ) : (
-                <>
-                    <Ionicons 
-                        name={icon as any} 
-                        size={14} 
-                        color={AppColors.grey} 
-                    />
-                    <Text style={styles.filterButtonText}>
-                        {label}
-                    </Text>
-                </>
-            )}
+            <Ionicons 
+                name={icon as any} 
+                size={16} 
+                color={selectedFilter === filter ? '#4F46E5' : '#64748B'} 
+            />
+            <Text style={[
+                styles.filterChipText,
+                selectedFilter === filter && styles.filterChipTextActive
+            ]}>
+                {label}
+            </Text>
         </TouchableOpacity>
     );
 
-    const renderExamRow = ({ item }: { item: MyExam }) => {
-        const percentage = getScorePercentage(item.score, item.totalQuestions);
-        const statusColor = getStatusColor(item.status);
-        return (
-            <TouchableOpacity activeOpacity={0.9} style={styles.rowItem} onPress={() => handleViewDetails(item)}>
-                <View style={[styles.rowThumb, { backgroundColor: getExamTypeColor(item.examType) }]}>
-                    <Ionicons name={item.examType === 'LIVE' ? 'radio' : 'school'} size={16} color={AppColors.white} />
-                </View>
-                <View style={styles.rowCenter}>
-                    <Text style={styles.rowTitle} numberOfLines={1}>{item.examName}</Text>
-                    <View style={styles.rowMeta}>
-                        <View style={[styles.rowBadge, { backgroundColor: getExamTypeColor(item.examType) }]}>
-                            <Text style={styles.rowBadgeText}>{item.examType}</Text>
-                        </View>
-                        <View style={[styles.rowBadge, { backgroundColor: statusColor }]}>
-                            <Text style={styles.rowBadgeText}>{item.status}</Text>
-                        </View>
-                        {item.completedAt ? (
-                            <Text style={styles.rowDate}>{formatDate(item.completedAt)}</Text>
-                        ) : null}
-                    </View>
-                </View>
-                <View style={styles.rowRight}>
-                    <View style={styles.rowScorePill}>
-                        <Text style={styles.rowScoreText}>{percentage}%</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color="#6c757d" />
-                </View>
-            </TouchableOpacity>
-        );
-    };
+    const renderExamCard = useCallback(({ item }: { item: MyExam }) => {
+        const percentage = getAccuracy(item.correctAnswers, item.totalQuestions);
+        const isLive = item.examType === 'LIVE';
 
-    const renderExamCard = ({ item, index }: { item: MyExam; index: number }) => {
-        const percentage = getScorePercentage(item.score, item.totalQuestions);
-        const performance = getPerformanceLevel(percentage);
-        
         return (
-            <Animated.View
-                style={[
-                    styles.examCard,
-                    { 
-                        opacity: fadeAnim,
-                        transform: [{ 
-                            translateY: fadeAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [50, 0]
-                            })
-                        }]
-                    }
-                ]}
+            <TouchableOpacity
+                style={styles.examCard}
+                activeOpacity={0.7}
+                onPress={() => handleViewDetails(item)}
             >
-                <TouchableOpacity 
-                    style={styles.cardTouchable} 
-                    activeOpacity={0.95}
-                >
+                {/* Header */}
+                <View style={styles.cardHeader}>
+                    <View style={styles.cardHeaderLeft}>
+                        <LinearGradient
+                            colors={isLive ? ['#EF4444', '#DC2626'] : ['#6366F1', '#4F46E5']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.examTypeBadge}
+                        >
+                            <Ionicons 
+                                name={isLive ? 'radio' : 'book-outline'} 
+                                size={12} 
+                                color="#FFF" 
+                            />
+                            <Text style={styles.examTypeBadgeText}>{item.examType}</Text>
+                        </LinearGradient>
+                        <Text style={styles.examTitle} numberOfLines={2}>{item.examName}</Text>
+                    </View>
                     <LinearGradient
-                        colors={['#FFFFFF', '#F8FAFC', '#F1F5F9']}
+                        colors={
+                            percentage >= 80 ? ['#10B981', '#059669'] :
+                            percentage >= 60 ? ['#F59E0B', '#D97706'] :
+                            ['#EF4444', '#DC2626']
+                        }
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={styles.cardGradient}
+                        style={styles.scoreContainer}
                     >
-                        {/* Performance Indicator */}
-                        <View style={[styles.performanceIndicator, { backgroundColor: performance.color }]}>
-                            <Ionicons name={performance.icon as any} size={12} color={AppColors.white} />
-                            <Text style={styles.performanceText}>{performance.level}</Text>
-                        </View>
-
-                        {/* Card Header */}
-                        <View style={styles.cardHeader}>
-                            <View style={styles.examInfo}>
-                                <Text style={styles.examName} numberOfLines={2}>
-                                    {item.examName}
-                                </Text>
-                                <View style={styles.examTypeContainer}>
-                                    <View style={[styles.examTypeBadge, { backgroundColor: getExamTypeColor(item.examType) }]}>
-                                        <Ionicons 
-                                            name={item.examType === 'LIVE' ? 'radio-outline' : 'school-outline'} 
-                                            size={12} 
-                                            color={AppColors.white} 
-                                        />
-                                        <Text style={styles.examTypeText}>{item.examType}</Text>
-                                    </View>
-                                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                                        <Ionicons 
-                                            name={item.status === 'COMPLETED' ? 'checkmark-circle' : 'time-outline'} 
-                                            size={12} 
-                                            color={AppColors.white} 
-                                        />
-                                        <Text style={styles.statusText}>{item.status}</Text>
-                                    </View>
-                                </View>
-                            </View>
-                            
-                            {/* Score Display */}
-                            <View style={styles.scoreContainer}>
-                                <LinearGradient
-                                    colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.scoreGradient}
-                                >
-                                    <Text style={styles.scoreText}>{item.score}</Text>
-                                    <Text style={styles.scoreLabel}>Score</Text>
-                                </LinearGradient>
-                            </View>
-                        </View>
-
-                        {/* Statistics Grid */}
-                        <View style={styles.statsGrid}>
-                            <LinearGradient
-                                colors={['#F0FDF4', '#DCFCE7', '#BBF7D0']}
-                                style={styles.statItem}
-                            >
-                                <View style={[styles.statIconContainer, { backgroundColor: '#10B981' }]}>
-                                    <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
-                                </View>
-                                <View style={styles.statContent}>
-                                    <Text style={styles.statValue}>{item.correctAnswers}</Text>
-                                    <Text style={styles.statLabel}>Correct</Text>
-                                </View>
-                            </LinearGradient>
-                            
-                            <LinearGradient
-                                colors={['#FEF3C7', '#FDE68A', '#FCD34D']}
-                                style={styles.statItem}
-                            >
-                                <View style={[styles.statIconContainer, { backgroundColor: '#F59E0B' }]}>
-                                    <Ionicons name="help-circle" size={16} color="#FFFFFF" />
-                                </View>
-                                <View style={styles.statContent}>
-                                    <Text style={styles.statValue}>{item.totalQuestions}</Text>
-                                    <Text style={styles.statLabel}>Total</Text>
-                                </View>
-                            </LinearGradient>
-                            
-                            <LinearGradient
-                                colors={['#DBEAFE', '#BFDBFE', '#93C5FD']}
-                                style={styles.statItem}
-                            >
-                                <View style={[styles.statIconContainer, { backgroundColor: '#3B82F6' }]}>
-                                    <Ionicons name="time" size={16} color="#FFFFFF" />
-                                </View>
-                                <View style={styles.statContent}>
-                                    <Text style={styles.statValue}>{formatTime(item.timeTaken)}</Text>
-                                    <Text style={styles.statLabel}>Time</Text>
-                                </View>
-                            </LinearGradient>
-                            
-                            <LinearGradient
-                                colors={['#F3E8FF', '#E9D5FF', '#DDD6FE']}
-                                style={styles.statItem}
-                            >
-                                <View style={[styles.statIconContainer, { backgroundColor: '#8B5CF6' }]}>
-                                    <Ionicons name="trophy" size={16} color="#FFFFFF" />
-                                </View>
-                                <View style={styles.statContent}>
-                                    <Text style={styles.statValue}>{percentage}%</Text>
-                                    <Text style={styles.statLabel}>Accuracy</Text>
-                                </View>
-                            </LinearGradient>
-                        </View>
-
-                        {/* Completion Date */}
-                        {item.completedAt && (
-                            <View style={styles.completedAtContainer}>
-                                <View style={styles.completedAtIconContainer}>
-                                    <Ionicons name="calendar" size={14} color="#6c757d" />
-                                </View>
-                                <Text style={styles.completedAtText}>
-                                    Completed: {formatDate(item.completedAt)}
-                                </Text>
-                            </View>
-                        )}
-
-                        {/* View Details Button */}
-                        <TouchableOpacity 
-                            style={styles.viewDetailsButton}
-                            onPress={() => handleViewDetails(item)}
-                            activeOpacity={0.8}
-                        >
-                            <LinearGradient
-                                colors={['rgba(79, 70, 229, 0.1)', 'rgba(124, 58, 237, 0.1)', 'rgba(139, 92, 246, 0.1)']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.viewDetailsGradient}
-                            >
-                                <Ionicons name="information-circle-outline" size={16} color="#4F46E5" />
-                                <Text style={styles.viewDetailsText}>View Details</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
+                        <Text style={styles.scorePercentage}>{percentage}%</Text>
+                        <Text style={styles.scoreLabel}>Score</Text>
                     </LinearGradient>
-                </TouchableOpacity>
-            </Animated.View>
+                </View>
+
+                {/* Stats Grid */}
+                <View style={styles.statsGrid}>
+                    <View style={styles.statItem}>
+                        <View style={styles.statIconWrapper}>
+                            <Ionicons name="checkmark-circle-outline" size={18} color="#10B981" />
+                        </View>
+                        <View style={styles.statContent}>
+                            <Text style={styles.statValue}>{item.correctAnswers}/{item.totalQuestions}</Text>
+                            <Text style={styles.statLabel}>Correct</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.statItem}>
+                        <View style={styles.statIconWrapper}>
+                            <Ionicons name="time-outline" size={18} color="#6366F1" />
+                        </View>
+                        <View style={styles.statContent}>
+                            <Text style={styles.statValue}>{formatTime(item.timeTaken)}</Text>
+                            <Text style={styles.statLabel}>Duration</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.statItem}>
+                        <View style={styles.statIconWrapper}>
+                            <Ionicons name="analytics-outline" size={18} color="#F59E0B" />
+                        </View>
+                        <View style={styles.statContent}>
+                            <Text style={styles.statValue}>{item.score}</Text>
+                            <Text style={styles.statLabel}>Points</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Footer */}
+                {item.completedAt && (
+                    <View style={styles.cardFooter}>
+                        <Ionicons name="calendar-outline" size={14} color="#64748B" />
+                        <Text style={styles.footerText}>{formatDate(item.completedAt)}</Text>
+                    </View>
+                )}
+            </TouchableOpacity>
         );
-    };
+    }, []);
 
     const handleViewDetails = (exam: MyExam) => {
         try {
             const targetId = exam.examId || exam.id;
             
-            // Navigate to different routes based on exam type
             if (exam.examType === 'LIVE') {
                 router.push({ pathname: '/(tabs)/exam/[id]' as any, params: { id: String(targetId), from: 'my-exams', status: exam.status } });
             } else if (exam.examType === 'PRACTICE') {
                 router.push({ pathname: '/(tabs)/practice-exam/[id]' as any, params: { id: String(targetId), from: 'my-exams', status: exam.status } });
-            } else {
-                // Fallback to live exam route for unknown types
-                router.push({ pathname: '/(tabs)/exam/[id]' as any, params: { id: String(targetId), from: 'my-exams', status: exam.status } });
             }
         } catch (error) {
             console.error('Navigation error:', error);
@@ -440,16 +291,9 @@ const MyExamsScreen = () => {
     if (loading) {
         return (
             <SafeAreaView style={styles.container}>
-                <LinearGradient
-                    colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                    style={styles.header}
-                >
-                    <Text style={styles.headerTitle}>My Exams</Text>
-                    <Text style={styles.headerSubtitle}>Track your progress</Text>
-                </LinearGradient>
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#667eea" />
-                    <Text style={styles.loadingText}>Loading your exam history...</Text>
+                    <ActivityIndicator size="large" color="#4F46E5" />
+                    <Text style={styles.loadingText}>Loading exams...</Text>
                 </View>
             </SafeAreaView>
         );
@@ -458,15 +302,8 @@ const MyExamsScreen = () => {
     if (error) {
         return (
             <SafeAreaView style={styles.container}>
-                <LinearGradient
-                    colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                    style={styles.header}
-                >
-                    <Text style={styles.headerTitle}>My Exams</Text>
-                    <Text style={styles.headerSubtitle}>Track your progress</Text>
-                </LinearGradient>
                 <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle-outline" size={64} color="#ff6b6b" />
+                    <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity style={styles.retryButton} onPress={fetchMyExams}>
                         <Text style={styles.retryButtonText}>Try Again</Text>
@@ -478,100 +315,143 @@ const MyExamsScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <LinearGradient
-                colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-                style={styles.header}
-            >
-                <Text style={styles.headerTitle}>My Exams</Text>
-                <Text style={styles.headerSubtitle}>
-                    {filteredExams.length} of {exams.length} exams completed
-                </Text>
-            </LinearGradient>
-
-            {/* Search Bar */}
-            <LinearGradient
-                colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']}
-                style={styles.searchContainer}
-            >
-                <View style={styles.searchInputContainer}>
-                    <Ionicons name="search" size={20} color="#4F46E5" style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search exams..."
-                        placeholderTextColor="#6c757d"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        autoCapitalize="none"
-                        autoCorrect={false}
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews={true}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={['#4F46E5']}
+                        tintColor="#4F46E5"
                     />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity
-                            style={styles.clearButton}
-                            onPress={() => setSearchQuery('')}
+                }
+            >
+                {/* Header */}
+                <LinearGradient
+                    colors={['#6366F1', '#8B5CF6', '#A855F7']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.header}
+                >
+                    <Text style={styles.headerTitle}>My Exams</Text>
+                    <Text style={styles.headerSubtitle}>Track your exam performance</Text>
+                </LinearGradient>
+
+                {/* Analytics Cards */}
+                {totalExams > 0 && (
+                    <View style={styles.analyticsContainer}>
+                        <LinearGradient
+                            colors={['#6366F1', '#8B5CF6']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.analyticsCard}
                         >
-                            <Ionicons name="close-circle" size={20} color="#4F46E5" />
-                        </TouchableOpacity>
+                            <View style={styles.analyticsIconBox}>
+                                <Ionicons name="document-text" size={20} color="#FFF" />
+                            </View>
+                            <Text style={styles.analyticsValueWhite}>{totalExams}</Text>
+                            <Text style={styles.analyticsLabelWhite}>Total</Text>
+                        </LinearGradient>
+
+                        <LinearGradient
+                            colors={['#10B981', '#059669']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.analyticsCard}
+                        >
+                            <View style={styles.analyticsIconBox}>
+                                <Ionicons name="trending-up" size={20} color="#FFF" />
+                            </View>
+                            <Text style={styles.analyticsValueWhite}>{avgScore}%</Text>
+                            <Text style={styles.analyticsLabelWhite}>Average</Text>
+                        </LinearGradient>
+
+                        <LinearGradient
+                            colors={['#F59E0B', '#D97706']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.analyticsCard}
+                        >
+                            <View style={styles.analyticsIconBox}>
+                                <Ionicons name="trophy" size={20} color="#FFF" />
+                            </View>
+                            <Text style={styles.analyticsValueWhite}>{bestScore}%</Text>
+                            <Text style={styles.analyticsLabelWhite}>Best</Text>
+                        </LinearGradient>
+
+                        <LinearGradient
+                            colors={['#EC4899', '#DB2777']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.analyticsCard}
+                        >
+                            <View style={styles.analyticsIconBox}>
+                                <Ionicons name="time" size={20} color="#FFF" />
+                            </View>
+                            <Text style={styles.analyticsValueWhite}>{Math.floor(totalTimeTaken / 60)}m</Text>
+                            <Text style={styles.analyticsLabelWhite}>Total Time</Text>
+                        </LinearGradient>
+                    </View>
+                )}
+
+                {/* Search & Filter */}
+                <View style={styles.searchFilterSection}>
+                    <View style={styles.searchContainer}>
+                        <Ionicons name="search-outline" size={20} color="#64748B" />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search exams..."
+                            placeholderTextColor="#94A3B8"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                <Ionicons name="close-circle" size={20} color="#64748B" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    <View style={styles.filterContainer}>
+                        {renderFilterButton('ALL', 'All', 'apps-outline')}
+                        {renderFilterButton('LIVE', 'Live', 'radio-outline')}
+                        {renderFilterButton('PRACTICE', 'Practice', 'book-outline')}
+                    </View>
+                </View>
+
+                {/* Exams List */}
+                <View style={styles.examsSection}>
+                    {filteredExams.length === 0 ? (
+                        <View style={styles.emptyState}>
+                            <Ionicons name="document-text-outline" size={64} color="#CBD5E1" />
+                            <Text style={styles.emptyTitle}>
+                                {searchQuery.trim() ? 'No matches found' : 'No exams yet'}
+                            </Text>
+                            <Text style={styles.emptySubtitle}>
+                                {searchQuery.trim()
+                                    ? 'Try adjusting your search'
+                                    : 'Your completed exams will appear here'}
+                            </Text>
+                        </View>
+                    ) : (
+                        <>
+                            <Text style={styles.sectionTitle}>{filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}</Text>
+                            {filteredExams.map((item) => (
+                                <View key={item.id}>
+                                    {renderExamCard({ item })}
+                                </View>
+                            ))}
+                        </>
                     )}
                 </View>
-            </LinearGradient>
 
-            {/* Filter Controls */}
-            <LinearGradient
-                colors={['#FFFFFF', '#F8FAFC']}
-                style={styles.filterContainer}
-            >
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {renderFilterButton('ALL', 'All', 'list')}
-                    {renderFilterButton('LIVE', 'Live', 'radio')}
-                    {renderFilterButton('PRACTICE', 'Practice', 'school')}
-                </View>
-            </LinearGradient>
+                <View style={{ height: 30 }} />
+            </ScrollView>
 
-            {filteredExams.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <LinearGradient
-                        colors={['#ffffff', '#f8f9fa']}
-                        style={styles.emptyGradient}
-                    >
-                        <View style={styles.emptyIconContainer}>
-                            <Ionicons name="document-text-outline" size={80} color="#667eea" />
-                        </View>
-                        <Text style={styles.emptyTitle}>
-                            {searchQuery.trim() 
-                                ? 'No Matching Exams' 
-                                : selectedFilter === 'ALL' 
-                                    ? 'No Exams Yet' 
-                                    : `No ${selectedFilter} Exams`
-                            }
-                        </Text>
-                        <Text style={styles.emptySubtitle}>
-                            {searchQuery.trim()
-                                ? `No exams found matching "${searchQuery}". Try a different search term.`
-                                : selectedFilter === 'ALL' 
-                                    ? "You haven't taken any exams yet. Start practicing to see your results here!"
-                                    : `You haven't taken any ${selectedFilter.toLowerCase()} exams yet.`
-                            }
-                        </Text>
-                    </LinearGradient>
-                </View>
-            ) : (
-                <FlatList
-                    data={filteredExams}
-                    keyExtractor={(item) => item.id}
-                    renderItem={compactView ? renderExamRow : renderExamCard}
-                    contentContainerStyle={styles.listContainer}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={onRefresh}
-                            colors={['#667eea']}
-                            tintColor="#667eea"
-                        />
-                    }
-                    showsVerticalScrollIndicator={false}
-                />
-            )}
-
+            {/* Details Modal */}
             {showDetails && selectedExam && (
                 <Modal
                     visible={showDetails}
@@ -579,90 +459,53 @@ const MyExamsScreen = () => {
                     transparent={true}
                     onRequestClose={() => setShowDetails(false)}
                 >
-                    <View style={styles.modalContainer}>
+                    <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{selectedExam.examName}</Text>
-                                <TouchableOpacity 
-                                    style={styles.closeIconButton}
-                                    onPress={() => setShowDetails(false)}
-                                >
-                                    <Ionicons name="close" size={24} color="#6c757d" />
+                                <TouchableOpacity onPress={() => setShowDetails(false)}>
+                                    <Ionicons name="close" size={24} color="#64748B" />
                                 </TouchableOpacity>
                             </View>
-                            
-                            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-                                {/* Exam Type & Status */}
-                                <View style={styles.modalSection}>
-                                    <Text style={styles.modalSectionTitle}>Exam Information</Text>
-                                    <View style={styles.modalInfoRow}>
-                                        <View style={styles.modalInfoItem}>
-                                            <Ionicons name="school-outline" size={20} color="#667eea" />
-                                            <Text style={styles.modalInfoLabel}>Type</Text>
-                                            <Text style={styles.modalInfoValue}>{selectedExam.examType}</Text>
-                                        </View>
-                                        <View style={styles.modalInfoItem}>
-                                            <Ionicons name="checkmark-circle-outline" size={20} color="#28a745" />
-                                            <Text style={styles.modalInfoLabel}>Status</Text>
-                                            <Text style={styles.modalInfoValue}>{selectedExam.status}</Text>
-                                        </View>
-                                    </View>
-                                </View>
 
-                                {/* Score Details */}
+                            <ScrollView style={styles.modalBody}>
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Performance</Text>
-                                    <View style={styles.modalScoreContainer}>
-                                        <View style={styles.modalScoreItem}>
-                                            <Text style={styles.modalScoreValue}>{selectedExam.score}</Text>
-                                            <Text style={styles.modalScoreLabel}>Total Score</Text>
-                                        </View>
-                                        <View style={styles.modalScoreItem}>
-                                            <Text style={styles.modalScoreValue}>{getScorePercentage(selectedExam.score, selectedExam.totalQuestions)}%</Text>
-                                            <Text style={styles.modalScoreLabel}>Percentage</Text>
-                                        </View>
-                                    </View>
-                                </View>
-
-                                {/* Statistics */}
-                                <View style={styles.modalSection}>
-                                    <Text style={styles.modalSectionTitle}>Statistics</Text>
                                     <View style={styles.modalStatsGrid}>
                                         <View style={styles.modalStatItem}>
-                                            <Ionicons name="checkmark-circle" size={24} color="#28a745" />
-                                            <Text style={styles.modalStatValue}>{selectedExam.correctAnswers}</Text>
-                                            <Text style={styles.modalStatLabel}>Correct</Text>
+                                            <Text style={styles.modalStatValue}>{selectedExam.score}</Text>
+                                            <Text style={styles.modalStatLabel}>Score</Text>
                                         </View>
                                         <View style={styles.modalStatItem}>
-                                            <Ionicons name="help-circle" size={24} color="#ffc107" />
-                                            <Text style={styles.modalStatValue}>{selectedExam.totalQuestions - selectedExam.correctAnswers}</Text>
-                                            <Text style={styles.modalStatLabel}>Incorrect</Text>
-                                        </View>
-                                        <View style={styles.modalStatItem}>
-                                            <Ionicons name="time" size={24} color="#17a2b8" />
-                                            <Text style={styles.modalStatValue}>{formatTime(selectedExam.timeTaken)}</Text>
-                                            <Text style={styles.modalStatLabel}>Time Taken</Text>
-                                        </View>
-                                        <View style={styles.modalStatItem}>
-                                            <Ionicons name="analytics" size={24} color="#6f42c1" />
-                                            <Text style={styles.modalStatValue}>{selectedExam.totalQuestions}</Text>
-                                            <Text style={styles.modalStatLabel}>Total Questions</Text>
+                                            <Text style={styles.modalStatValue}>
+                                                {getScorePercentage(selectedExam.correctAnswers, selectedExam.totalQuestions)}%
+                                            </Text>
+                                            <Text style={styles.modalStatLabel}>Accuracy</Text>
                                         </View>
                                     </View>
                                 </View>
 
-                                {/* Completion Date */}
-                                {selectedExam.completedAt && (
-                                    <View style={styles.modalSection}>
-                                        <Text style={styles.modalSectionTitle}>Completion Details</Text>
-                                        <View style={styles.modalCompletionInfo}>
-                                            <Ionicons name="calendar" size={20} color="#6c757d" />
-                                            <Text style={styles.modalCompletionText}>
-                                                Completed on {formatDate(selectedExam.completedAt)}
-                                            </Text>
-                                        </View>
+                                <View style={styles.modalSection}>
+                                    <Text style={styles.modalSectionTitle}>Details</Text>
+                                    <View style={styles.modalDetailRow}>
+                                        <Text style={styles.modalDetailLabel}>Type:</Text>
+                                        <Text style={styles.modalDetailValue}>{selectedExam.examType}</Text>
                                     </View>
-                                )}
+                                    <View style={styles.modalDetailRow}>
+                                        <Text style={styles.modalDetailLabel}>Correct Answers:</Text>
+                                        <Text style={styles.modalDetailValue}>{selectedExam.correctAnswers}/{selectedExam.totalQuestions}</Text>
+                                    </View>
+                                    <View style={styles.modalDetailRow}>
+                                        <Text style={styles.modalDetailLabel}>Time Taken:</Text>
+                                        <Text style={styles.modalDetailValue}>{formatTime(selectedExam.timeTaken)}</Text>
+                                    </View>
+                                    {selectedExam.completedAt && (
+                                        <View style={styles.modalDetailRow}>
+                                            <Text style={styles.modalDetailLabel}>Completed:</Text>
+                                            <Text style={styles.modalDetailValue}>{formatDate(selectedExam.completedAt)}</Text>
+                                        </View>
+                                    )}
+                                </View>
                             </ScrollView>
                         </View>
                     </View>
@@ -675,83 +518,17 @@ const MyExamsScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
-    },
-    header: {
-        padding: 16,
-        paddingTop: 8,
-        paddingBottom: 12,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 16,
-    },
-    headerBackgroundPattern: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        opacity: 0.5,
-    },
-    headerPatternCircle1: {
-        position: 'absolute',
-        top: 6,
-        right: 18,
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        backgroundColor: 'rgba(255,255,255,0.25)'
-    },
-    headerPatternCircle2: {
-        position: 'absolute',
-        bottom: 8,
-        left: 20,
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: 'rgba(255,255,255,0.2)'
-    },
-    headerPatternDots: {
-        position: 'absolute',
-        top: 12,
-        left: 60,
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: 'rgba(255,255,255,0.18)'
-    },
-    headerShimmerBar: {
-        position: 'absolute',
-        top: 0,
-        left: -80,
-        width: 120,
-        height: '100%',
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        transform: [{ skewX: '-20deg' }],
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: AppColors.white,
-        marginBottom: 4,
-        textShadowColor: 'rgba(0,0,0,0.3)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
-    },
-    headerSubtitle: {
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.9)',
-        fontWeight: '500',
+        backgroundColor: '#F8FAFC',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f8f9fa',
+        gap: 12,
     },
     loadingText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: '#495057',
+        fontSize: 14,
+        color: '#64748B',
         fontWeight: '500',
     },
     errorContainer: {
@@ -759,86 +536,180 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 20,
-        backgroundColor: '#f8f9fa',
+        gap: 16,
     },
     errorText: {
-        fontSize: 18,
-        color: '#ff6b6b',
-        marginTop: 16,
+        fontSize: 16,
+        color: '#64748B',
         textAlign: 'center',
         fontWeight: '500',
     },
     retryButton: {
-        marginTop: 20,
-        backgroundColor: '#667eea',
+        backgroundColor: '#4F46E5',
         paddingHorizontal: 24,
         paddingVertical: 12,
-        borderRadius: 25,
-        shadowColor: '#667eea',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
+        borderRadius: 8,
     },
     retryButtonText: {
-        color: AppColors.white,
-        fontSize: 16,
+        color: '#FFF',
+        fontSize: 14,
         fontWeight: '600',
     },
-    emptyContainer: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: '#f8f9fa',
+
+    // Header
+    header: {
+        paddingHorizontal: 20,
+        paddingTop: 24,
+        paddingBottom: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 6,
     },
-    emptyGradient: {
+    headerTitle: {
+        fontSize: 30,
+        fontWeight: '800',
+        color: '#FFF',
+        marginBottom: 6,
+        letterSpacing: 0.5,
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.9)',
+        fontWeight: '500',
+        letterSpacing: 0.3,
+    },
+
+    // Analytics
+    analyticsContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        gap: 12,
+        backgroundColor: '#FFF',
+    },
+    analyticsCard: {
         flex: 1,
+        borderRadius: 12,
+        padding: 14,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    analyticsIconBox: {
+        width: 36,
+        height: 36,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.25)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 24,
-        padding: 40,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.1,
-        shadowRadius: 16,
-        elevation: 8,
+        marginBottom: 10,
     },
-    emptyTitle: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        color: '#495057',
-        marginTop: 24,
+    analyticsValue: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 2,
+    },
+    analyticsValueWhite: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: '#FFF',
+        marginBottom: 2,
+        letterSpacing: 0.5,
+    },
+    analyticsLabel: {
+        fontSize: 11,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    analyticsLabelWhite: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.95)',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+
+    // Search & Filter
+    searchFilterSection: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        gap: 12,
+        backgroundColor: '#FFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F8FAFC',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        height: 44,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        gap: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        color: '#0F172A',
+        fontWeight: '500',
+    },
+    filterContainer: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    filterChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 8,
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        gap: 6,
+    },
+    filterChipActive: {
+        backgroundColor: '#EEF2FF',
+        borderColor: '#4F46E5',
+    },
+    filterChipText: {
+        fontSize: 13,
+        color: '#64748B',
+        fontWeight: '600',
+    },
+    filterChipTextActive: {
+        color: '#4F46E5',
+    },
+
+    // Exams Section
+    examsSection: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#0F172A',
         marginBottom: 12,
     },
-    emptySubtitle: {
-        fontSize: 16,
-        color: '#6c757d',
-        textAlign: 'center',
-        lineHeight: 24,
-        fontWeight: '400',
-    },
-    listContainer: {
-        padding: 8,
-        paddingTop: 4,
-    },
     examCard: {
-        marginBottom: 8,
-        borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 4,
-        elevation: 3,
-        transform: [{ scale: 1 }],
-    },
-    cardGradient: {
-        borderRadius: 16,
+        backgroundColor: '#FFF',
+        borderRadius: 14,
         padding: 16,
-        overflow: 'hidden',
+        marginBottom: 14,
         borderWidth: 1,
-        borderColor: 'rgba(79, 70, 229, 0.1)',
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
+        borderColor: '#E2E8F0',
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
         shadowRadius: 8,
         elevation: 4,
     },
@@ -846,644 +717,228 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 8,
-        marginTop: 8,
+        marginBottom: 16,
+        gap: 12,
     },
-    examInfo: {
+    cardHeaderLeft: {
         flex: 1,
-        marginRight: 12,
-    },
-    examNameContainer: {
-        marginBottom: 12,
-    },
-    examName: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: '#2c3e50',
-        marginBottom: 4,
-        lineHeight: 20,
-    },
-    examTypeContainer: {
-        flexDirection: 'row',
         gap: 8,
     },
     examTypeBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
+        alignSelf: 'flex-start',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
         gap: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    examTypeText: {
+    liveBadge: {
+        backgroundColor: '#EF4444',
+    },
+    practiceBadge: {
+        backgroundColor: '#4F46E5',
+    },
+    examTypeBadgeText: {
         fontSize: 10,
-        fontWeight: '700',
-        color: '#ffffff',
+        fontWeight: '800',
+        color: '#FFF',
         textTransform: 'uppercase',
+        letterSpacing: 0.8,
     },
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        gap: 4,
-    },
-    statusText: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: '#ffffff',
-        textTransform: 'uppercase',
+    examTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#0F172A',
+        lineHeight: 22,
     },
     scoreContainer: {
         alignItems: 'center',
-        minWidth: 68,
-    },
-    scoreGradient: {
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 12,
-        minWidth: 65,
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 2 },
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowRadius: 6,
+        elevation: 5,
     },
-    scoreText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#ffffff',
+    scorePercentage: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#FFF',
+        letterSpacing: 0.5,
     },
     scoreLabel: {
         fontSize: 10,
-        color: 'rgba(255,255,255,0.9)',
-        marginTop: 2,
-        fontWeight: '500',
-    },
-    scorePercentageContainer: {
-        marginTop: 3,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 6,
-    },
-    scorePercentage: {
-        fontSize: 9,
-        fontWeight: 'bold',
-        color: '#ffffff',
-    },
-    cardDetails: {
-        gap: 12,
-    },
-    detailRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 12,
-    },
-    detailItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 10,
-        gap: 8,
-    },
-    detailIconContainer: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    detailTextContainer: {
-        flex: 1,
-    },
-    detailLabel: {
-        fontSize: 9,
-        color: 'rgba(255,255,255,0.7)',
-        fontWeight: '500',
-        textTransform: 'uppercase',
-        marginBottom: 2,
-    },
-    detailText: {
-        fontSize: 12,
         color: 'rgba(255,255,255,0.95)',
         fontWeight: '600',
-    },
-    completedAtContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 4,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        borderTopColor: '#e9ecef',
-        gap: 6,
-    },
-    completedAtIconContainer: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        backgroundColor: '#e9ecef',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    completedAtText: {
-        fontSize: 11,
-        color: '#6c757d',
-        marginLeft: 6,
-    },
-    cornerDecoration: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        width: 0,
-        height: 0,
-        borderStyle: 'solid',
-        borderLeftWidth: 40,
-        borderBottomWidth: 40,
-        borderLeftColor: 'transparent',
-        borderBottomColor: '#e9ecef',
-        borderTopRightRadius: 20,
-    },
-    filterContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e9ecef',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    filterButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderWidth: 1.5,
-        borderColor: '#e9ecef',
-        borderRadius: 16,
-        gap: 4,
-        backgroundColor: '#ffffff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
-    },
-    filterButtonGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        gap: 4,
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    filterButtonActive: {
-        borderColor: '#4F46E5',
-        backgroundColor: 'transparent',
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    filterButtonText: {
-        fontSize: 12,
-        color: '#6c757d',
-        fontWeight: '600',
-    },
-    filterButtonTextActive: {
-        fontSize: 12,
-        color: '#FFFFFF',
-        fontWeight: '700',
-        textShadowColor: 'rgba(0, 0, 0, 0.1)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-    },
-    viewToggle: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: '#e9ecef',
-        backgroundColor: '#ffffff',
-        gap: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
-    },
-    viewToggleActive: {
-        borderColor: '#667eea',
-        backgroundColor: '#667eea',
-        shadowColor: '#667eea',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    viewToggleText: {
-        fontSize: 12,
-        color: '#6c757d',
-        fontWeight: '700',
+        marginTop: 2,
         textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
-    viewToggleTextActive: {
-        color: '#ffffff',
-    },
-    rowItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#ffffff',
-        borderRadius: 14,
-        paddingHorizontal: 12,
-        paddingVertical: 12,
-        borderWidth: 1,
-        borderColor: '#e9ecef',
-        marginBottom: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    rowThumb: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 10,
-    },
-    rowCenter: {
-        flex: 1,
-    },
-    rowTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#2c3e50',
-        marginBottom: 4,
-    },
-    rowMeta: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        flexWrap: 'wrap',
-    },
-    rowBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 10,
-    },
-    rowBadgeText: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: '#ffffff',
-        textTransform: 'uppercase',
-        letterSpacing: 0.4,
-    },
-    rowDate: {
-        fontSize: 11,
-        color: '#6c757d',
-        marginLeft: 4,
-    },
-    rowRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginLeft: 10,
-    },
-    rowScorePill: {
-        backgroundColor: '#e9ecef',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 10,
-    },
-    rowScoreText: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: '#2c3e50',
-    },
-    completedToggle: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: '#e9ecef',
-        backgroundColor: '#ffffff',
-        gap: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
-    },
-    completedToggleActive: {
-        borderColor: '#28a745',
-        backgroundColor: '#28a745',
-        shadowColor: '#28a745',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    completedToggleText: {
-        fontSize: 12,
-        color: '#6c757d',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-    },
-    completedToggleTextActive: {
-        color: '#ffffff',
-    },
-    performanceIndicator: {
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        gap: 4,
-        zIndex: 1,
-    },
-    performanceText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: AppColors.white,
-        textTransform: 'uppercase',
-    },
+
+    // Stats Grid
     statsGrid: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        gap: 8,
-        marginTop: 8,
+        gap: 12,
+        marginBottom: 12,
     },
     statItem: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 1,
-        minWidth: '45%',
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 10,
-        gap: 6,
-        borderWidth: 1,
-        borderColor: 'rgba(79, 70, 229, 0.1)',
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 2,
-        elevation: 1,
+        backgroundColor: '#F8FAFC',
+        padding: 10,
+        borderRadius: 8,
+        gap: 8,
     },
-    statIconContainer: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+    statIconWrapper: {
+        width: 32,
+        height: 32,
+        borderRadius: 6,
+        backgroundColor: '#FFF',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     statContent: {
         flex: 1,
     },
     statValue: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        color: '#2c3e50',
-        marginBottom: 1,
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#0F172A',
     },
     statLabel: {
         fontSize: 10,
-        color: '#6c757d',
+        color: '#64748B',
         fontWeight: '500',
-        textTransform: 'uppercase',
+        marginTop: 2,
     },
-    cardTouchable: {
-        flex: 1,
-    },
-    emptyIconContainer: {
-        marginBottom: 20,
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
+
+    // Card Footer
+    cardFooter: {
+        flexDirection: 'row',
         alignItems: 'center',
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
+        gap: 6,
+    },
+    footerText: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+
+    // Empty State
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 40,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#0F172A',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        color: '#64748B',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+
+    // Modal
+    modalOverlay: {
+        flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: 'white',
-        borderRadius: 20,
-        width: '90%',
-        maxHeight: '85%',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.25,
-        shadowRadius: 20,
-        elevation: 10,
+        backgroundColor: '#FFF',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        maxHeight: '80%',
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 20,
-        paddingBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#e9ecef',
+        borderBottomColor: '#F1F5F9',
     },
     modalTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#2c3e50',
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0F172A',
         flex: 1,
-        marginRight: 16,
+        marginRight: 12,
     },
-    closeIconButton: {
-        padding: 4,
-    },
-    modalScrollView: {
+    modalBody: {
         padding: 20,
     },
     modalSection: {
         marginBottom: 24,
     },
     modalSectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#2c3e50',
-        marginBottom: 16,
-    },
-    modalInfoRow: {
-        flexDirection: 'row',
-        gap: 16,
-    },
-    modalInfoItem: {
-        flex: 1,
-        alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e9ecef',
-    },
-    modalInfoLabel: {
-        fontSize: 12,
-        color: '#6c757d',
-        marginTop: 8,
-        marginBottom: 4,
-        fontWeight: '500',
-        textTransform: 'uppercase',
-    },
-    modalInfoValue: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#2c3e50',
-    },
-    modalScoreContainer: {
-        flexDirection: 'row',
-        gap: 16,
-    },
-    modalScoreItem: {
-        flex: 1,
-        alignItems: 'center',
-        backgroundColor: '#667eea',
-        padding: 20,
-        borderRadius: 16,
-    },
-    modalScoreValue: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#ffffff',
-        marginBottom: 4,
-    },
-    modalScoreLabel: {
         fontSize: 14,
-        color: 'rgba(255,255,255,0.9)',
-        fontWeight: '500',
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     modalStatsGrid: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         gap: 12,
     },
     modalStatItem: {
         flex: 1,
-        minWidth: '45%',
-        alignItems: 'center',
-        backgroundColor: '#f8f9fa',
+        backgroundColor: '#F8FAFC',
         padding: 16,
-        borderRadius: 12,
+        borderRadius: 10,
+        alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#e9ecef',
+        borderColor: '#E2E8F0',
     },
     modalStatValue: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#2c3e50',
-        marginTop: 8,
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#0F172A',
         marginBottom: 4,
     },
     modalStatLabel: {
         fontSize: 12,
-        color: '#6c757d',
-        fontWeight: '500',
-        textTransform: 'uppercase',
-    },
-    modalCompletionInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e9ecef',
-        gap: 12,
-    },
-    modalCompletionText: {
-        fontSize: 16,
-        color: '#2c3e50',
+        color: '#64748B',
         fontWeight: '500',
     },
-    viewDetailsButton: {
+    modalDetailRow: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 10,
-        marginTop: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(79, 70, 229, 0.2)',
-        gap: 6,
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 2,
-        elevation: 1,
-    },
-    viewDetailsGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 10,
-        gap: 6,
-    },
-    viewDetailsText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#4F46E5',
-    },
-    searchContainer: {
-        paddingHorizontal: 16,
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#e9ecef',
+        borderBottomColor: '#F1F5F9',
     },
-    searchInputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        borderWidth: 1,
-        borderColor: '#e9ecef',
+    modalDetailLabel: {
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '500',
     },
-    searchIcon: {
-        marginRight: 8,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 16,
-        color: '#2c3e50',
-        paddingVertical: 12,
-    },
-    clearButton: {
-        padding: 4,
+    modalDetailValue: {
+        fontSize: 14,
+        color: '#0F172A',
+        fontWeight: '600',
     },
 });
 
-export default MyExamsScreen; 
+export default MyExamsScreen;

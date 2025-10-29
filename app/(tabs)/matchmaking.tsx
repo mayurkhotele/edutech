@@ -76,7 +76,7 @@ export default function MatchmakingScreen() {
   const mode = params.mode as string;
   const amount = params.amount as string;
 
-  console.log('Matchmaking Screen - Initial State:', { category, mode, amount, user: user?.id });
+
 
   // Fetch user profile like web version
   const fetchUserProfile = async () => {
@@ -84,7 +84,7 @@ export default function MatchmakingScreen() {
       const token = await AsyncStorage.getItem('token');
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('🔑 Token payload:', payload);
+
       }
     } catch (error) {
       console.error('❌ Error decoding token:', error);
@@ -107,12 +107,12 @@ export default function MatchmakingScreen() {
 
   // Initialize socket connection - Enhanced like web version
   useEffect(() => {
-    console.log('🔌 Socket connection useEffect triggered');
-    console.log('🔑 User token available:', !!user?.token);
-    console.log('👤 User object:', { id: user?.id, hasToken: !!user?.token });
+
+
+
     
     if (user?.token) {
-      console.log('🚀 Initializing socket connection...');
+
       const newSocket = io('http://192.168.1.6:3001', {
         auth: {
           token: user.token
@@ -124,24 +124,24 @@ export default function MatchmakingScreen() {
       });
 
       newSocket.on('connect', () => {
-        console.log('✅ Socket connected:', newSocket.id);
-        console.log('🔗 Socket connection details:');
-        console.log('   - Socket ID:', newSocket.id);
-        console.log('   - Connected:', newSocket.connected);
-        console.log('   - Transport:', newSocket.io.engine.transport.name);
-        console.log('   - Auth token:', !!user?.token);
-        console.log('   - User ID:', user?.id);
+
+
+
+
+
+
+
         setIsConnected(true);
         
         // Register user immediately after connection (like web version)
         if (user?.id) {
-          console.log('👤 Registering user:', user.id);
+
           newSocket.emit('register_user', user.id);
         }
       });
 
       newSocket.on('disconnect', () => {
-        console.log('❌ Socket disconnected');
+
         setIsConnected(false);
       });
 
@@ -151,17 +151,17 @@ export default function MatchmakingScreen() {
       });
 
       newSocket.on('pong', () => {
-        console.log('🏓 Received pong from server - socket connection is working');
+
       });
 
       setSocket(newSocket);
 
       return () => {
-        console.log('🧹 Cleaning up socket connection...');
+
         newSocket.disconnect();
       };
     } else {
-      console.log('❌ No user token available for socket connection');
+
       setError('Authentication required. Please login again.');
     }
   }, [user?.token]);
@@ -170,7 +170,7 @@ export default function MatchmakingScreen() {
   useEffect(() => {
     if (!socket || !isConnected || hasStartedSearch.current) return;
 
-    console.log('🚀 Starting matchmaking...', { category, mode, amount });
+
     hasStartedSearch.current = true;
     searchStartTime.current = Date.now();
 
@@ -183,7 +183,7 @@ export default function MatchmakingScreen() {
     }, 1000);
 
     // Emit matchmaking request
-    console.log('📡 Emitting join_matchmaking:', { categoryId: category, mode: mode || 'quick', amount });
+
     socket.emit('join_matchmaking', {
       categoryId: category,
       mode: mode || 'quick',
@@ -192,13 +192,13 @@ export default function MatchmakingScreen() {
 
     // Test socket connection
     setTimeout(() => {
-      console.log('🏓 Testing socket connection...');
+
       socket.emit('ping');
     }, 1000);
 
     // Set search timeout (2 minutes)
     const timeout = setTimeout(() => {
-      console.log('⏰ Search timeout reached');
+
       setError('No opponent found within 2 minutes. Please try again.');
       setMatchmakingState(prev => ({ ...prev, status: 'error' }));
     }, 120000); // 2 minutes
@@ -211,7 +211,7 @@ export default function MatchmakingScreen() {
       estimatedWait?: number; 
       message?: string 
     }) => {
-      console.log('📊 Matchmaking update:', data);
+
       setMatchmakingState(prev => ({
         ...prev,
         status: data.status as any,
@@ -220,7 +220,7 @@ export default function MatchmakingScreen() {
     });
 
     socket.on('opponent_found', (data: { opponent: User; category?: string }) => {
-      console.log('🎯 Opponent found:', data);
+
       setMatchmakingState(prev => ({
         ...prev,
         status: 'found',
@@ -230,7 +230,7 @@ export default function MatchmakingScreen() {
     });
 
     socket.on('match_starting', (data: { countdown: number }) => {
-      console.log('⚡ Match starting:', data);
+
       setMatchmakingState(prev => ({
         ...prev,
         status: 'starting'
@@ -253,7 +253,7 @@ export default function MatchmakingScreen() {
     });
 
     socket.on('match_ready', (data: { matchId: string; roomCode?: string }) => {
-      console.log('🎮 Match ready:', data);
+
       
       // Clear timers
       if (timerRef.current) {
@@ -273,13 +273,13 @@ export default function MatchmakingScreen() {
       
       // Navigate to battle
       if (data.roomCode) {
-        console.log('🏠 Navigating to battle room:', data.roomCode);
+
         router.push({
           pathname: '/(tabs)/battle-room',
           params: { roomCode: data.roomCode }
         } as any);
       } else {
-        console.log('⚔️ Navigating to battle:', data.matchId);
+
         router.push({
           pathname: '/(tabs)/battle-room',
           params: { matchId: data.matchId }
@@ -294,12 +294,12 @@ export default function MatchmakingScreen() {
     });
 
     socket.on('opponent_cancelled', () => {
-      console.log('🚫 Opponent cancelled matchmaking');
+
       setMatchmakingState(prev => ({ ...prev, status: 'searching' }));
     });
 
     socket.on('pong', () => {
-      console.log('🏓 Received pong from server - socket connection is working');
+
     });
 
     socket.on('connect_error', (error) => {
@@ -330,7 +330,7 @@ export default function MatchmakingScreen() {
 
   // Enhanced animations
   useEffect(() => {
-    console.log('🎨 Starting enhanced animations...');
+
     
     // Radar scan animation
     Animated.loop(
@@ -441,7 +441,7 @@ export default function MatchmakingScreen() {
   // 🧹 Cleanup on component unmount
   useEffect(() => {
     return () => {
-      console.log('🧹 Matchmaking component unmounting - cleaning up...');
+
       
       // Clear timers
       if (timerRef.current) {
@@ -459,13 +459,13 @@ export default function MatchmakingScreen() {
       
       // Disconnect socket if needed
       if (socket && socket.connected) {
-        console.log('🔌 Disconnecting socket on unmount...');
+
         socket.disconnect();
       }
     };
   }, [socket]);
   const handleCancelSearch = () => {
-    console.log('❌ Cancelling search...');
+
     setMatchmakingState({
       status: 'searching',
       timeElapsed: 0,
@@ -490,7 +490,7 @@ export default function MatchmakingScreen() {
   };
 
   const handleRetrySearch = () => {
-    console.log('🔄 Retrying search...');
+
     setError(null);
     hasStartedSearch.current = false;
     setMatchmakingState({
@@ -501,14 +501,14 @@ export default function MatchmakingScreen() {
     
     // Restart the matchmaking process
     if (socket && isConnected) {
-      console.log('📡 Re-emitting join_matchmaking...');
+
       socket.emit('join_matchmaking', {
         categoryId: category,
         mode: mode || 'quick',
         amount: amount ? parseFloat(amount) : undefined
       });
     } else {
-      console.log('⚠️ Socket not connected, attempting to reconnect...');
+
       // Force reconnection
       if (socket) {
         socket.connect();
@@ -527,7 +527,7 @@ export default function MatchmakingScreen() {
     return categoryId;
   };
 
-  console.log('🔄 Current matchmaking state:', matchmakingState);
+
 
   if (error) {
     // Check if it's an insufficient balance error

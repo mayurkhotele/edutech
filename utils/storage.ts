@@ -6,12 +6,19 @@ const USER_KEY = 'user_data';
 // Store all auth data
 export async function storeAuthData(token: string, user: any) {
   try {
-    console.log('Storing auth data - Token:', token.substring(0, 10) + '...', 'User ID:', user.id);
+    console.log('💾 Storing auth data:', {
+      tokenLength: token.length,
+      userId: user.id,
+      userName: user.name,
+      hasPhoneNumber: !!user.phoneNumber,
+      hasToken: !!user.token
+    });
+
     await SecureStore.setItemAsync(TOKEN_KEY, token);
     await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
-    console.log('Auth data stored successfully');
+    console.log('✅ Auth data stored successfully');
   } catch (error) {
-    console.error('Failed to save auth data to storage', error);
+    console.error('❌ Failed to save auth data to storage:', error);
   }
 }
 
@@ -31,11 +38,24 @@ export async function getToken() {
 export async function getUser() {
   try {
     const userStr = await SecureStore.getItemAsync(USER_KEY);
-    const user = userStr ? JSON.parse(userStr) : null;
-    console.log('Retrieved user data:', user ? { id: user.id, name: user.name } : 'null');
+    if (!userStr) {
+      console.log('🔍 No user data found in storage');
+      return null;
+    }
+
+    const user = JSON.parse(userStr);
+    console.log('Retrieved user data:', {
+      id: user.id,
+      name: user.name,
+      hasToken: !!user.token,
+      phoneNumber: user.phoneNumber
+    });
     return user;
   } catch (error) {
-    console.error('Failed to fetch user from storage', error);
+    console.error('❌ Failed to fetch user from storage:', error);
+    console.error('❌ User data might be corrupted, clearing storage');
+    // Clear corrupted data
+    await clearAuthData();
     return null;
   }
 }
@@ -43,11 +63,11 @@ export async function getUser() {
 // Clear all auth data
 export async function clearAuthData() {
   try {
-    console.log('Clearing auth data from storage');
+    console.log('🗑️ Clearing auth data from storage');
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     await SecureStore.deleteItemAsync(USER_KEY);
-    console.log('Auth data cleared successfully');
+    console.log('✅ Auth data cleared successfully');
   } catch (error) {
-    console.error('Failed to clear auth data from storage', error);
+    console.error('❌ Failed to clear auth data from storage:', error);
   }
 } 

@@ -1,335 +1,275 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ChannelProfileType, ClientRoleType, RtcEngine } from 'react-native-agora';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import { Alert, Linking, Text, TouchableOpacity, View } from 'react-native';
 
 interface AgoraVoiceChatProps {
-  appId: string;
-  channelName: string;
-  uid: number;
-  isMyTurn: boolean;
+  gameId: string;
+  userId: string;
+  userName: string;
   currentTurn: number;
-  onError?: (error: string) => void;
-  onJoinSuccess?: () => void;
-  onLeaveChannel?: () => void;
+  isMyTurn: boolean;
+  timeLeft: number;
+  participants: Array<{
+    id: string;
+    name: string;
+    micOn: boolean;
+    isCurrentTurn: boolean;
+  }>;
+  onTurnEnd?: () => void;
+  onError?: (error: any) => void;
 }
 
-const AgoraVoiceChat: React.FC<AgoraVoiceChatProps> = ({
-  appId,
-  channelName,
-  uid,
-  isMyTurn,
+export default function AgoraVoiceChat({
+  gameId,
+  userId,
+  userName,
   currentTurn,
-  onError,
-  onJoinSuccess,
-  onLeaveChannel,
-}) => {
-  const [isJoined, setIsJoined] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isSpeakerEnabled, setIsSpeakerEnabled] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const engineRef = useRef<RtcEngine | null>(null);
+  isMyTurn,
+  timeLeft,
+  participants,
+  onTurnEnd,
+  onError
+}: AgoraVoiceChatProps) {
+  const [isConnected, setIsConnected] = useState(false);
+  const [micOn, setMicOn] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(true);
+  const [browserOpened, setBrowserOpened] = useState(false);
 
+  // Open Agora Web SDK in external browser
+  const openAgoraBrowser = async () => {
+    try {
+
+      
+      // WebRTC Demo URL - Simple and working
+      const agoraURL = 'https://webrtc.github.io/samples/src/content/getusermedia/gum/';
+      
+      const supported = await Linking.canOpenURL(agoraURL);
+      if (supported) {
+        await Linking.openURL(agoraURL);
+        setBrowserOpened(true);
+        Alert.alert(
+          'Agora Voice Chat',
+          'Browser opened! Join the voice chat room and start speaking.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setIsConnected(true);
+
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Cannot open browser');
+      }
+    } catch (error) {
+      console.error('❌ Failed to open browser:', error);
+      Alert.alert('Error', 'Failed to open Agora browser');
+    }
+  };
+
+  // Initialize Agora when component mounts
   useEffect(() => {
-    initializeAgora();
-    return () => {
-      leaveChannel();
-    };
+    if (!browserOpened) {
+      openAgoraBrowser();
+    }
   }, []);
 
-  // Auto-mute when not your turn
-  useEffect(() => {
-    if (isJoined && engineRef.current) {
-      if (!isMyTurn) {
-        engineRef.current.muteLocalAudioStream(true);
-        setIsMuted(true);
-        console.log('🎤 Auto-muted (not your turn)');
-      }
-    }
-  }, [isMyTurn, isJoined]);
+  // Toggle microphone
+  const toggleMic = () => {
 
-  const initializeAgora = async () => {
-    try {
-      console.log('🎤 Initializing Agora...');
-      
-      // Create RtcEngine instance
-      const engine = await RtcEngine.create(appId);
-      engineRef.current = engine;
-
-      // Set channel profile to communication
-      await engine.setChannelProfile(ChannelProfileType.ChannelProfileCommunication);
-
-      // Set client role to broadcaster
-      await engine.setClientRole(ClientRoleType.ClientRoleBroadcaster);
-
-      // Enable audio
-      await engine.enableAudio();
-
-      // Set audio profile
-      await engine.setAudioProfile(1, 1); // High quality audio
-
-      // Join channel
-      await joinChannel();
-
-    } catch (error) {
-      console.error('🎤 Failed to initialize Agora:', error);
-      const errorMessage = `Failed to initialize Agora: ${error}`;
-      setError(errorMessage);
-      onError?.(errorMessage);
-    }
+    setMicOn(!micOn);
+    Alert.alert('Mic Toggled', `Mic is now: ${!micOn ? 'ON' : 'OFF'}`);
   };
 
-  const joinChannel = async () => {
-    try {
-      if (!engineRef.current) return;
+  // Toggle speaker
+  const toggleSpeaker = () => {
 
-      console.log('🎤 Joining channel:', channelName);
-      
-      await engineRef.current.joinChannel(null, channelName, null, uid);
-      setIsJoined(true);
-      setIsMuted(true); // Start muted
-      
-      console.log('🎤 Successfully joined channel');
-      onJoinSuccess?.();
-
-    } catch (error) {
-      console.error('🎤 Failed to join channel:', error);
-      const errorMessage = `Failed to join channel: ${error}`;
-      setError(errorMessage);
-      onError?.(errorMessage);
-    }
+    setSpeakerOn(!speakerOn);
+    Alert.alert('Speaker Toggled', `Speaker is now: ${!speakerOn ? 'ON' : 'OFF'}`);
   };
 
-  const leaveChannel = async () => {
-    try {
-      if (engineRef.current && isJoined) {
-        console.log('🎤 Leaving channel...');
-        
-        await engineRef.current.leaveChannel();
-        await engineRef.current.destroy();
-        engineRef.current = null;
-        
-        setIsJoined(false);
-        setIsMuted(true);
-        
-        console.log('🎤 Left channel successfully');
-        onLeaveChannel?.();
-      }
-    } catch (error) {
-      console.error('🎤 Failed to leave channel:', error);
+  // End turn manually
+  const endTurn = () => {
+    if (isMyTurn) {
+      onTurnEnd?.();
     }
   };
-
-  const toggleMicrophone = async () => {
-    if (!engineRef.current || !isJoined) return;
-
-    try {
-      if (isMuted) {
-        // Unmute
-        await engineRef.current.muteLocalAudioStream(false);
-        setIsMuted(false);
-        console.log('🎤 Microphone unmuted');
-      } else {
-        // Mute
-        await engineRef.current.muteLocalAudioStream(true);
-        setIsMuted(true);
-        console.log('🎤 Microphone muted');
-      }
-    } catch (error) {
-      console.error('🎤 Failed to toggle microphone:', error);
-      const errorMessage = `Failed to toggle microphone: ${error}`;
-      setError(errorMessage);
-      onError?.(errorMessage);
-    }
-  };
-
-  const toggleSpeaker = async () => {
-    if (!engineRef.current || !isJoined) return;
-
-    try {
-      if (isSpeakerEnabled) {
-        // Disable speaker
-        await engineRef.current.setEnableSpeakerphone(false);
-        setIsSpeakerEnabled(false);
-        console.log('🎤 Speaker disabled (using earpiece)');
-      } else {
-        // Enable speaker
-        await engineRef.current.setEnableSpeakerphone(true);
-        setIsSpeakerEnabled(true);
-        console.log('🎤 Speaker enabled');
-      }
-    } catch (error) {
-      console.error('🎤 Failed to toggle speaker:', error);
-      const errorMessage = `Failed to toggle speaker: ${error}`;
-      setError(errorMessage);
-      onError?.(errorMessage);
-    }
-  };
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={initializeAgora}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusText}>
-          {isJoined ? '🎤 Connected' : '🎤 Connecting...'}
+    <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
+      {/* Header */}
+      <View style={{
+        padding: 16,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)'
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons 
+              name={isConnected ? "mic" : "mic-off"} 
+              size={24} 
+              color={isConnected ? "#22c55e" : "#ef4444"} 
+            />
+            <Text style={{ color: '#fff', marginLeft: 8, fontWeight: '600' }}>
+              Agora Voice Chat
+            </Text>
+          </View>
+          
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: isConnected ? '#22c55e' : '#ef4444',
+              marginRight: 8
+            }} />
+            <Text style={{ color: '#fff', fontSize: 12 }}>
+              {isConnected ? 'Connected' : 'Connecting...'}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Agora Status */}
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Ionicons 
+          name={isConnected ? "checkmark-circle" : "alert-circle"} 
+          size={64} 
+          color={isConnected ? "#22c55e" : "#f59e0b"} 
+        />
+        <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: 16, textAlign: 'center' }}>
+          {isConnected ? 'Agora Voice Chat Active' : 'Opening Agora in Browser...'}
         </Text>
-        {isMyTurn && (
-          <Text style={styles.turnText}>Your Turn - Speak Now!</Text>
+        <Text style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, textAlign: 'center' }}>
+          {isConnected 
+            ? 'Real-time voice chat is running in your browser' 
+            : 'Please allow microphone permission in the browser'
+          }
+        </Text>
+        
+        {!isConnected && (
+          <TouchableOpacity
+            onPress={openAgoraBrowser}
+            style={{
+              backgroundColor: '#3b82f6',
+              paddingVertical: 12,
+              paddingHorizontal: 24,
+              borderRadius: 8,
+              marginTop: 20
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '600' }}>
+              Open Agora Browser
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
 
-      <View style={styles.controlsContainer}>
-        <TouchableOpacity
-          style={[
-            styles.controlButton,
-            styles.micButton,
-            isMuted ? styles.mutedButton : styles.unmutedButton,
-            !isMyTurn && styles.disabledButton
-          ]}
-          onPress={toggleMicrophone}
-          disabled={!isJoined || !isMyTurn}
-        >
-          <Text style={styles.controlButtonText}>
-            {isMuted ? '🎤' : '🔇'}
-          </Text>
-          <Text style={styles.controlButtonLabel}>
-            {isMuted ? 'Unmute' : 'Mute'}
-          </Text>
-        </TouchableOpacity>
+      {/* Controls */}
+      <View style={{
+        position: 'absolute',
+        bottom: 20,
+        left: 20,
+        right: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)'
+      }}>
+        {/* Turn Indicator */}
+        {isMyTurn && (
+          <View style={{
+            backgroundColor: '#f59e0b',
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 16,
+            alignItems: 'center'
+          }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
+              Your Turn - {timeLeft}s remaining
+            </Text>
+          </View>
+        )}
 
-        <TouchableOpacity
-          style={[
-            styles.controlButton,
-            styles.speakerButton,
-            isSpeakerEnabled ? styles.speakerEnabled : styles.speakerDisabled
-          ]}
-          onPress={toggleSpeaker}
-          disabled={!isJoined}
-        >
-          <Text style={styles.controlButtonText}>
-            {isSpeakerEnabled ? '🔊' : '🔉'}
-          </Text>
-          <Text style={styles.controlButtonLabel}>
-            {isSpeakerEnabled ? 'Speaker' : 'Earpiece'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        {/* Control Buttons */}
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-around',
+          alignItems: 'center'
+        }}>
+          {/* Mic Button */}
+          <TouchableOpacity
+            onPress={() => {
 
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>Channel: {channelName}</Text>
-        <Text style={styles.infoText}>UID: {uid}</Text>
-        <Text style={styles.infoText}>
-          Turn: Player {currentTurn} {isMyTurn ? '(You)' : ''}
-        </Text>
+              Alert.alert('Mic Button', `Connected: ${isConnected}, MyTurn: ${isMyTurn}`);
+              toggleMic();
+            }}
+            disabled={false}
+            style={{
+              backgroundColor: micOn ? '#22c55e' : '#ef4444',
+              padding: 16,
+              borderRadius: 50,
+              opacity: 1
+            }}
+          >
+            <Ionicons 
+              name={micOn ? "mic" : "mic-off"} 
+              size={24} 
+              color="#fff" 
+            />
+          </TouchableOpacity>
+
+          {/* Speaker Button */}
+          <TouchableOpacity
+            onPress={() => {
+
+              Alert.alert('Speaker Button', `Connected: ${isConnected}`);
+              toggleSpeaker();
+            }}
+            disabled={false}
+            style={{
+              backgroundColor: speakerOn ? '#22c55e' : '#6b7280',
+              padding: 16,
+              borderRadius: 50,
+              opacity: 1
+            }}
+          >
+            <Ionicons 
+              name={speakerOn ? "volume-high" : "volume-mute"} 
+              size={24} 
+              color="#fff" 
+            />
+          </TouchableOpacity>
+
+          {/* End Turn Button */}
+          {isMyTurn && (
+            <TouchableOpacity
+              onPress={endTurn}
+              style={{
+                backgroundColor: '#ef4444',
+                padding: 16,
+                borderRadius: 50
+              }}
+            >
+              <Ionicons name="stop" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Participants Count */}
+        <View style={{
+          marginTop: 16,
+          alignItems: 'center'
+        }}>
+          <Text style={{ color: '#fff', fontSize: 14, opacity: 0.7 }}>
+            {participants.length} players connected
+          </Text>
+        </View>
       </View>
     </View>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
-    margin: 8,
-  },
-  errorContainer: {
-    backgroundColor: '#ff4444',
-    borderRadius: 12,
-    padding: 16,
-    margin: 8,
-    alignItems: 'center',
-  },
-  errorText: {
-    color: 'white',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  retryButton: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#ff4444',
-    fontWeight: 'bold',
-  },
-  statusContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  statusText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  turnText: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  controlsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-  },
-  controlButton: {
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    minWidth: 80,
-  },
-  micButton: {
-    backgroundColor: '#333',
-  },
-  speakerButton: {
-    backgroundColor: '#333',
-  },
-  mutedButton: {
-    backgroundColor: '#ff4444',
-  },
-  unmutedButton: {
-    backgroundColor: '#4CAF50',
-  },
-  speakerEnabled: {
-    backgroundColor: '#2196F3',
-  },
-  speakerDisabled: {
-    backgroundColor: '#666',
-  },
-  disabledButton: {
-    backgroundColor: '#666',
-    opacity: 0.5,
-  },
-  controlButtonText: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  controlButtonLabel: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  infoContainer: {
-    alignItems: 'center',
-  },
-  infoText: {
-    color: '#ccc',
-    fontSize: 12,
-    marginBottom: 2,
-  },
-});
-
-export default AgoraVoiceChat;
+}

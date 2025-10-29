@@ -59,8 +59,8 @@ export default function FollowRequestsScreen() {
   };
 
   const updateStats = (requests: FollowRequest[]) => {
-    console.log('Follow requests data:', requests);
-    console.log('Request statuses:', requests.map(r => ({ id: r.id, status: r.status })));
+
+
     
     setStats({
       total: requests.length,

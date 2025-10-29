@@ -70,11 +70,11 @@ const ExamCategoryPage = () => {
   const categoryColors = getGradientColors(category || '');
 
   useEffect(() => {
-    console.log('🔍 ExamCategoryPage mounted with category:', category);
+
     if (category) {
       fetchExamsByCategory();
     } else {
-      console.log('❌ No category provided!');
+
       setLoading(false);
     }
     // Start animations
@@ -110,7 +110,7 @@ const ExamCategoryPage = () => {
       const response = await apiFetchAuth(`/student/practice-exams?category=${encodeURIComponent(category || '')}`, user.token);
       
       if (response.ok) {
-        console.log('📚 Exams fetched successfully:', response.data);
+
         setExams(response.data || []);
       } else {
         console.error('❌ Failed to fetch exams:', response.data);
@@ -131,12 +131,12 @@ const ExamCategoryPage = () => {
   };
 
   const handleStartExam = (exam: PracticeExam) => {
-    console.log('🚀 Starting exam:', exam.title);
+
     router.push(`/practice-exam/${exam.id}`);
   };
 
   const handleReviewExam = (exam: PracticeExam) => {
-    console.log('👁️ Reviewing exam:', exam.title);
+
     router.push(`/practice-exam/${exam.id}/result`);
   };
 
@@ -290,7 +290,7 @@ const ExamCategoryPage = () => {
                   <TouchableOpacity
                     style={styles.modernExamTouchable}
                     onPress={() => {
-                      console.log('🎯 Exam card pressed:', exam.title);
+
                       exam.attempted ? handleReviewExam(exam) : handleStartExam(exam);
                     }}
                     activeOpacity={0.9}

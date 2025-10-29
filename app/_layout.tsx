@@ -36,7 +36,16 @@ const HeaderRight = ({ navigation }: any) => {
     return (
         <View style={styles.headerRight}>
             {/* Enhanced Notification Icon */}
-            <NotificationBadge size={22} color="#FFFFFF" />
+            <NotificationBadge size={26} color="#FFFFFF" />
+            
+            {/* Message Icon */}
+            <TouchableOpacity 
+                style={styles.messageIconButton}
+                onPress={() => navigation.navigate('(tabs)', { screen: 'messages' })}
+                activeOpacity={0.7}
+            >
+                <Ionicons name="chatbubble-ellipses-outline" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
             
             {/* Enhanced Wallet Amount */}
             <TouchableOpacity 
@@ -44,7 +53,7 @@ const HeaderRight = ({ navigation }: any) => {
                 onPress={() => navigation.navigate('(tabs)', { screen: 'wallet' })}
             >
                 <View style={styles.walletIconContainer}>
-                    <Ionicons name="wallet" size={18} color="#FFFFFF" />
+                    <Ionicons name="wallet" size={16} color="#FFFFFF" />
                 </View>
                 <Text style={styles.walletAmount}>₹{walletAmount}</Text>
             </TouchableOpacity>
@@ -79,10 +88,14 @@ function RootNavigator() {
                     headerTintColor: AppColors.white,
                     headerBackground: () => (
                         <LinearGradient
-                            colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                            colors={['#4F46E5', '#7C3AED']}
                             start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={{ flex: 1 }}
+                            end={{ x: 1, y: 0 }}
+                            style={{ 
+                                flex: 1,
+                                borderBottomWidth: 1.5,
+                                borderBottomColor: 'rgba(255, 255, 255, 0.25)',
+                            }}
                         />
                     ),
                     headerLeft: () => (
@@ -92,7 +105,8 @@ function RootNavigator() {
                     ),
                     headerRight: () => <HeaderRight navigation={navigation} />,
                     drawerStyle: {
-                        width: 250, // Set the width of the drawer
+                        width: 280, // Increased drawer width
+                        backgroundColor: '#FFFFFF',
                     },
                 })}
             >
@@ -100,12 +114,19 @@ function RootNavigator() {
                     name="(tabs)"
                     options={{
                       title: '', // Remove the title
+                      headerShown: false, // Hide header for tabs (which includes home)
                     }}
                 />
                 <Drawer.Screen
                     name="privacy-policy"
                     options={{
                       title: '', // Remove the title for privacy-policy
+                    }}
+                />
+                <Drawer.Screen
+                    name="terms"
+                    options={{
+                      title: '', // Remove the title for terms
                     }}
                 />
                 <Drawer.Screen
@@ -136,36 +157,47 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        paddingHorizontal: 12,
+        paddingHorizontal: 14,
         paddingVertical: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.25)',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 0,
     },
     walletIconContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 12,
-        width: 28,
-        height: 28,
+        backgroundColor: '#FB923C',
+        borderRadius: 10,
+        width: 26,
+        height: 26,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderWidth: 1.5,
+        borderColor: 'rgba(251, 146, 60, 0.3)',
+        shadowColor: '#FB923C',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 0,
     },
     walletAmount: {
         color: '#FFFFFF',
-        fontSize: 15,
-        fontWeight: '700',
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        fontSize: 14,
+        fontWeight: '800',
+        textShadowColor: 'rgba(0, 0, 0, 0.25)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
-        letterSpacing: 0.3,
+        letterSpacing: 0.4,
+        lineHeight: 17,
+    },
+    messageIconButton: {
+        marginLeft: 0,
+        marginRight: 8,
+        padding: 4,
     },
     notificationContainer: {
         position: 'relative',

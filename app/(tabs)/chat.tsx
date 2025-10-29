@@ -1,19 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    SafeAreaView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { apiFetchAuth } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
@@ -59,6 +62,9 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [chatId, setChatId] = useState('');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -69,12 +75,12 @@ export default function ChatScreen() {
       
       setLoading(true);
       try {
-        console.log('📡 Fetching messages for user:', userId);
+
         const response = await apiFetchAuth(`/student/messages/${userId}`, user.token);
         
         if (response.ok) {
           const data = response.data || response;
-          console.log('📨 Fetched messages:', data);
+
           
           if (Array.isArray(data)) {
             // Sort messages by creation time
@@ -83,13 +89,13 @@ export default function ChatScreen() {
             );
             
             setMessages(sortedMessages);
-            console.log('✅ Messages loaded:', sortedMessages.length);
+
           } else {
-            console.log('❌ Messages data is not an array');
+
             setMessages([]);
           }
         } else {
-          console.log('❌ Failed to fetch messages:', response.status);
+
           setMessages([]);
         }
       } catch (error) {
@@ -114,9 +120,9 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (isConnected) {
-      console.log('✅ WebSocket is connected for user:', user?.id);
+
     } else {
-      console.log('❌ WebSocket is NOT connected for user:', user?.id);
+
     }
   }, [isConnected]);
 
@@ -128,17 +134,17 @@ export default function ChatScreen() {
       // Join chat room
       if (isConnected) {
         joinChat(chatId);
-        console.log('Joining chat room:', chatId, 'as user:', user?.id);
+
       }
 
       // Step 5: Real-time Updates - Like React website
       // 1. New message receive karne par
       const handleNewMessage = (newMessage: any) => {
-        console.log('📨 [WebSocket] New message received:', newMessage, 'User:', user?.id);
+
         
         // Add null checks to prevent the error
         if (!newMessage || !newMessage.sender || !newMessage.sender.id) {
-          console.log('❌ Invalid message format received:', newMessage);
+
           return;
         }
         
@@ -147,7 +153,7 @@ export default function ChatScreen() {
             (newMessage.sender.id === userId || 
              newMessage.receiver?.id === userId)) {
           // Current chat mai hai to message add karta hai
-          console.log('✅ Adding message to current chat');
+
           setMessages(prev => {
             const exists = prev.some(msg => msg.id === newMessage.id);
             if (!exists) {
@@ -167,14 +173,14 @@ export default function ChatScreen() {
           }
         } else {
           // Dusre chat ka message hai to conversations update karta hai
-          console.log('📨 Message from other chat, updating conversations');
+
           // Note: In React Native, we'll refresh conversations when user goes back
         }
       };
 
       // 2. Message read status update karne par
       const handleMessagesRead = ({ readerId }: { readerId: string }) => {
-        console.log('👁️ Messages read by:', readerId);
+
         if (userId && userId === readerId) {
           setMessages(prev =>
             prev.map(msg => 
@@ -331,6 +337,57 @@ export default function ChatScreen() {
     }
   };
 
+  // Delete message functionality
+  const handleDeleteMessage = (message: Message) => {
+    setSelectedMessage(message);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteMessage = async (deleteType: 'for_me' | 'for_everyone') => {
+    if (!selectedMessage || !user?.token) return;
+
+    setDeleting(true);
+    try {
+      const response = await apiFetchAuth('/student/messages/delete-post', user.token, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: `{messageId:"${selectedMessage.id}",deleteType:"${deleteType}"}`
+      });
+
+      if (response.ok) {
+        if (deleteType === 'for_everyone') {
+          // Remove message for everyone
+          setMessages(prev => prev.filter(msg => msg.id !== selectedMessage.id));
+        } else {
+          // Remove message only for current user (mark as deleted)
+          setMessages(prev => prev.map(msg => 
+            msg.id === selectedMessage.id 
+              ? { ...msg, isDeleted: true, content: 'This message was deleted' }
+              : msg
+          ));
+        }
+        
+        Alert.alert('Success', 'Message deleted successfully');
+        setDeleteModalVisible(false);
+        setSelectedMessage(null);
+      } else {
+        Alert.alert('Error', 'Failed to delete message. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      Alert.alert('Error', 'Failed to delete message. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalVisible(false);
+    setSelectedMessage(null);
+  };
+
   // Format time
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -376,16 +433,21 @@ export default function ChatScreen() {
         )}
         
         <View style={styles.messageContent}>
-          <LinearGradient
-            colors={isMyMessage ? ['#667eea', '#764ba2'] : ['#ffffff', '#f8f9fa']}
-            style={[styles.messageBubble, isMyMessage ? styles.myBubble : styles.theirBubble]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <TouchableOpacity
+            onLongPress={() => handleDeleteMessage(item)}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.messageText, isMyMessage ? styles.myMessageText : styles.theirMessageText]}>
-              {item.content}
-            </Text>
-          </LinearGradient>
+            <LinearGradient
+              colors={isMyMessage ? ['#667eea', '#764ba2'] : ['#ffffff', '#f8f9fa']}
+              style={[styles.messageBubble, isMyMessage ? styles.myBubble : styles.theirBubble]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={[styles.messageText, isMyMessage ? styles.myMessageText : styles.theirMessageText]}>
+                {item.content}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
           
           {showTime && (
             <View style={styles.timeContainer}>
@@ -548,6 +610,70 @@ export default function ChatScreen() {
             </View>
           </LinearGradient>
         </View>
+
+        {/* Delete Message Modal */}
+        <Modal
+          visible={deleteModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={closeDeleteModal}
+        >
+          <View style={styles.deleteModalOverlay}>
+            <View style={styles.deleteModalContent}>
+              <View style={styles.deleteModalHeader}>
+                <Text style={styles.deleteModalTitle}>Delete Message</Text>
+                <TouchableOpacity onPress={closeDeleteModal} style={styles.deleteModalCloseButton}>
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.deleteModalBody}>
+                <Text style={styles.deleteModalText}>
+                  Choose how you want to delete this message:
+                </Text>
+                
+                <TouchableOpacity
+                  style={styles.deleteOptionButton}
+                  onPress={() => confirmDeleteMessage('for_me')}
+                  disabled={deleting}
+                >
+                  <View style={styles.deleteOptionContent}>
+                    <Ionicons name="person-outline" size={24} color="#FF6B6B" />
+                    <View style={styles.deleteOptionTextContainer}>
+                      <Text style={styles.deleteOptionTitle}>Delete for me</Text>
+                      <Text style={styles.deleteOptionDescription}>
+                        Remove this message from your chat only
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.deleteOptionButton}
+                  onPress={() => confirmDeleteMessage('for_everyone')}
+                  disabled={deleting}
+                >
+                  <View style={styles.deleteOptionContent}>
+                    <Ionicons name="people-outline" size={24} color="#FF4444" />
+                    <View style={styles.deleteOptionTextContainer}>
+                      <Text style={styles.deleteOptionTitle}>Delete for everyone</Text>
+                      <Text style={styles.deleteOptionDescription}>
+                        Remove this message for all participants
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </View>
+              
+              {deleting && (
+                <View style={styles.deleteLoadingContainer}>
+                  <ActivityIndicator size="small" color="#667eea" />
+                  <Text style={styles.deleteLoadingText}>Deleting message...</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -826,5 +952,90 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  // Delete Modal Styles
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  deleteModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  deleteModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  deleteModalCloseButton: {
+    padding: 8,
+  },
+  deleteModalBody: {
+    gap: 16,
+  },
+  deleteModalText: {
+    fontSize: 16,
+    color: '#374151',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  deleteOptionButton: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+  },
+  deleteOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteOptionTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  deleteOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  deleteOptionDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  deleteLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  deleteLoadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#667eea',
   },
 }); 

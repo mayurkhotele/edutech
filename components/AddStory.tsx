@@ -71,9 +71,9 @@ export default function AddStory({ visible, onClose, onStoryCreated }: AddStoryP
 
   const uploadImage = async (imageUri: string): Promise<string> => {
     try {
-      console.log('Starting image upload for:', imageUri);
+
       const result = await uploadFile(imageUri, user?.token || '');
-      console.log('Upload result:', result);
+
       return result;
     } catch (error) {
       console.error('Upload error:', error);
@@ -89,14 +89,14 @@ export default function AddStory({ visible, onClose, onStoryCreated }: AddStoryP
         caption: caption.trim(),
       };
       
-      console.log('Sending story creation request with payload:', payload);
+
       
       const response = await apiFetchAuth('/student/stories', user?.token || '', {
         method: 'POST',
         body: payload,
       });
 
-      console.log('Story creation response:', response);
+
 
       if (response.ok) {
         Alert.alert('Success', 'Story created successfully!');
@@ -125,9 +125,9 @@ export default function AddStory({ visible, onClose, onStoryCreated }: AddStoryP
 
     try {
       // First upload the image
-      console.log('Uploading image...');
+
       const mediaUrl = await uploadImage(selectedImage);
-      console.log('Uploaded mediaUrl:', mediaUrl);
+
       
       if (!mediaUrl) {
         throw new Error('Failed to upload image - no URL returned');

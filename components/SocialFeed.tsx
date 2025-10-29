@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { apiFetchAuth, getImageUrl } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import AddStory from './AddStory';
@@ -47,6 +47,9 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 
   // Comment modal state
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  
+  // CreatePost modal state
+  const [createPostModalVisible, setCreatePostModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -74,6 +77,20 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
   const [followRequests, setFollowRequests] = useState<any[]>([]);
   const [showFollowRequests, setShowFollowRequests] = useState(false);
   const [followRequestsLoading, setFollowRequestsLoading] = useState(false);
+
+  // Report modal state
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState<string>('');
+  const [reportDescription, setReportDescription] = useState<string>('');
+  const [reporting, setReporting] = useState(false);
+
+  // Block modal state
+  const [blockModalVisible, setBlockModalVisible] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
+  const [blockReason, setBlockReason] = useState<string>('');
+  const [blocking, setBlocking] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -180,7 +197,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         
         setPosts(prev => {
           const existingIds = new Set(prev.map(post => post.id));
-          const uniqueNewPosts = newPosts.filter(post => !existingIds.has(post.id));
+          const uniqueNewPosts = newPosts.filter((post: any) => !existingIds.has(post.id));
           return [...prev, ...uniqueNewPosts];
         });
       } else {
@@ -435,6 +452,103 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
     } else {
       console.log('No stories available for this user');
     }
+  };
+
+  // Report functionality
+  const handleReportPost = (postId: string) => {
+    setSelectedPostId(postId);
+    setReportModalVisible(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!selectedPostId || !reportReason || !reportDescription.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setReporting(true);
+    try {
+      const response = await apiFetchAuth(`/student/posts/${selectedPostId}/report`, user?.token || '', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: reportReason,
+          description: reportDescription.trim()
+        })
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Post reported successfully');
+        setReportModalVisible(false);
+        setReportReason('');
+        setReportDescription('');
+        setSelectedPostId(null);
+      } else {
+        Alert.alert('Error', 'Failed to report post. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error reporting post:', error);
+      Alert.alert('Error', 'Failed to report post. Please try again.');
+    } finally {
+      setReporting(false);
+    }
+  };
+
+  const closeReportModal = () => {
+    setReportModalVisible(false);
+    setReportReason('');
+    setReportDescription('');
+    setSelectedPostId(null);
+  };
+
+  // Block functionality
+  const handleBlockUser = (userId: string, userName: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserName(userName);
+    setBlockModalVisible(true);
+  };
+
+  const handleSubmitBlock = async () => {
+    if (!selectedUserId || !user?.token) return;
+
+    setBlocking(true);
+    try {
+      const response = await apiFetchAuth(`/student/users/${selectedUserId}/block`, user.token, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: blockReason || 'Spam'
+        })
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', `${selectedUserName} has been blocked successfully`);
+        setBlockModalVisible(false);
+        setSelectedUserId(null);
+        setSelectedUserName('');
+        setBlockReason('');
+        // Refresh posts to remove blocked user's posts
+        fetchPosts();
+      } else {
+        Alert.alert('Error', 'Failed to block user. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error blocking user:', error);
+      Alert.alert('Error', 'Failed to block user. Please try again.');
+    } finally {
+      setBlocking(false);
+    }
+  };
+
+  const closeBlockModal = () => {
+    setBlockModalVisible(false);
+    setSelectedUserId(null);
+    setSelectedUserName('');
+    setBlockReason('');
   };
 
   // Search functionality
@@ -782,47 +896,111 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
   };
 
   const renderPost = ({ item }: { item: any }) => (
-    <View style={styles.instagramPostCard}>
-      {/* Instagram-Style Header */}
-      <View style={styles.instagramPostHeader}>
-        <TouchableOpacity 
-          style={styles.authorSection} 
-          onPress={() => {
-            if (navigation && item.author?.id) {
-              console.log('🔍 Navigating to user profile:', item.author.id);
-              navigation.navigate('user-profile', { 
-                userId: item.author.id,
-                originalUserData: item.author 
-              });
-            }
-          }}
-          activeOpacity={0.7}
-        >
-          <View style={styles.instagramAvatarContainer}>
-            <Image
-              source={item.author?.profilePhoto ? { uri: item.author.profilePhoto } : require('../assets/images/avatar1.jpg')}
-              style={styles.instagramAvatar}
-            />
-          </View>
-          <View style={styles.authorInfo}>
-            <Text style={styles.instagramAuthorName}>{item.author?.name || 'Unknown'}</Text>
-            <Text style={styles.instagramPostLocation}>{timeAgo(item.createdAt)}</Text>
-          </View>
-        </TouchableOpacity>
-        <View style={styles.postActions}>
-          {item.isPrivate && (
-            <View style={styles.privacyIndicator}>
-              <Ionicons name="lock-closed" size={14} color="#667eea" />
+    <View style={styles.premiumPostCard}>
+      <LinearGradient
+        colors={['rgba(255,255,255,0.95)', 'rgba(248,250,252,0.95)']}
+        style={styles.postGradient}
+      >
+        {/* Premium Post Header */}
+        <View style={styles.premiumPostHeader}>
+          <TouchableOpacity 
+            style={styles.premiumAuthorSection} 
+            onPress={() => {
+              if (item.author?.id) {
+                console.log('🔍 Navigating to user profile from post:', item.author.id);
+                console.log('🔍 Author data:', item.author);
+                
+                try {
+                  // Use expo-router for navigation (same as search results)
+                  router.push({
+                    pathname: '/(tabs)/user-profile',
+                    params: { 
+                      userId: item.author.id,
+                      originalUserData: JSON.stringify(item.author)
+                    }
+                  });
+                  console.log('✅ Navigation successful');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                  
+                  // Fallback to navigation prop if available
+                  if (navigation) {
+                    try {
+                      navigation.navigate('user-profile', { 
+                        userId: item.author.id,
+                        originalUserData: item.author 
+                      });
+                      console.log('✅ Fallback navigation successful');
+                    } catch (fallbackError) {
+                      console.error('❌ Fallback navigation error:', fallbackError);
+                    }
+                  }
+                }
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.premiumAvatarContainer}>
+              <LinearGradient
+                colors={['#6366F1', '#8B5CF6', '#A855F7']}
+                style={styles.premiumAvatarRing}
+              >
+                <Image
+                  source={item.author?.profilePhoto ? { uri: item.author.profilePhoto } : require('../assets/images/avatar1.jpg')}
+                  style={styles.premiumAvatar}
+                />
+              </LinearGradient>
             </View>
-          )}
-          <TouchableOpacity style={styles.moreButton}>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+            <View style={styles.premiumAuthorInfo}>
+              <Text style={styles.premiumAuthorName}>{item.author?.name || 'Unknown'}</Text>
+              <View style={styles.premiumTimeContainer}>
+                <Ionicons name="time-outline" size={12} color="#6B7280" />
+                <Text style={styles.premiumPostTime}>{timeAgo(item.createdAt)}</Text>
+              </View>
+            </View>
           </TouchableOpacity>
+          <View style={styles.premiumPostActions}>
+            {item.isPrivate && (
+              <View style={styles.premiumPrivacyIndicator}>
+                <LinearGradient
+                  colors={['#F59E0B', '#F97316']}
+                  style={styles.privacyGradient}
+                >
+                  <Ionicons name="lock-closed" size={14} color="#FFFFFF" />
+                </LinearGradient>
+              </View>
+            )}
+            <View style={styles.premiumActionButtons}>
+              <TouchableOpacity 
+                style={styles.postActionButton}
+                onPress={() => handleBlockUser(item.author.id, item.author.name)}
+              >
+                <LinearGradient
+                  colors={['rgba(239, 68, 68, 0.1)', 'rgba(239, 68, 68, 0.05)']}
+                  style={styles.postActionButtonGradient}
+                >
+                  <Ionicons name="ban-outline" size={18} color="#EF4444" />
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.postActionButton}
+                onPress={() => handleReportPost(item.id)}
+              >
+                <LinearGradient
+                  colors={['rgba(107, 114, 128, 0.1)', 'rgba(107, 114, 128, 0.05)']}
+                  style={styles.postActionButtonGradient}
+                >
+                  <Ionicons name="flag-outline" size={18} color="#6B7280" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
 
-      {/* Instagram-Style Content */}
-      <Text style={styles.instagramPostContent}>{item.content}</Text>
+        {/* Premium Post Content */}
+        <View style={styles.premiumPostContent}>
+          <Text style={styles.premiumPostText}>{item.content}</Text>
+        </View>
 
       {/* Poll Options */}
       {item.postType === 'POLL' && item.pollOptions && item.pollOptions.length > 0 && (
@@ -954,71 +1132,102 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         </Text>
       </View>
 
-      {/* Instagram-Style Comments Preview */}
-      {item._count?.comments > 0 && (
-        <View style={styles.instagramCommentsContainer}>
-          <TouchableOpacity onPress={() => openComments(item)}>
-            <Text style={styles.instagramViewCommentsText}>
-              View all {item._count.comments} comments
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        {/* Instagram-Style Comments Preview */}
+        {item._count?.comments > 0 && (
+          <View style={styles.instagramCommentsContainer}>
+            <TouchableOpacity onPress={() => openComments(item)}>
+              <Text style={styles.instagramViewCommentsText}>
+                View all {item._count.comments} comments
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </LinearGradient>
     </View>
   );
 
   const renderStories = () => {
     return (
-      <View style={styles.instagramStoriesContainer}>
-        <FlatList
-          data={stories}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.storiesList}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => {
-            return (
-              <TouchableOpacity 
-                style={styles.storyItem} 
-                activeOpacity={0.8}
-                onPress={() => item.isAdd ? handleAddStory() : handleStoryPress(index)}
-              >
-                <View style={styles.storyWrapper}>
-                  <View style={[
-                    styles.storyRing,
-                    item.isAdd && styles.addStoryRing,
-                    item.hasStory && !item.viewed && styles.unviewedStoryRing,
-                    item.hasStory && item.viewed && styles.viewedStoryRing
-                  ]}>
-                    {typeof item.image === 'string' ? (
-                      <Image source={{ uri: item.image }} style={styles.storyImage} />
-                    ) : (
-                      <Image source={item.image} style={styles.storyImage} />
-                    )}
-                    {item.isAdd && (
-                      <View style={styles.addStoryIcon}>
-                        <Ionicons name="add" size={18} color="#fff" />
+      <View style={styles.premiumStoriesContainer}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.95)', 'rgba(248,250,252,0.95)']}
+          style={styles.premiumStoriesGradient}
+        >
+          <View style={styles.premiumStoriesHeader}>
+            <Text style={styles.premiumStoriesTitle}>Stories</Text>
+            <View style={styles.storiesIndicator}>
+              <View style={styles.storiesDot} />
+              <View style={styles.storiesDot} />
+              <View style={styles.storiesDot} />
+            </View>
+          </View>
+          
+          <FlatList
+            data={stories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.premiumStoriesList}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => {
+              return (
+                <TouchableOpacity 
+                  style={styles.premiumStoryItem} 
+                  activeOpacity={0.8}
+                  onPress={() => item.isAdd ? handleAddStory() : handleStoryPress(index)}
+                >
+                  <View style={styles.premiumStoryWrapper}>
+                    <LinearGradient
+                      colors={
+                        item.isAdd 
+                          ? ['#6366F1', '#8B5CF6', '#A855F7']
+                          : item.hasStory && !item.viewed
+                          ? ['#F59E0B', '#F97316', '#EA580C']
+                          : ['#E5E7EB', '#D1D5DB', '#9CA3AF']
+                      }
+                      style={[
+                        styles.premiumStoryRing,
+                        item.isAdd && styles.premiumAddStoryRing,
+                        item.hasStory && !item.viewed && styles.premiumUnviewedStoryRing,
+                        item.hasStory && item.viewed && styles.premiumViewedStoryRing
+                      ]}
+                    >
+                      <View style={styles.premiumStoryInner}>
+                        {typeof item.image === 'string' ? (
+                          <Image source={{ uri: item.image }} style={styles.premiumStoryImage} />
+                        ) : (
+                          <Image source={item.image} style={styles.premiumStoryImage} />
+                        )}
+                        {item.isAdd && (
+                          <View style={styles.premiumAddStoryIcon}>
+                            <LinearGradient
+                              colors={['#FFFFFF', '#F8FAFC']}
+                              style={styles.addIconGradient}
+                            >
+                              <Ionicons name="add" size={20} color="#6366F1" />
+                            </LinearGradient>
+                          </View>
+                        )}
+                        {item.hasStory && !item.viewed && (
+                          <View style={styles.premiumStoryIndicator}>
+                            <View style={styles.premiumStoryDot} />
+                          </View>
+                        )}
                       </View>
-                    )}
-                    {item.hasStory && !item.viewed && (
-                      <View style={styles.storyIndicator}>
-                        <View style={styles.storyDot} />
-                      </View>
-                    )}
+                    </LinearGradient>
+                    <View style={styles.premiumStoryInfo}>
+                      <Text style={styles.premiumStoryUsername} numberOfLines={1}>
+                        {item.username}
+                      </Text>
+                      {item.isAdd && (
+                        <Text style={styles.premiumAddStoryText}>Add Story</Text>
+                      )}
+                    </View>
                   </View>
-                  <View style={styles.storyInfo}>
-                    <Text style={styles.storyUsername} numberOfLines={1}>
-                      {item.username}
-                    </Text>
-                    {item.isAdd && (
-                      <Text style={styles.addStoryText}>Add Story</Text>
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-        />
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </LinearGradient>
       </View>
     );
   };
@@ -1101,79 +1310,6 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
 
   return (
     <View style={styles.container}>
-      {/* Instagram/Facebook Style Header with Left Search */}
-      <View style={styles.instagramHeader}>
-        <View style={styles.headerTop}>
-          {/* Left Side - Search Bar */}
-          <View style={styles.leftSearchContainer}>
-            <View style={styles.compactSearchContainer}>
-              <Ionicons name="search" size={16} color="#8e8e93" style={styles.compactSearchIcon} />
-              <TextInput
-                style={styles.compactSearchInput}
-                placeholder="Search"
-                placeholderTextColor="#8e8e93"
-                value={searchQuery}
-                onChangeText={handleSearch}
-                onFocus={() => {
-                  console.log('🔍 Search bar focused');
-                }}
-                onBlur={() => {
-                  setTimeout(() => {
-                    setShowSearchResults(false);
-                  }, 200);
-                }}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity 
-                  style={styles.compactClearButton}
-                  onPress={() => {
-                    console.log('🔍 Clear button pressed, clearing search...');
-                    setSearchQuery('');
-                    setSearchResults([]);
-                    setShowSearchResults(false);
-                  }}
-                >
-                  <Ionicons name="close-circle" size={16} color="#8e8e93" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          {/* Center - Title */}
-          <Text style={styles.headerTitle}>Social</Text>
-
-          {/* Right Side - Action Buttons */}
-          <View style={styles.headerActions}>
-            {/* Follow Requests Button */}
-            <TouchableOpacity 
-              style={styles.headerActionButton}
-              onPress={() => {
-                console.log('🔍 Follow requests button clicked!');
-                if (navigation) {
-                  navigation.navigate('follow-requests' as never);
-                } else {
-                  router.push('/follow-requests');
-                }
-              }}
-            >
-              <Ionicons name="people-outline" size={24} color="#000" />
-              {followRequests.length > 0 && (
-                <View style={styles.headerBadge}>
-                  <Text style={styles.headerBadgeText}>{followRequests.length}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            
-            {/* Notification Button */}
-            <TouchableOpacity style={styles.headerActionButton}>
-              <Ionicons name="notifications-outline" size={24} color="#000" />
-              <View style={styles.headerBadge}>
-                <Text style={styles.headerBadgeText}>3</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
 
       {/* Enhanced Search Results */}
       {showSearchResults && (
@@ -1252,7 +1388,7 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
               <Text style={styles.enhancedEmptySubtitle}>Be the first to share something with your community</Text>
               <TouchableOpacity 
                 style={styles.createPostButton}
-                onPress={() => navigation?.navigate('CreatePost')}
+                onPress={() => setCreatePostModalVisible(true)}
               >
                 <LinearGradient
                   colors={['#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7']}
@@ -1290,68 +1426,269 @@ export default function SocialFeed({ refreshTrigger, navigation }: SocialFeedPro
         stories={stories[selectedStoryIndex]?.stories || []}
       />
 
-      {/* Professional Comment Modal */}
+      {/* Instagram/Facebook Style Comment Modal */}
       <Modal
         visible={commentModalVisible}
         animationType="slide"
-        transparent={true}
+        transparent={false}
         onRequestClose={closeComments}
+        statusBarTranslucent={true}
       >
-        <View style={styles.commentModalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.modalContent}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Comments</Text>
-              <TouchableOpacity onPress={closeComments} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            
-            <FlatList
-              data={comments}
-              keyExtractor={(item) => item.id}
-              style={styles.commentsList}
-              renderItem={({ item }) => (
-                <View style={styles.commentItem}>
+        <View style={styles.instagramCommentModal}>
+          {/* Instagram Style Header */}
+          <View style={styles.instagramCommentHeader}>
+            <TouchableOpacity onPress={closeComments} style={styles.instagramCloseButton}>
+              <Ionicons name="arrow-back" size={24} color="#000" />
+            </TouchableOpacity>
+            <Text style={styles.instagramCommentTitle}>Comments</Text>
+            <View style={styles.instagramHeaderSpacer} />
+          </View>
+          
+          {/* Comments List */}
+          <FlatList
+            data={comments}
+            keyExtractor={(item) => item.id}
+            style={styles.instagramCommentsList}
+            contentContainerStyle={styles.instagramCommentsContent}
+            renderItem={({ item }) => (
+              <View style={styles.instagramCommentItem}>
+                <View style={styles.instagramCommentAvatarContainer}>
                   <Image
                     source={item.user?.profilePhoto ? { uri: item.user.profilePhoto } : require('../assets/images/avatar1.jpg')}
-                    style={styles.commentAvatar}
+                    style={styles.instagramCommentAvatar}
                   />
-                  <View style={styles.commentContent}>
-                    <View style={styles.commentHeader}>
-                      <Text style={styles.commentAuthor}>{item.user?.name || 'Unknown'}</Text>
-                      <Text style={styles.commentTime}>{timeAgo(item.createdAt)}</Text>
-                    </View>
-                    <Text style={styles.commentText}>{item.content}</Text>
+                </View>
+                <View style={styles.instagramCommentContent}>
+                  <View style={styles.instagramCommentItemHeader}>
+                    <Text style={styles.instagramCommentAuthor}>{item.user?.name || 'Unknown'}</Text>
+                    <Text style={styles.instagramCommentTime}>{timeAgo(item.createdAt)}</Text>
+                  </View>
+                  <Text style={styles.instagramCommentText}>{item.content}</Text>
+                  <View style={styles.instagramCommentActions}>
+                    <TouchableOpacity style={styles.instagramCommentAction}>
+                      <Text style={styles.instagramCommentActionText}>Like</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.instagramCommentAction}>
+                      <Text style={styles.instagramCommentActionText}>Reply</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-              )}
-            />
-            
-            <View style={styles.commentInputContainer}>
+              </View>
+            )}
+            ListEmptyComponent={
+              <View style={styles.instagramEmptyComments}>
+                <Ionicons name="chatbubbles-outline" size={48} color="#999" />
+                <Text style={styles.instagramEmptyCommentsText}>No comments yet</Text>
+                <Text style={styles.instagramEmptyCommentsSubtext}>Be the first to comment!</Text>
+              </View>
+            }
+          />
+          
+          {/* Instagram Style Input */}
+          <View style={styles.instagramCommentInputContainer}>
+            <View style={styles.instagramCommentInputWrapper}>
               <TextInput
-                style={styles.commentInput}
+                style={styles.instagramCommentInput}
                 placeholder="Add a comment..."
+                placeholderTextColor="#999"
                 value={newComment}
                 onChangeText={setNewComment}
                 multiline
                 maxLength={500}
               />
               <TouchableOpacity
-                style={[styles.postCommentButton, !newComment.trim() && styles.postCommentButtonDisabled]}
+                style={[styles.instagramPostButton, !newComment.trim() && styles.instagramPostButtonDisabled]}
                 onPress={handleAddComment}
                 disabled={!newComment.trim() || postingComment}
               >
                 {postingComment ? (
+                  <ActivityIndicator size="small" color="#0095F6" />
+                ) : (
+                  <Text style={[styles.instagramPostButtonText, !newComment.trim() && styles.instagramPostButtonTextDisabled]}>
+                    Post
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={reportModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closeReportModal}
+      >
+        <View style={styles.reportModalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.reportModalContent}
+          >
+            <View style={styles.reportModalHeader}>
+              <Text style={styles.reportModalTitle}>Report Post</Text>
+              <TouchableOpacity onPress={closeReportModal} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.reportForm}>
+              <Text style={styles.reportLabel}>Reason for reporting:</Text>
+              <View style={styles.reportReasonContainer}>
+                <TouchableOpacity
+                  style={[styles.reportReasonButton, reportReason === 'inappropriate' && styles.reportReasonButtonSelected]}
+                  onPress={() => setReportReason('inappropriate')}
+                >
+                  <Text style={[styles.reportReasonText, reportReason === 'inappropriate' && styles.reportReasonTextSelected]}>
+                    Inappropriate Content
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.reportReasonButton, reportReason === 'spam' && styles.reportReasonButtonSelected]}
+                  onPress={() => setReportReason('spam')}
+                >
+                  <Text style={[styles.reportReasonText, reportReason === 'spam' && styles.reportReasonTextSelected]}>
+                    Spam
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.reportReasonButton, reportReason === 'harassment' && styles.reportReasonButtonSelected]}
+                  onPress={() => setReportReason('harassment')}
+                >
+                  <Text style={[styles.reportReasonText, reportReason === 'harassment' && styles.reportReasonTextSelected]}>
+                    Harassment
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.reportReasonButton, reportReason === 'violence' && styles.reportReasonButtonSelected]}
+                  onPress={() => setReportReason('violence')}
+                >
+                  <Text style={[styles.reportReasonText, reportReason === 'violence' && styles.reportReasonTextSelected]}>
+                    Violence
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.reportReasonButton, reportReason === 'other' && styles.reportReasonButtonSelected]}
+                  onPress={() => setReportReason('other')}
+                >
+                  <Text style={[styles.reportReasonText, reportReason === 'other' && styles.reportReasonTextSelected]}>
+                    Other
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.reportLabel}>Description (optional):</Text>
+              <TextInput
+                style={styles.reportDescriptionInput}
+                placeholder="Please provide additional details..."
+                value={reportDescription}
+                onChangeText={setReportDescription}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+              
+              <TouchableOpacity
+                style={[styles.reportSubmitButton, (!reportReason || reporting) && styles.reportSubmitButtonDisabled]}
+                onPress={handleSubmitReport}
+                disabled={!reportReason || reporting}
+              >
+                {reporting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.postCommentButtonText}>Comment</Text>
+                  <Text style={styles.reportSubmitButtonText}>Submit Report</Text>
                 )}
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* Block User Modal */}
+      <Modal
+        visible={blockModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closeBlockModal}
+      >
+        <View style={styles.blockModalOverlay}>
+          <View style={styles.blockModalContent}>
+            <View style={styles.blockModalHeader}>
+              <Text style={styles.blockModalTitle}>Block User</Text>
+              <TouchableOpacity onPress={closeBlockModal} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.blockModalBody}>
+              <View style={styles.blockModalIcon}>
+                <LinearGradient
+                  colors={['#EF4444', '#DC2626']}
+                  style={styles.blockIconGradient}
+                >
+                  <Ionicons name="ban" size={48} color="#fff" />
+                </LinearGradient>
+              </View>
+              
+              <Text style={styles.blockModalText}>
+                Are you sure you want to block {selectedUserName}?
+              </Text>
+              
+              <Text style={styles.blockModalSubtext}>
+                This user will not be able to see your posts or send you messages.
+              </Text>
+
+              <View style={styles.reasonSection}>
+                <Text style={styles.reasonLabel}>Reason (Optional)</Text>
+                <View style={styles.reasonButtons}>
+                  {['Spam', 'Harassment', 'Inappropriate Content', 'Other'].map((reason) => (
+                    <TouchableOpacity
+                      key={reason}
+                      style={[
+                        styles.reasonButton,
+                        blockReason === reason && styles.reasonButtonSelected
+                      ]}
+                      onPress={() => setBlockReason(reason)}
+                    >
+                      <Text style={[
+                        styles.reasonButtonText,
+                        blockReason === reason && styles.reasonButtonTextSelected
+                      ]}>
+                        {reason}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              
+              <View style={styles.blockModalActions}>
+                <TouchableOpacity
+                  style={styles.blockCancelButton}
+                  onPress={closeBlockModal}
+                  disabled={blocking}
+                >
+                  <Text style={styles.blockCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.blockConfirmButton, blocking && styles.blockConfirmButtonDisabled]}
+                  onPress={handleSubmitBlock}
+                  disabled={blocking}
+                >
+                  {blocking ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.blockConfirmButtonText}>Block User</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </View>
       </Modal>
 
@@ -1481,30 +1818,6 @@ const styles = StyleSheet.create({
   headerIconButton: {
     padding: 8,
     marginLeft: 12,
-  },
-  // Instagram-style search
-  instagramSearchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#dbdbdb',
-  },
-  searchBarContainer: {
-    backgroundColor: '#fafafa',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#dbdbdb',
-  },
-  searchIconContainer: {
-    paddingHorizontal: 12,
-  },
-  instagramSearchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#262626',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
   },
   // Instagram/Facebook Style Stories
   instagramStoriesContainer: {
@@ -2121,171 +2434,6 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginBottom: 16,
   },
-  storiesList: {
-    flexDirection: 'row',
-  },
-  storyItem: {
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  storyWrapper: {
-    alignItems: 'center',
-  },
-  storyRing: {
-    width: 65,
-    height: 65,
-    borderRadius: 32.5,
-    padding: 2.5,
-    backgroundColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addStoryRing: {
-    backgroundColor: '#667eea',
-    shadowColor: '#667eea',
-    shadowOpacity: 0.3,
-  },
-  unviewedStoryRing: {
-    backgroundColor: '#ff6b6b',
-    shadowColor: '#ff6b6b',
-    shadowOpacity: 0.3,
-  },
-  viewedStoryRing: {
-    backgroundColor: '#e0e0e0',
-  },
-  storyImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  addStoryIcon: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#667eea',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  storyInfo: {
-    alignItems: 'center',
-  },
-  storyUsername: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  storyIndicator: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  storyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ff6b6b',
-  },
-  addStoryText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#667eea',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  messageButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginRight: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  messageButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: 4,
-  },
-  loadingFooter: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  loadingFooterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 8,
-  },
-  // Search Bar Styles
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-     searchInput: {
-     flex: 1,
-     fontSize: 14,
-     color: '#374151',
-     paddingVertical: 0,
-   },
-   // Enhanced Search Results Styles
-   clearSearchButton: {
-     padding: 5,
-   },
    searchResultsContainer: {
      position: 'absolute',
      top: 70,
@@ -2672,14 +2820,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
   enhancedHeader: {
     paddingTop: 50, // Adjust for status bar
     paddingBottom: 20,
@@ -2698,23 +2838,10 @@ const styles = StyleSheet.create({
   headerLeft: {
     flex: 1,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#e0e0e0',
-  },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-  },
-  followRequestsButton: {
-    position: 'relative',
   },
   followRequestsBadge: {
     position: 'absolute',
@@ -2812,12 +2939,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 20,
   },
-  searchLoadingText: {
-    marginLeft: 8,
-    color: '#8B5CF6',
-    fontSize: 14,
-    fontWeight: '500',
-  },
   noSearchResultsContainer: {
     alignItems: 'center',
     padding: 30,
@@ -2905,11 +3026,6 @@ const styles = StyleSheet.create({
     color: '#667eea',
     marginRight: 4,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
   commentModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -2930,31 +3046,6 @@ const styles = StyleSheet.create({
     elevation: 20,
     borderWidth: 1,
     borderColor: 'rgba(79, 70, 229, 0.1)',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(79, 70, 229, 0.1)',
-    backgroundColor: '#F8FAFC',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   commentsList: {
     padding: 16,
@@ -2997,9 +3088,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6B7280',
     fontWeight: '400',
-  },
-  searchResultsList: {
-    paddingBottom: 16,
   },
    // Enhanced Stories Styles
    enhancedStoriesContainer: {
@@ -3270,4 +3358,715 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 
- });
+  // Report Modal Styles
+  reportModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reportModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  reportModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  reportModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  reportForm: {
+    gap: 16,
+  },
+  reportLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  reportReasonContainer: {
+    gap: 8,
+  },
+  reportReasonButton: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#F9FAFB',
+  },
+  reportReasonButtonSelected: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+  },
+  reportReasonText: {
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
+  },
+  reportReasonTextSelected: {
+    color: '#92400E',
+    fontWeight: '600',
+  },
+  reportDescriptionInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#374151',
+    backgroundColor: '#F9FAFB',
+    minHeight: 80,
+  },
+  reportSubmitButton: {
+    backgroundColor: '#EF4444',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  reportSubmitButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  reportSubmitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loadingFooter: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  loadingFooterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+
+  // Action Buttons Styles (duplicate removed)
+
+  // Block Modal Styles
+  blockModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blockModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  blockModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  blockModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  blockModalBody: {
+    alignItems: 'center',
+  },
+  blockModalIcon: {
+    marginBottom: 20,
+  },
+  blockIconGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blockModalText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  blockModalSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  reasonSection: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  reasonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  reasonButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  reasonButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#F9FAFB',
+  },
+  reasonButtonSelected: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
+  },
+  reasonButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  reasonButtonTextSelected: {
+    color: '#fff',
+  },
+  blockModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  blockCancelButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+  },
+  blockCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  blockConfirmButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+  },
+  blockConfirmButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  blockConfirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+
+  // Premium Header Styles
+  premiumHeader: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 15,
+  },
+  premiumSearchContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  searchGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  premiumSearchIcon: {
+    marginRight: 10,
+  },
+  premiumSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  premiumClearButton: {
+    marginLeft: 8,
+  },
+  premiumTitleContainer: {
+    alignItems: 'center',
+    flex: 0,
+  },
+  premiumHeaderTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    letterSpacing: 0.5,
+  },
+  premiumHeaderSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+    letterSpacing: 0.3,
+  },
+  premiumActionButton: {
+    marginLeft: 8,
+    position: 'relative',
+  },
+  headerActionButtonGradient: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  premiumBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Premium Stories Styles
+  premiumStoriesContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 16,
+  },
+  premiumStoriesGradient: {
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  premiumStoriesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  premiumStoriesTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: 0.5,
+  },
+  storiesIndicator: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  storiesDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#6366F1',
+  },
+  premiumStoriesList: {
+    paddingLeft: 4,
+  },
+  premiumStoryItem: {
+    marginRight: 16,
+  },
+  premiumStoryWrapper: {
+    alignItems: 'center',
+  },
+  premiumStoryRing: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    padding: 3,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  premiumAddStoryRing: {
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  premiumUnviewedStoryRing: {
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  premiumViewedStoryRing: {
+    shadowColor: '#9CA3AF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  premiumStoryInner: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumStoryImage: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+  },
+  premiumAddStoryIcon: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+  },
+  addIconGradient: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#6366F1',
+  },
+  premiumStoryIndicator: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+  },
+  premiumStoryDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  premiumStoryInfo: {
+    alignItems: 'center',
+  },
+  premiumStoryUsername: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+    textAlign: 'center',
+    maxWidth: 80,
+  },
+  premiumAddStoryText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#6366F1',
+    marginTop: 2,
+  },
+
+  // Premium Post Card Styles
+  premiumPostCard: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
+  },
+  postGradient: {
+    padding: 20,
+  },
+  premiumPostHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  premiumAuthorSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  premiumAvatarContainer: {
+    marginRight: 12,
+  },
+  premiumAvatarRing: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    padding: 2,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  premiumAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+  },
+  premiumAuthorInfo: {
+    flex: 1,
+  },
+  premiumAuthorName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 2,
+    letterSpacing: 0.3,
+  },
+  premiumTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  premiumPostTime: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  premiumPostActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  premiumPrivacyIndicator: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  privacyGradient: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  premiumActionButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  postActionButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  premiumPostContent: {
+    marginBottom: 16,
+  },
+  premiumPostText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#374151',
+    fontWeight: '500',
+    letterSpacing: 0.2,
+  },
+  postActionButtonGradient: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Instagram/Facebook Style Comment Modal
+  instagramCommentModal: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  instagramCommentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DBDBDB',
+    backgroundColor: '#FFFFFF',
+  },
+  instagramCloseButton: {
+    padding: 8,
+  },
+  instagramCommentTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+  },
+  instagramHeaderSpacer: {
+    width: 40,
+  },
+  instagramCommentsList: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  instagramCommentsContent: {
+    paddingVertical: 16,
+  },
+  instagramCommentItem: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  instagramCommentAvatarContainer: {
+    marginRight: 12,
+  },
+  instagramCommentAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  instagramCommentContent: {
+    flex: 1,
+  },
+  instagramCommentItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  instagramCommentAuthor: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginRight: 8,
+  },
+  instagramCommentTime: {
+    fontSize: 12,
+    color: '#8E8E8E',
+  },
+  instagramCommentText: {
+    fontSize: 14,
+    color: '#000',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  instagramCommentActions: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  instagramCommentAction: {
+    paddingVertical: 4,
+  },
+  instagramCommentActionText: {
+    fontSize: 12,
+    color: '#8E8E8E',
+    fontWeight: '500',
+  },
+  instagramEmptyComments: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  instagramEmptyCommentsText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  instagramEmptyCommentsSubtext: {
+    fontSize: 14,
+    color: '#8E8E8E',
+  },
+  instagramCommentInputContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#DBDBDB',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  instagramCommentInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    minHeight: 40,
+  },
+  instagramCommentInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#000',
+    maxHeight: 100,
+    paddingVertical: 4,
+  },
+  instagramPostButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginLeft: 8,
+  },
+  instagramPostButtonDisabled: {
+    opacity: 0.5,
+  },
+  instagramPostButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0095F6',
+  },
+  instagramPostButtonTextDisabled: {
+    color: '#8E8E8E',
+  },
+
+});

@@ -33,10 +33,10 @@ const Welcome = () => {
             }
         }, 200); // 200ms delay between each letter
 
-        // 10-second delay before showing content
+        // 2-second delay before showing content
         const timer = setTimeout(() => {
             setShowContent(true);
-        }, 10000);
+        }, 2000);
 
         Animated.loop(
             Animated.sequence([

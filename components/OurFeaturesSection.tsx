@@ -9,124 +9,111 @@ const { width: screenWidth } = Dimensions.get('window');
 interface FeatureItem {
   id: string;
   title: string;
+  subtitle: string;
   icon: string;
   route: string;
   gradientColors: [string, string];
   shadowColor: string;
+  description: string;
 }
+
+// Modern educational color combinations
+const primaryBlue = ['#2563EB', '#1E40AF']; // Royal blue gradient
+const successGreen = ['#059669', '#047857']; // Success green gradient
+const energyOrange = ['#EA580C', '#C2410C']; // Energy orange gradient
+const focusPurple = ['#7C3AED', '#5B21B6']; // Focus purple gradient
+const trustTeal = ['#0D9488', '#0F766E']; // Trust teal gradient
+const growthRed = ['#DC2626', '#B91C1C']; // Growth red gradient
+const wisdomIndigo = ['#4F46E5', '#3730A3']; // Wisdom indigo gradient
+const innovationPink = ['#DB2777', '#BE185D']; // Innovation pink gradient
 
 const features: FeatureItem[] = [
   {
     id: '1',
-    title: 'Live Exam',
+    title: 'Live Exams',
+    subtitle: 'Real-time Testing',
     icon: 'play-circle',
     route: '/(tabs)/exam',
-    gradientColors: ['#FF6B6B', '#FF8E8E'],
-    shadowColor: '#FF6B6B'
+    gradientColors: primaryBlue,
+    shadowColor: primaryBlue[0],
+    description: 'Join live competitive exams with real-time scoring and instant results'
   },
   {
     id: '2',
-    title: 'Practice Exam',
+    title: 'Practice Tests',
+    subtitle: 'Skill Building',
     icon: 'library',
     route: '/(tabs)/practice-exam',
-    gradientColors: ['#4ECDC4', '#6ED5D0'],
-    shadowColor: '#4ECDC4'
+    gradientColors: successGreen,
+    shadowColor: successGreen[0],
+    description: 'Practice with unlimited mock tests to improve your performance'
   },
   {
     id: '3',
-    title: "Who's the Spy",
-    icon: 'eye',
-    route: '/(tabs)/spy-game',
-    gradientColors: ['#45B7D1', '#67C4D7'],
-    shadowColor: '#45B7D1'
+    title: 'Study Materials',
+    subtitle: 'Premium Books',
+    icon: 'book',
+    route: '/(tabs)/book-store',
+    gradientColors: energyOrange,
+    shadowColor: energyOrange[0],
+    description: 'Access comprehensive study materials and premium books'
   },
   {
     id: '4',
-    title: 'Battle Quiz',
+    title: 'Quiz Battles',
+    subtitle: 'Compete & Win',
     icon: 'trophy',
     route: '/(tabs)/quiz',
-    gradientColors: ['#96CEB4', '#A8D4C0'],
-    shadowColor: '#96CEB4'
+    gradientColors: focusPurple,
+    shadowColor: focusPurple[0],
+    description: 'Challenge friends in exciting quiz battles and win rewards'
   },
   {
     id: '5',
-    title: 'Social Media',
+    title: 'Study Groups',
+    subtitle: 'Connect & Learn',
     icon: 'people',
     route: '/(tabs)/social',
-    gradientColors: ['#FECA57', '#FED373'],
-    shadowColor: '#FECA57'
+    gradientColors: trustTeal,
+    shadowColor: trustTeal[0],
+    description: 'Join study groups and connect with fellow aspirants'
   },
   {
     id: '6',
-    title: 'Notifications',
+    title: 'Exam Alerts',
+    subtitle: 'Stay Updated',
     icon: 'notifications',
     route: '/exam-notifications',
-    gradientColors: ['#FF9FF3', '#FFB3F6'],
-    shadowColor: '#FF9FF3'
-  },
-  {
-    id: '7',
-    title: 'Timetable',
-    icon: 'calendar',
-    route: '/(tabs)/timetable',
-    gradientColors: ['#54A0FF', '#74B3FF'],
-    shadowColor: '#54A0FF'
-  },
-  {
-    id: '8',
-    title: '24/7 Support',
-    icon: 'headset',
-    route: '/(tabs)/support-tickets',
-    gradientColors: ['#81C784', '#95D199'],
-    shadowColor: '#81C784'
+    gradientColors: growthRed,
+    shadowColor: growthRed[0],
+    description: 'Get instant notifications about upcoming exams and results'
   }
 ];
 
 const OurFeaturesSection: React.FC = () => {
   const router = useRouter();
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
-  const floatAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
-    // Shimmer animation
-    const shimmerAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmerAnim, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmerAnim, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    // Floating animation
-    const floatAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: 1,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    shimmerAnimation.start();
-    floatAnimation.start();
-
-    return () => {
-      shimmerAnimation.stop();
-      floatAnimation.stop();
-    };
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const handleFeaturePress = (feature: FeatureItem) => {
@@ -134,7 +121,7 @@ const OurFeaturesSection: React.FC = () => {
     router.push(feature.route as any);
   };
 
-  const renderFeatureItem = (feature: FeatureItem, isSecondRow: boolean = false, index: number) => {
+  const renderFeatureItem = (feature: FeatureItem, index: number, type: 'main' | 'secondary' | 'additional') => {
     const scaleAnim = useRef(new Animated.Value(1)).current;
     
     const handlePressIn = () => {
@@ -153,27 +140,26 @@ const OurFeaturesSection: React.FC = () => {
       }).start();
     };
 
-    const floatTranslateY = floatAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, -3],
-    });
-
-    const shimmerTranslateX = shimmerAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [-100, 100],
-    });
+    const getExamStyle = () => {
+      switch (type) {
+        case 'main':
+          return styles.mainFeature;
+        case 'secondary':
+          return styles.secondaryFeature;
+        case 'additional':
+          return styles.additionalFeature;
+        default:
+          return styles.mainFeature;
+      }
+    };
 
     return (
       <Animated.View
         key={feature.id}
         style={[
-          styles.featureItem,
-          isSecondRow && styles.secondRowItem,
+          getExamStyle(),
           {
-            transform: [
-              { scale: scaleAnim },
-              { translateY: floatTranslateY }
-            ],
+            transform: [{ scale: scaleAnim }],
           },
         ]}
       >
@@ -181,267 +167,243 @@ const OurFeaturesSection: React.FC = () => {
           onPress={() => handleFeaturePress(feature)}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          activeOpacity={1}
+          activeOpacity={0.8}
           style={styles.touchableContent}
         >
-          {/* Shimmer Effect */}
-          <Animated.View
-            style={[
-              styles.shimmerOverlay,
-              {
-                transform: [{ translateX: shimmerTranslateX }],
-                opacity: shimmerAnim.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0, 0.3, 0],
-                }),
-              },
-            ]}
-          />
-          
-          {/* Gradient Icon Container */}
-          <LinearGradient
-            colors={feature.gradientColors}
-            style={styles.iconContainer}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Ionicons name={feature.icon as any} size={22} color="#fff" />
-          </LinearGradient>
-          
-          {/* Title */}
-          <Text style={[styles.featureTitle, isSecondRow && styles.secondRowTitle]}>
-            {feature.title}
-          </Text>
+          {/* Exam-Style Feature Card */}
+          <View style={styles.examCard}>
+            {/* Feature Icon */}
+            <LinearGradient
+              colors={feature.gradientColors}
+              style={styles.examIcon}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name={feature.icon as any} size={type === 'main' ? 24 : 20} color="#FFFFFF" />
+            </LinearGradient>
+            
+            {/* Feature Content */}
+            <View style={styles.examContent}>
+              <Text style={[styles.examTitle, type === 'main' && styles.mainTitle]}>
+                {feature.title}
+              </Text>
+              <Text style={styles.examSubtitle}>
+                {feature.subtitle}
+              </Text>
+            </View>
+            
+            {/* Exam Arrow */}
+            <View style={styles.examArrow}>
+              <Ionicons name="arrow-forward" size={16} color="#6366F1" />
+            </View>
+          </View>
         </TouchableOpacity>
       </Animated.View>
     );
   };
 
-  // Split features into two rows: first 3, then next 3 (total 6 features)
-  const firstRowFeatures = features.slice(0, 3);
-  const secondRowFeatures = features.slice(3, 6);
-
   return (
-    <LinearGradient
-      colors={['#FFFFFF', '#F8FAFC', '#FFFFFF']}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <Animated.View 
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [
+            { translateY: slideAnim },
+            { scale: scaleAnim }
+          ],
+        },
+      ]}
     >
-      {/* Enhanced Header */}
-      <LinearGradient
-        colors={['#4F46E5', '#7C3AED', '#EC4899']}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-      >
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <LinearGradient
-              colors={['#FFD700', '#FF6B6B']}
-              style={styles.headerIcon}
-            >
-              <Ionicons name="apps" size={18} color="#FFFFFF" />
-            </LinearGradient>
-            <View>
-              <Text style={styles.sectionTitle}>Our Features</Text>
-              <Text style={styles.sectionSubtitle}>Explore all capabilities</Text>
-            </View>
+      {/* Exam-Style Header */}
+      <View style={styles.examHeader}>
+        <LinearGradient
+          colors={['#6366F1', '#8B5CF6', '#A855F7']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerIcon}>
+            <Ionicons name="school" size={24} color="#FFFFFF" />
           </View>
-          <TouchableOpacity style={styles.seeAllButton}>
-            <LinearGradient
-              colors={['#FFFFFF', '#F3F4F6']}
-              style={styles.seeAllGradient}
-            >
-              <Text style={styles.seeAllText}>See All</Text>
-              <Ionicons name="chevron-forward" size={14} color="#4F46E5" />
-            </LinearGradient>
-          </TouchableOpacity>
+          <View style={styles.headerText}>
+            <Text style={styles.sectionTitle}>Exam Preparation Hub</Text>
+            <Text style={styles.sectionSubtitle}>Your Gateway to Success</Text>
+          </View>
+        </LinearGradient>
+      </View>
+      
+      {/* Unique Exam-Style Layout */}
+      <View style={styles.examContainer}>
+        {/* Top Row - Main Features */}
+        <View style={styles.topRow}>
+          {features.slice(0, 2).map((feature, index) => renderFeatureItem(feature, index, 'main'))}
         </View>
-      </LinearGradient>
-      
-      {/* First Row - 4 items */}
-      <View style={styles.featuresRow}>
-        {firstRowFeatures.map((feature, index) => renderFeatureItem(feature, false, index))}
+        
+        {/* Middle Row - Secondary Features */}
+        <View style={styles.middleRow}>
+          {features.slice(2, 4).map((feature, index) => renderFeatureItem(feature, index, 'secondary'))}
+        </View>
+        
+        {/* Bottom Row - Additional Features */}
+        <View style={styles.bottomRow}>
+          {features.slice(4, 6).map((feature, index) => renderFeatureItem(feature, index, 'additional'))}
+        </View>
       </View>
-      
-      {/* Second Row - 4 items */}
-      <View style={styles.featuresRow}>
-        {secondRowFeatures.map((feature, index) => renderFeatureItem(feature, true, index))}
-      </View>
-    </LinearGradient>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
-    marginVertical: 12,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  examHeader: {
     borderRadius: 20,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
     elevation: 8,
-    borderWidth: 2,
-    borderColor: 'rgba(79, 70, 229, 0.1)',
     overflow: 'hidden',
   },
-  header: {
-    marginHorizontal: -2,
-    marginTop: -2,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    marginBottom: 20,
-    overflow: 'hidden',
-  },
-  headerContent: {
+  headerGradient: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
     paddingVertical: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+    paddingHorizontal: 20,
   },
   headerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+  },
+  headerText: {
+    flex: 1,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#FFFFFF',
-    letterSpacing: 0.6,
-    textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 3,
-    fontFamily: 'System',
-    lineHeight: 24,
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
   sectionSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '700',
-    marginTop: 3,
-    letterSpacing: 0.4,
-    fontFamily: 'System',
-    lineHeight: 16,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.8)',
+    letterSpacing: 0.3,
   },
-  seeAllButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
+  examContainer: {
+    gap: 12,
   },
-  seeAllGradient: {
+  topRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 12,
   },
-  seeAllText: {
-    fontSize: 14,
-    color: '#4F46E5',
-    fontWeight: '800',
-    letterSpacing: 0.4,
-    marginRight: 4,
-    fontFamily: 'System',
-    lineHeight: 17,
-  },
-  featuresRow: {
+  middleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-    paddingHorizontal: 8,
+    gap: 12,
   },
-  featureItem: {
-    width: (screenWidth - 100) / 3,
+  bottomRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mainFeature: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: '#1E40AF',
+  },
+  secondaryFeature: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(79, 70, 229, 0.08)',
-    shadowColor: '#4F46E5',
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
-    elevation: 6,
-    minHeight: 95,
-    overflow: 'hidden',
-    position: 'relative',
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#059669',
+  },
+  additionalFeature: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#7C3AED',
   },
   touchableContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
     flex: 1,
   },
-  shimmerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    width: 50,
+  examCard: {
+    padding: 16,
+    alignItems: 'center',
   },
-  secondRowItem: {
-    width: (screenWidth - 100) / 3,
-  },
-  secondRowTitle: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: '#1F2937',
-    textAlign: 'center',
-    lineHeight: 14,
-    letterSpacing: 0.4,
-    marginTop: 1,
-    fontFamily: 'System',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-  },
-  iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  examIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  featureTitle: {
-    fontSize: 12,
-    fontWeight: '800',
+  examContent: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  examTitle: {
+    fontSize: 14,
+    fontWeight: '700',
     color: '#1F2937',
     textAlign: 'center',
-    lineHeight: 15,
-    letterSpacing: 0.4,
-    fontFamily: 'System',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  mainTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  examSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  examArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
   },
 });
 

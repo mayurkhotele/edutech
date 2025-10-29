@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -121,11 +121,11 @@ export default function KYCDocumentForm({ visible, onClose, onSuccess }: KYCDocu
 
       if (response.ok) {
         Alert.alert(
-          'Success',
-          'KYC document uploaded successfully! Your documents will be verified shortly.',
+          '🎉 Success!',
+          'Your KYC document has been uploaded successfully!\n\nOur team will verify your documents shortly. You will be notified once the verification is complete.',
           [
             {
-              text: 'OK',
+              text: 'Great!',
               onPress: () => {
                 onClose();
                 onSuccess?.();
@@ -133,18 +133,123 @@ export default function KYCDocumentForm({ visible, onClose, onSuccess }: KYCDocu
                 setDocumentNumber('');
                 setDocumentImage(null);
               },
+              style: 'default'
             },
-          ]
+          ],
+          {
+            cancelable: false,
+            titleStyle: {
+              fontSize: 20,
+              fontWeight: '700',
+              color: '#059669',
+              textAlign: 'center',
+              letterSpacing: 0.5,
+            },
+            messageStyle: {
+              fontSize: 16,
+              lineHeight: 24,
+              color: '#374151',
+              textAlign: 'center',
+              marginTop: 12,
+              marginBottom: 16,
+              letterSpacing: 0.3,
+            },
+          }
         );
       } else {
-        Alert.alert('Error', response.data?.message || 'Failed to upload KYC document.');
+        Alert.alert(
+          '❌ Upload Failed',
+          response.data?.message || 'We encountered an issue while uploading your KYC document. Please try again.',
+          [
+            {
+              text: 'Try Again',
+              style: 'default'
+            }
+          ],
+          {
+            cancelable: true,
+            titleStyle: {
+              fontSize: 18,
+              fontWeight: '600',
+              color: '#DC2626',
+              textAlign: 'center',
+              letterSpacing: 0.3,
+            },
+            messageStyle: {
+              fontSize: 15,
+              lineHeight: 22,
+              color: '#4B5563',
+              textAlign: 'center',
+              marginTop: 8,
+              marginBottom: 12,
+              letterSpacing: 0.2,
+            },
+          }
+        );
       }
     } catch (error: any) {
       console.error('Error uploading KYC document:', error);
       if (error.status === 401) {
-        Alert.alert('Session Expired', 'Please log in again.');
+        Alert.alert(
+          '⚠️ Session Expired',
+          'Your session has expired. Please log in again to continue.',
+          [
+            {
+              text: 'Log In',
+              onPress: () => logout(),
+              style: 'default'
+            }
+          ],
+          {
+            cancelable: false,
+            titleStyle: {
+              fontSize: 18,
+              fontWeight: '600',
+              color: '#D97706',
+              textAlign: 'center',
+              letterSpacing: 0.3,
+            },
+            messageStyle: {
+              fontSize: 15,
+              lineHeight: 22,
+              color: '#4B5563',
+              textAlign: 'center',
+              marginTop: 8,
+              marginBottom: 12,
+              letterSpacing: 0.2,
+            },
+          }
+        );
       } else {
-        Alert.alert('Error', error.data?.message || 'Failed to upload KYC document. Please try again.');
+        Alert.alert(
+          '❌ Error',
+          error.data?.message || 'We encountered an unexpected error. Please try again later.',
+          [
+            {
+              text: 'OK',
+              style: 'default'
+            }
+          ],
+          {
+            cancelable: true,
+            titleStyle: {
+              fontSize: 18,
+              fontWeight: '600',
+              color: '#DC2626',
+              textAlign: 'center',
+              letterSpacing: 0.3,
+            },
+            messageStyle: {
+              fontSize: 15,
+              lineHeight: 22,
+              color: '#4B5563',
+              textAlign: 'center',
+              marginTop: 8,
+              marginBottom: 12,
+              letterSpacing: 0.2,
+            },
+          }
+        );
       }
     } finally {
       setLoading(false);
@@ -171,7 +276,7 @@ export default function KYCDocumentForm({ visible, onClose, onSuccess }: KYCDocu
           >
             <Text style={styles.modalTitle}>Upload KYC Document</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#FFFFFF" />
+              <Ionicons name="close" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           </LinearGradient>
 
@@ -220,14 +325,14 @@ export default function KYCDocumentForm({ visible, onClose, onSuccess }: KYCDocu
               ) : (
                 <View style={styles.uploadContainer}>
                   <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-                    <Ionicons name="image" size={32} color="#4F46E5" />
+                    <Ionicons name="image" size={22} color="#4F46E5" />
                     <Text style={styles.uploadText}>Choose from Gallery</Text>
                   </TouchableOpacity>
                   
                   <Text style={styles.orText}>OR</Text>
                   
                   <TouchableOpacity style={styles.uploadButton} onPress={takePhoto}>
-                    <Ionicons name="camera" size={32} color="#4F46E5" />
+                    <Ionicons name="camera" size={22} color="#4F46E5" />
                     <Text style={styles.uploadText}>Take Photo</Text>
                   </TouchableOpacity>
                 </View>
@@ -244,8 +349,8 @@ export default function KYCDocumentForm({ visible, onClose, onSuccess }: KYCDocu
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
-                  <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
-                  <Text style={styles.submitButtonText}>Upload Document</Text>
+                  <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+                  <Text style={styles.submitButtonText}>Submit</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -313,147 +418,207 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    width: '90%',
-    maxHeight: '80%',
+    width: '92%',
+    maxHeight: '90%',
+    minHeight: '75%',
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.25,
-    shadowRadius: 25,
-    elevation: 20,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 24,
-    paddingBottom: 20,
+    padding: 10,
+    paddingBottom: 10,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFFFFF',
     flex: 1,
+    letterSpacing: 0.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.12)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+    lineHeight: 18,
   },
   closeButton: {
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
+    padding: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   modalBody: {
     padding: 24,
     paddingTop: 20,
+    paddingBottom: 0,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 12,
+    marginBottom: 10,
+    letterSpacing: 0.2,
   },
   dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     backgroundColor: '#F9FAFB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 0,
   },
   dropdownText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#1F2937',
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
   textInput: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     backgroundColor: '#F9FAFB',
-    fontSize: 16,
+    fontSize: 15,
     color: '#1F2937',
     fontWeight: '500',
+    letterSpacing: 0.2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 0,
   },
   uploadContainer: {
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 12,
+    padding: 12,
     backgroundColor: '#F9FAFB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 0,
   },
   uploadButton: {
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginBottom: 12,
+    marginBottom: 6,
     width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 0,
   },
   uploadText: {
-    marginTop: 8,
-    fontSize: 14,
+    marginTop: 6,
+    fontSize: 13,
     color: '#4F46E5',
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   orText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
-    marginVertical: 8,
+    marginVertical: 6,
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
   imagePreviewContainer: {
     position: 'relative',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 0,
   },
   imagePreview: {
     width: '100%',
-    height: 200,
+    height: 120,
     resizeMode: 'cover',
   },
   removeImageButton: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
     padding: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 0,
   },
   submitButton: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
+    backgroundColor: '#FB923C',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    marginTop: 8,
+    shadowColor: '#FB923C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 0,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 146, 60, 0.2)',
+    position: 'absolute',
+    bottom: -35,
+    left: '50%',
+    transform: [{ translateX: -100 }],
+    width: 200,
   },
   submitButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: 'rgba(156, 163, 175, 0.9)',
+    borderColor: 'rgba(156, 163, 175, 0.2)',
   },
   submitButtonText: {
     color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
-    marginLeft: 8,
+    fontWeight: '600',
+    fontSize: 14,
+    marginLeft: 6,
+    letterSpacing: 0.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   typeModalOverlay: {
     flex: 1,
@@ -464,47 +629,58 @@ const styles = StyleSheet.create({
   typeModalContent: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    width: '80%',
-    maxHeight: '60%',
+    width: '85%',
+    maxHeight: '65%',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   typeModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: 'rgba(226, 232, 240, 0.8)',
   },
   typeModalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: '#1F2937',
+    letterSpacing: 0.3,
   },
   typeModalBody: {
-    padding: 16,
+    padding: 14,
   },
   typeOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     borderRadius: 12,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   selectedTypeOption: {
-    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-    borderWidth: 1,
-    borderColor: '#4F46E5',
+    backgroundColor: 'rgba(79, 70, 229, 0.08)',
+    borderColor: 'rgba(79, 70, 229, 0.2)',
   },
   typeOptionText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#1F2937',
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
   selectedTypeOptionText: {
     color: '#4F46E5',
     fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });

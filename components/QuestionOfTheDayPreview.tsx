@@ -18,6 +18,7 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const QuestionOfTheDayPreview = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [timerElement, setTimerElement] = useState<React.ReactNode>(null);
   
   // Animated values for background elements
   const animatedValue1 = useRef(new Animated.Value(0)).current;
@@ -323,12 +324,12 @@ const QuestionOfTheDayPreview = () => {
     <>
       {/* Compact Enhanced Preview Section */}
       <View style={styles.previewContainer}>
-        <LinearGradient
-          colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.previewGradient}
-        >
+                        <LinearGradient
+                          colors={['#EA580C', '#F97316', '#FB923C']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.previewGradient}
+                        >
           {/* Enhanced Animated Background Pattern */}
           <View style={styles.backgroundPattern}>
             <Animated.View 
@@ -589,7 +590,7 @@ const QuestionOfTheDayPreview = () => {
                   <Text style={styles.previewTitle}>Question of the Day</Text>
                   <TouchableOpacity style={styles.rightViewButton} onPress={openModal}>
                     <LinearGradient
-                      colors={['#FF6B6B', '#FF8E53']}
+                      colors={['#DB2777', '#BE185D']}
                       style={styles.rightViewButtonGradient}
                     >
                       <Text style={styles.viewButtonText}>View</Text>
@@ -613,31 +614,29 @@ const QuestionOfTheDayPreview = () => {
       >
         <View style={styles.centeredOverlay}>
           <View style={styles.centeredCard}>
-            <LinearGradient
-              colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cardGradient}
-            >
-              {/* Enhanced Header with Close Button */}
+                            <LinearGradient
+                              colors={['#4F46E5', '#7C3AED', '#8B5CF6']}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={styles.cardGradient}
+                            >
+              {/* Enhanced Header with Close Button and Timer */}
               <View style={styles.modalHeader}>
                 <View style={styles.headerContent}>
-                  <View style={styles.headerIcon}>
-                    <Ionicons name="bulb" size={28} color="#FFFFFF" />
-                  </View>
+                  {timerElement}
                   <View style={styles.headerText}>
-                    <Text style={styles.modalTitle}>Question of the Day</Text>
+                    <Text style={styles.modalTitle}>Question</Text>
                     <Text style={styles.modalSubtitle}>Test your knowledge!</Text>
                   </View>
                 </View>
                 <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                  <Ionicons name="close" size={24} color="#FF4444" />
                 </TouchableOpacity>
               </View>
 
               {/* Content Container */}
               <View style={styles.contentContainer}>
-                <QuestionOfTheDay />
+                <QuestionOfTheDay onTimerRender={setTimerElement} />
               </View>
             </LinearGradient>
           </View>
@@ -648,20 +647,22 @@ const QuestionOfTheDayPreview = () => {
 };
 
 const styles = StyleSheet.create({
-  previewContainer: {
-    margin: 12,
-    borderRadius: 18,
-    shadowColor: '#4F46E5',
-    shadowOffset: {
-      width: 0,
-      height: 6,
+    previewContainer: {
+        margin: 12,
+        borderRadius: 24,
+        shadowColor: '#EA580C',
+        shadowOffset: {
+            width: 0,
+            height: 8,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 12,
+        overflow: 'visible',
+        position: 'relative',
+        borderWidth: 2,
+        borderColor: 'rgba(234, 88, 12, 0.15)',
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 10,
-    overflow: 'visible',
-    position: 'relative',
-  },
   previewGradient: {
     borderRadius: 18,
     padding: 18,
@@ -795,17 +796,19 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   rightViewButtonGradient: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowColor: '#DB2777',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(219, 39, 119, 0.3)',
   },
   titleRow: {
     flexDirection: 'row',
@@ -911,14 +914,14 @@ const styles = StyleSheet.create({
     backdropFilter: 'blur(10px)',
   },
   closeButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: '#FFFFFF', // White background
     borderRadius: 20,
     padding: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
+    borderColor: 'rgba(255, 68, 68, 0.3)', // Light red border
+    shadowColor: '#FF4444',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -950,21 +953,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
-  centeredCard: {
-    width: '90%',
-    minHeight: 550,
-    maxHeight: 750,
-    paddingVertical: 12,
-    paddingHorizontal: 0,
-    backgroundColor: 'transparent',
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 15,
-  },
+    centeredCard: {
+        width: '90%',
+        minHeight: 550,
+        maxHeight: 750,
+        paddingVertical: 12,
+        paddingHorizontal: 0,
+        backgroundColor: 'transparent',
+        borderRadius: 24,
+        overflow: 'hidden',
+        shadowColor: '#EA580C',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.45,
+        shadowRadius: 20,
+        elevation: 16,
+        borderWidth: 2,
+        borderColor: 'rgba(234, 88, 12, 0.15)',
+    },
   cardGradient: {
     flex: 1,
     borderRadius: 20,

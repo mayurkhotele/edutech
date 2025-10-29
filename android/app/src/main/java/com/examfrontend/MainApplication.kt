@@ -1,4 +1,4 @@
-package com.anonymous.Examfrontend
+package com.examfrontend
 
 import android.app.Application
 import android.content.res.Configuration
