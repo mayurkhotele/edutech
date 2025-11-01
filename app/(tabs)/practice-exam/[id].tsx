@@ -200,9 +200,29 @@ const PracticeExamDetailsScreen = () => {
         return ((spots - spotsLeft) / spots) * 100;
     };
 
-    const handleStartExam = () => {
-        setShowInstructionsModal(true);
-        setDeclarationChecked(false);
+    const handleStartExam = async () => {
+        if (!id || !user?.token || !exam) return;
+        console.log('Starting exam with user ID:', user.id, 'Exam ID:', id);
+        setJoiningExam(true);
+        try {
+            const joinRes = await apiFetchAuth('/student/practice-exams/join', user.token, {
+                method: 'POST',
+                body: { examId: id },
+                headers: { 'Content-Type': 'application/json' },
+            });
+            if (joinRes.ok) {
+                console.log('Successfully joined exam');
+                setJoiningExam(false);
+                router.push({ pathname: '/(tabs)/practice-exam/questions', params: { id, duration: String(exam.duration) } });
+            } else {
+                setJoiningExam(false);
+                Alert.alert('Error', 'Could not join the exam.');
+            }
+        } catch (e) {
+            console.error('Error joining exam:', e);
+            setJoiningExam(false);
+            Alert.alert('Error', 'Could not join the exam.');
+        }
     };
 
     const handleBeginExam = async () => {
@@ -645,9 +665,11 @@ const PracticeExamDetailsScreen = () => {
                       <TouchableOpacity 
                         style={[
                           styles.enhancedActionButton,
-                          exam.attempted ? styles.enhancedReviewButton : styles.enhancedStartButton
+                          exam.attempted ? styles.enhancedReviewButton : styles.enhancedStartButton,
+                          joiningExam && styles.enhancedActionButtonDisabled
                         ]}
                         onPress={exam.attempted ? handleReviewExam : handleStartExam}
+                        disabled={joiningExam}
                       >
                         <LinearGradient
                           colors={exam.attempted ? ['#ff6b6b', '#ee5a52'] : ['#8B5CF6', '#7C3AED']}
@@ -655,14 +677,20 @@ const PracticeExamDetailsScreen = () => {
                           end={{ x: 1, y: 1 }}
                           style={styles.actionButtonGradient}
                         >
-                          <Ionicons 
-                            name={exam.attempted ? "eye" : "play"} 
-                            size={24} 
-                            color="#fff" 
-                          />
-                          <Text style={styles.enhancedActionButtonText}>
-                            {exam.attempted ? 'Review Results' : 'Start Practice Exam'}
-                          </Text>
+                          {joiningExam ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <>
+                              <Ionicons 
+                                name={exam.attempted ? "eye" : "play"} 
+                                size={24} 
+                                color="#fff" 
+                              />
+                              <Text style={styles.enhancedActionButtonText}>
+                                {exam.attempted ? 'Review Results' : 'Start Practice Exam'}
+                              </Text>
+                            </>
+                          )}
                         </LinearGradient>
                       </TouchableOpacity>
                     </View>
@@ -1636,9 +1664,7 @@ const styles = StyleSheet.create({
         color: '#667eea',
         marginLeft: 4,
     },
-    currentUserScoreText: {
-        color: '#FFD700',
-    },
+  
     timeText: {
         fontSize: 12,
         color: '#718096',
@@ -1662,9 +1688,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginTop: 2,
     },
-    userInfo: {
-        flex: 1,
-    },
+   
     rankText: {
         fontSize: 16,
         fontWeight: 'bold',
@@ -1676,17 +1700,7 @@ const styles = StyleSheet.create({
         color: '#333',
         marginBottom: 2,
     },
-    currentUserNameText: {
-        color: '#667eea',
-        fontWeight: 'bold',
-    },
-    currentUserBadge: {
-        backgroundColor: '#667eea',
-        borderRadius: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        marginTop: 4,
-    },
+   
     currentUserBadgeText: {
         color: '#fff',
         fontSize: 10,
@@ -1695,15 +1709,7 @@ const styles = StyleSheet.create({
     scoreSection: {
         alignItems: 'flex-end',
     },
-    scoreText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1a73e8',
-    },
-    currentUserScoreText: {
-        color: '#667eea',
-        fontSize: 20,
-    },
+   
     scoreLabel: {
         fontSize: 12,
         color: '#666',
@@ -1761,33 +1767,8 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 4,
     },
-    podiumName: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#fff',
-        textAlign: 'center',
-        marginBottom: 4,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-    },
-    podiumScore: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 8,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-    },
-    podiumRank: {
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        borderRadius: 20,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-    },
+    
+ 
     podiumRankText: {
         fontSize: 16,
         fontWeight: 'bold',
@@ -1800,32 +1781,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         marginBottom: 20,
     },
-    leaderboardList: {
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-    },
-    leaderboardRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 16,
-        marginBottom: 8,
-        backgroundColor: '#f8f9fa',
-        borderRadius: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-    },
+  
+
     rankNumberContainer: {
         width: 40,
         height: 40,
@@ -1840,23 +1797,14 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
     },
-    rankNumber: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
+ 
     userAvatar: {
         marginRight: 12,
         backgroundColor: 'rgba(102, 126, 234, 0.1)',
         borderRadius: 20,
         padding: 4,
     },
-    userName: {
-        flex: 1,
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-    },
+ 
     scoreContainer: {
         alignItems: 'flex-end',
     },
@@ -1865,11 +1813,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#667eea',
     },
-    scoreLabel: {
-        fontSize: 12,
-        color: '#666',
-        marginTop: 2,
-    },
+
     podiumTime: {
         fontSize: 12,
         color: '#fff',
@@ -1923,42 +1867,7 @@ const styles = StyleSheet.create({
         color: '#fff',
         marginLeft: 4,
     },
-    currentUserInfo: {
-        flex: 1,
-    },
-    currentUserName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 2,
-    },
-    currentUserScoreLabel: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    currentUserRight: {
-        alignItems: 'flex-end',
-    },
-    currentUserScore: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 2,
-    },
-    currentUserTime: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    userInfo: {
-        flex: 1,
-        marginLeft: 12,
-    },
-    userName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 2,
-    },
+    
     userTime: {
         fontSize: 12,
         color: '#666',
@@ -2138,20 +2047,13 @@ const styles = StyleSheet.create({
     superCurrentUserRight: {
         alignItems: 'flex-end',
     },
-    scoreContainer: {
-        alignItems: 'center',
-        marginBottom: 8,
-    },
+  
     superCurrentUserScore: {
         fontSize: 24,
         fontWeight: 'bold',
         color: '#FFFFFF',
     },
-    scoreLabel: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.8)',
-        marginTop: 2,
-    },
+   
     timeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -2464,60 +2366,12 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 8,
     },
-    currentUserGradient: {
-        padding: 20,
-    },
-    currentUserContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    currentUserLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    currentUserRankBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        borderRadius: 20,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        marginRight: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    currentUserRankNumber: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginLeft: 4,
-    },
-    currentUserInfo: {
-        flex: 1,
-    },
-    currentUserName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 2,
-    },
-    currentUserScoreLabel: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    currentUserRight: {
-        alignItems: 'flex-end',
-    },
-    currentUserScore: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 2,
-    },
-    currentUserTime: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
+
+  
+ 
+ 
+   
+  
     enhancedParticipantsList: {
         flex: 1,
     },
@@ -2618,11 +2472,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#CD7F32',
     },
-    rankNumber: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#6c757d',
-    },
+  
     enhancedParticipantAvatar: {
         width: 44,
         height: 44,
@@ -2638,17 +2488,7 @@ const styles = StyleSheet.create({
         elevation: 2,
         position: 'relative',
     },
-    currentUserIndicator: {
-        position: 'absolute',
-        top: -2,
-        right: -2,
-        backgroundColor: '#FFD700',
-        borderRadius: 8,
-        width: 16,
-        height: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+   
     participantInfo: {
         flex: 1,
     },
@@ -2676,20 +2516,8 @@ const styles = StyleSheet.create({
         color: '#1a73e8',
         marginBottom: 4,
     },
-    currentUserBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#667eea',
-        borderRadius: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-    },
-    currentUserBadgeText: {
-        fontSize: 10,
-        color: '#fff',
-        fontWeight: 'bold',
-        marginLeft: 2,
-    },
+  
+ 
     enhancedAnalysisButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -2824,13 +2652,7 @@ const styles = StyleSheet.create({
         lineHeight: 24,
     },
     // Modal Styles (for Instructions Modal)
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-start',
-        alignItems: 'center',
-        paddingTop: 120,
-    },
+  
     enhancedModalContent: {
         width: '92%',
         maxHeight: '80%',
@@ -2929,11 +2751,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(79, 70, 229, 0.1)',
     },
-    instructionItem: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 16,
-    },
+   
     instructionNumber: {
         backgroundColor: '#4F46E5',
         borderRadius: 14,
@@ -2954,13 +2772,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
     },
-    instructionText: {
-        fontSize: 15,
-        color: '#374151',
-        flex: 1,
-        lineHeight: 22,
-        fontWeight: '500',
-    },
+   
     tipsSection: {
         marginBottom: 20,
     },
@@ -3281,6 +3093,9 @@ const styles = StyleSheet.create({
         elevation: 8,
         marginTop: 8,
         marginBottom: 20,
+    },
+    enhancedActionButtonDisabled: {
+        opacity: 0.6,
     },
     enhancedStartButton: {
         backgroundColor: 'transparent',

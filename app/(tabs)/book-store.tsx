@@ -640,6 +640,57 @@ const BookStoreScreen = () => {
           </View>
         </View>
 
+        {/* Top Books */}
+        <View style={styles.categoriesContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Top Books</Text>
+            <View style={styles.trendingBadge}>
+              <Text style={styles.trendingText}>⭐ Top Rated</Text>
+            </View>
+          </View>
+          <View style={styles.categoriesGrid}>
+            {[
+              { name: 'Exam Prep Book', emoji: '🎯', label: 'Exam Prep' },
+              { name: 'Academic', emoji: '📖', label: 'Academic' },
+              { name: 'Business', emoji: '💼', label: 'Business' },
+              { name: 'Fiction', emoji: '📚', label: 'Fiction' }
+            ].map((category, index) => {
+              const isActive = selectedCategory === category.name;
+              const gradients: [string, string][] = [
+                ['#FF6B6B', '#FF8E53'],
+                ['#4ECDC4', '#44A08D'],
+                ['#FFD93D', '#6BCF7F'],
+                ['#FF9A9E', '#FECFEF']
+              ];
+              return (
+                <TouchableOpacity 
+                  key={category.name}
+                  style={[styles.categoryCard, isActive && styles.categoryCardActive]} 
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/(tabs)/category-books',
+                      params: {
+                        category: category.name,
+                        categoryLabel: category.label,
+                        categoryEmoji: category.emoji
+                      }
+                    });
+                  }}
+                >
+                  <LinearGradient
+                    colors={isActive ? ['#4F46E5', '#7C3AED'] : (gradients[index] || ['#FF6B6B', '#FF8E53'])}
+                    style={styles.categoryIconContainer}
+                  >
+                    <Text style={styles.categoryEmoji}>{category.emoji}</Text>
+                  </LinearGradient>
+                  <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>{category.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
         {/* Creative Advertisement Banner */}
         <View style={styles.adBannerContainer}>
           <LinearGradient

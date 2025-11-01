@@ -25,7 +25,7 @@ const CommonHeader: React.FC<CommonHeaderProps> = ({
 
   return (
     <LinearGradient
-      colors={['#55dbdd', '#55dbdd', '#F8F9FA', '#F8F9FA']}
+      colors={['#6366F1', 'rgba(139, 92, 246, 0.90)', 'rgba(168, 85, 247, 0.70)', '#FFFFFF']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.headerContainer}
@@ -157,7 +157,7 @@ const CommonHeader: React.FC<CommonHeaderProps> = ({
 const styles = StyleSheet.create({
   headerContainer: {
     paddingTop: 0,
-    paddingBottom: 20,
+    paddingBottom: 0,
     paddingHorizontal: 20,
     shadowColor: '#55dbdd',
     shadowOffset: { width: 0, height: 4 },
@@ -282,7 +282,8 @@ const styles = StyleSheet.create({
   searchSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 0,
+    paddingBottom: 12,
   },
   
   searchBar: {

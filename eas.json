@@ -5,16 +5,26 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "node": "20.18.2",
+      "android": {
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
+      }
     },
     "preview": {
       "android": {
-        "buildType": "apk"
-      }
+        "buildType": "apk",
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
+      },
+      "node": "20.18.2"
     },
     "production": {
       "android": {
-        "buildType": "aab"
+        "buildType": "app-bundle"
+      },
+      "node": "20.18.2",
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
       }
     }
   },
@@ -22,7 +32,3 @@
     "production": {}
   }
 }
-
-
-
-

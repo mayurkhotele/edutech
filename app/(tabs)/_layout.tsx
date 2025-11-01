@@ -1,15 +1,22 @@
+import CommonHeader from '@/components/CommonHeader';
 import CustomTabBar from '@/components/CustomTabBar';
 import { Tabs } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 
 function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: { display: 'none' }, // Hide default tab bar
-      }}
-      tabBar={(props) => <CustomTabBar {...props} />}
-    >
+    <View style={styles.container}>
+      <CommonHeader 
+        showSearchBar={true} 
+        showMainOptions={false}
+      />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: { display: 'none' }, // Hide default tab bar
+        }}
+        tabBar={(props) => <CustomTabBar {...props} />}
+      >
       <Tabs.Screen
         name="home"
         options={{
@@ -143,8 +150,15 @@ function TabLayout() {
           href: null,
         }}
       />
-    </Tabs>
+      </Tabs>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
 
 export default TabLayout; 
