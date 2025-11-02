@@ -7,6 +7,27 @@ module.exports = function (api) {
         jsxRuntime: 'automatic'
       }]
     ],
-    plugins: [],
+    plugins: [
+      [
+        'module-resolver',
+        {
+          root: ['./'],
+          alias: {
+            '@': './',
+          },
+          extensions: [
+            '.ios.ts',
+            '.android.ts',
+            '.ts',
+            '.ios.tsx',
+            '.android.tsx',
+            '.tsx',
+            '.jsx',
+            '.js',
+            '.json',
+          ],
+        },
+      ],
+    ],
   };
 };

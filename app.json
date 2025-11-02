@@ -27,7 +27,7 @@
         "ACCESS_NETWORK_STATE",
         "INTERNET"
       ],
-      "package": "yottascore",
+     "package": "com.yottascore.examfrontend",
       "versionCode": 1,
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.anonymous.Examfrontend"
     },

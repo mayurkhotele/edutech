@@ -1,4 +1,4 @@
-package com.examfrontend
+package com.yottascore.examfrontend
 
 import android.app.Application
 import android.content.res.Configuration

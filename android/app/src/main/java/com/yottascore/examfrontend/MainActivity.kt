@@ -1,4 +1,4 @@
-package com.examfrontend
+package com.yottascore.examfrontend
 
 import android.os.Build
 import android.os.Bundle
